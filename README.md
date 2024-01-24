@@ -1,39 +1,40 @@
 # Schedule Monitor
 
-An informational and simple SPA that displays information relating to a schedule. Useful especially if you want to know how much time before a period ends.
+Schedule Monitor is a simple single-page application (SPA) that provides real-time schedule information. It's particularly useful for tracking time until the next period begins.
 
-## Description
+## Features
 
 * Displays current time
 * Option to adjust time in seconds
 * Change background color with preset color schemes
 * Automatic switching between schedules based on current date
-* Buttons to navigate through different available schedules
-* Time input is also a calculator ``log(2phi)*2(10/3)+cos(0)/sec(pi/2)``
+* Navigate through different available schedules with buttons
+* Time input includes a built-in calculator: ``log(2phi)*2(10/3)+cos(0)/sec(pi/2)``
 
-## Getting Started
+## Prerequisites
 
-### Dependencies
+No dependencies are required to install and run this application.
 
-* None
+## Installation
 
-### Installing
+1. Download the latest release from the Releases section.
+2. Open the .html file in your preferred web browser.
 
-* Download the release and run it on a browser and it should automatically start from there
-  
-## Authors
+## Usage
 
-JR Mcapagal
-jrmmcapagal@gmail.com
+After opening the application, you can adjust the time, change the background color, and switch between schedules.
+
+## Contact
+
+If you have any questions or feedback, please feel free to reach out at jrmmcapagal@gmail.com.
 
 ## Version History
 
-* 0.1.25
-    * Initial Release
+* 0.1.25 - Initial Release
 
 ## License
 
-This project is licensed under [APACHE LICENSE 2.0] - see the LICENSE.md file for details
+This project is licensed under the [APACHE LICENSE 2.0](LICENSE.md).
 
 ## Acknowledgments
 
