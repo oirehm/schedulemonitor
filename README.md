@@ -1,12 +1,15 @@
-# Project Title
-
-Schedule Monitor
-
-## Description
+# Schedule Monitor
 
 An informational and simple SPA that displays information relating to a schedule. Useful especially if you want to know how much time before a period ends.
 
-*there's a secret calculator*
+## Description
+
+* Displays current time
+* Option to adjust time in seconds
+* Change background color with preset color schemes
+* Automatic switching between schedules based on current date
+* Buttons to navigate through different available schedules
+* Time input is also a calculator ``log(2phi)*2(10/3)+cos(0)/sec(pi/2)``
 
 ## Getting Started
 
