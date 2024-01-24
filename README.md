@@ -16,16 +16,8 @@ An informational and simple SPA that displays information relating to a schedule
 
 ### Installing
 
-* Download the release and run it on a browser
-
-### Executing program
-
-* How to run the program
-* Step-by-step bullets
-```
-code blocks for commands
-```
-
+* Download the release and run it on a browser and it should automatically start from there
+  
 ## Authors
 
 JR Mcapagal
@@ -38,7 +30,7 @@ jrmmcapagal@gmail.com
 
 ## License
 
-This project is licensed under the [APACHE LICENSE] - see the LICENSE.md file for details
+This project is licensed under [APACHE LICENSE 2.0] - see the LICENSE.md file for details
 
 ## Acknowledgments
 
