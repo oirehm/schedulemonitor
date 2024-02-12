@@ -682,7 +682,7 @@
 				if (typeof starts !== "undefined") {
 					perc=starts.length;
 					if (cursecs<starts[0]){ // Before the Schedule
-						Grab("currentperiodsubtitle").innerHTML="nextduration to";
+						Grab("currentperiodsubtitle").innerHTML="Countdown to";
 						Grab("currentschedue").innerHTML=names[0];
 						Grab("endofschedulesubtitle").innerHTML='';
 						Grab("currentduration").innerHTML=(secondstohhmmss(Math.abs(cursecs-starts[0])));
