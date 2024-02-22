@@ -1,1161 +1,1587 @@
 <!DOCTYPE html>
 <html>
-<head><meta http-equiv="cache-control" content="no-cache"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="-1"><style type="text/css"></style>
-
-
-
-	<!--Added mobile optimization-->
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/9.4.4/math.min.js"></script>
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML"></script>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<!--Added buttons to switch between Schedules-->
-	</head><body><div class="button-panel">
-		<button id="odd-even-toggle" onclick="ToggleScheduleOddEven()" class="normal-state schedule-button" style="display: inline;"> Odd/Even Toggle</button>
-		<button id="normal-schedule" onclick="NormalSchedule()" class="schedule-button selected-state"> Normal Schedule</button>
-		<button id="late-schedule" onclick="LateSchedule()" class="schedule-button"> Late Start Schedule</button>
-		<button id="minimum-schedule" onclick="MinimumSchedule()" class="schedule-button"> Minimum Day Schedule</button>
-
-
-		<!--Special Schedules
-		Anchor Day
-		Rally Day
-		Minimum Day Extended Snack
-		-->
-		<select id="special-schedule" onchange="HandleSpecialScheduleChange()">
-		<option value="Nothing">Special Schedules</option>
-		<option value="anchorSchedule">Anchor Day</option>
-		<option value="rallySchedule">Rally Day</option>
-		<option value="ExtendedSnackSchedule">Min Extended Snack</option>
-	</select>
-	</div>
-
-
-	<link rel="icon" type="image/gif" href="//d1gqnmj8k8rdwp.cloudfront.net/rewordifyicon.gif">
-	<title>Schedule Monitor</title>
-	<meta charset="utf-8">
-	<meta name="description" content="Rewordify.com School Clock shows you what period you're in, every second of the day.">
-
-	<style>
-		body {
-			text-align: center;
-			font-family: "Lucida Console", Monaco, monospace;
-		}
-		@media (max-width: 600px) {
-			.button-panel {
-				flex-direction: column;
-			}
-
-			.schedule-button {
-				margin-right: 0;
-				margin-bottom: 10px;
-			}
-
-			#special-schedule {
-				margin-right: 0;
-				margin-bottom: 10px;
-			}
-
-			.centered-dropdown {
-				text-align: center;
-			}
-
-			.special-schedule-select {
-				border: 3px solid grey;
-			}
-		}
-
-		#changelogPanel {
-			position: fixed;
-			top: 0;
-			left: -500px;
-			width: 400px;
-			height: 100%;
-			background-color: grey;
-			color: #fff;
-			text-align: left;
-			padding: 5px;
-			border-right: 1px solid #000;
-			box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
-			transition: transform 0.3s ease-in-out;
-			overflow-y: auto;
-			z-index: 9999;
-		}
-
-		#changelogPanel.show {
-			transform: translateX(500px);
-		}
-
-		#changelogButton {
-			font-size: 12px;
-			padding: 5px 10px;
-			border-radius: 5px;
-			background-color: #fff;
-			color: #000;
-			box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
-
-			/* Positioning */
-			position: fixed;
-			bottom: 20px;
-			right: 20px;
-		}
-
-		#changelogClose {
-			font-size: 12px;
-			background-color: #fff;
-			color: #000;
-			box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
-
-			/* Positioning */
-			position: absolute;
-			top: 6px;
-			right: 2px;
-			padding: 2px 4px;
-			border-radius: 5px;
-			background-color: #fff;
-			color: #000;
-			margin-right: 10px;
-		}
-
-		.button-panel {
-			background-color: #333;
-			padding: 10px;
-			top: 0;
-			left: 0;
-			right: 0;
-			order: -1;
-			z-index: 1000;
-		}
-
-		.schedule-button {
-			font-size: 15px;
-			padding: 5px 10px;
-			border-radius: 5px;
-			background-color: #fff;
-			color: #000;
-			box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
-			margin-right: 10px;
-			
-		}
-
-		.button-panel button:last-child {
-			margin-right: 0;
-		}
-
-		#special-schedule {
-			font-size: 15px;
-			padding: 5px 10px;
-			border-radius: 5px;
-			background-color: #fff;
-			box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
-			margin-right: 10px;
-		}
-
-
-		.centered-dropdown {
-			text-align: center;
-		}
-
-		.special-schedule-select {
-			border: 2px solid black;
-			color: #fff;
-		}
-
-		/*  Color toggle for odd/even button for visual information */
-		#odd-even-toggle.toggled-state {
-			background-color: gold;
-			color: #000;
-		}
-
-		#odd-even-toggle.normal-state {
-			background-color: maroon;
-			color: #fff;
-		}
-
-		/* Handles greying out buttons if selected */
-		.selected-state {
-			background-color: #808080;
-			color: #fff;
-			border: 2px solid rgb(0, 0, 0);
-		}
-
-		body {
-
-			background-color: black;
-			color: gray;
-		}
-
-		#container {
-			text-align: center;
-			margin-top: 5px;
-			font-family: "Lucida Console", Monaco, monospace;
-		}
-
-		#currentdt {
-			font-size: 2.5em;
-			margin-top: 16px;
-		}
-
-		#nextperiodsubtitle {
-			margin-top: 24px;
-		}
-
-		#nextduration {
-			font-size: 2.2em;
-			margin-top: 6px;
-		}
-
-		#nextschedule {
-			font-size: 2em;
-			margin-top: 10px;
-		}
-
-		#currentperiodsubtitle {
-			margin-top: 24px;
-			font-size: 1.5em;
-		}
-
-		#endofschedulesubtitle {
-			margin-top: 5px;
-			font-size: 1em;
-		}
-
-		#currentduration {
-			font-size: 5em;
-			margin-top: 8px;
-			color: orange;
-		}
-
-		#currentlengthofperiod {
-			font-size: 1.8em;
-			margin-top: 8px;
-		}
-
-		#currentschedue {
-			font-size: 3.5em;
-			margin-top: 10px;
-		}
-
-		#schedule {
-			margin-bottom: 10px;
-		}
-
-		#ad {
-			margin-top: 28px;
-			font-size: .8em;
-		}
-
-		.howtouse {
-			width: 75%;
-			max-width: 800px;
-			margin-left: auto;
-			margin-right: auto;
-			display: block;
-		}
-
-		.tinput {
-			width: 70px;
-			background-color: lemonchiffon;
-			margin-top: 4px;
-		}
-
-		.dinput {
-			width: 120px;
-			background-color: lemonchiffon;
-			margin-top: 4px;
-		}
-
-		#sform {
-			border: 1px solid gray;
-			padding: 8px;
-			background-color: #EFEFEF;
-		}
-
-		#result {
-			border: 1px solid gray;
-			padding: 8px;
-			background-color: #EFEFEF;
-			display: none;
-		}
-
-		#urltext {
-			padding: 4px;
-		}
-
-		@media only screen and (max-width:540px) {
-			.howtouse {
-				width: 95%
-			}
-		}
-	</style>
-
-
-
-	<div id="container">
-		<div id="timer_type" style="font-size:4em;">ODD NORMAL BLOCK</div>
-		<div id="subtitle"></div>
-		<div id="currentdt">Tue Jan 23 2024 04:57:49 PM</div>
-		<div id="currentperiodsubtitle"></div>
-		<div id="currentschedue">End of School</div>
-		<div id="currentlengthofperiod"></div>
-		<div id="endofschedulesubtitle">Time elapsed since end of schedule</div>
-		<div id="currentduration">01:21:49</div>
-		<div id="nextperiodsubtitle"></div>
-		<div id="nextschedule"></div>
-		<div id="nextduration" style="font-size:5em; margin-top:8px; color: orange;"></div>
-		<div id="schedule"><div style="margin-top:30px;display:block;width:100%;text-align:center"><div style="display:inline-block;margin-left:auto;margin-right:auto;text-align:left;width:auto">Today's Schedule:<br>08:30 AM-10:02 AM Period 1<br>10:02 AM-10:11 AM Snack<br>10:11 AM-10:17 AM Passing Period<br>10:17 AM-11:49 AM Period 3<br>11:49 AM-11:55 AM Passing Period<br>11:55 AM-01:27 PM Period 5<br>01:27 PM-01:58 PM Lunch<br>01:58 PM-02:04 PM Passing Period<br>02:04 PM-03:36 PM Period 7<br>03:36 PM&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;End of School</div></div></div>
-
-		<script>
-			// Schedule is shown on screen
-			var starts=[];var names=[];var times=[];
-		</script>
-		<select style="margin-top:12px" id="colorscheme" onchange="ck()">
-		<option value="gb" selected="">Gray on black</option>
-		<option value="wb">White on black</option>
-		<option value="bw">Black on white</option>
-		<option value="dk">Dark room</option>
-		<option value="bg">Blue on green</option>
-		<option value="py">Purple on yellow</option>
-		<option value="sr">Random by minute</option>
-		</select><br>
-		<!--
-		Added QOL to change time adjustment upon new input using oninput and scroll wheel
-		-->
-		Time adjustment in seconds:
-		<input type="text" style="margin-top:12px;width:30px" id="timeadj" value="0" onfocus="if(this.value=='0'){this.value='';}" oninput="if(this.value==''){inputTimeAdj('');} else { timeadj(); };adjustInputWidth(this.value);" onblur="if(this.value==''){this.value='0'; timeadj();}">
-		<div id="resultDisplay"></div>
-		<div id="secondsDisplay"></div>
-
-		<br><br>
-		Updates per ms:
-		<select name="updateTime" id="numbers" class="centered-dropdown">
-		<option value="2000">2000</option>
-		<option value="1000" selected="">1000</option>
-		<option value="250">250</option>
-		<option value="200">200</option>
-		<option value="100" selected="">100</option>
-		<option value="50">50</option>
-		<option value="0">Real Time</option>
-		</select>
-		<button id="changelogButton">Changelog</button>
-
-		<div id="changelogPanel">
-			<!-- 
-			&nbsp;&nbsp; - <br>
-			-->
-			<br> Version 1.4.26: <br>
-			&nbsp;&nbsp; -Buttons look better now <br>
-			&nbsp;&nbsp; -Moved changelog to a panel <br>
-			&nbsp;&nbsp; -Trello board has been created https://trello.com/b/b8STAMDw/clock <br>
-			&nbsp;&nbsp; -Optimized code (again) <br>
-			&nbsp;&nbsp; -I guess the adjustment field is now a calculator... I wonder what log(2phi)*2(10/3)+cos(0)/sec(pi/2) is...<br>
-			<br> Version 1.3.21: <br>
-			&nbsp;&nbsp; -Fixed a bug where adjusting the time with the scroll wheel will cause a desync due to not updating timeAdj properly <br>
-			&nbsp;&nbsp; -Fixed a bug that that caused the screen to flash at the rate of updates per ms when color scheme was set to random by minute<br>
-			&nbsp;&nbsp; -(Forgot to mention in 1.2) The ability to now use decimals to adjust time more precisely<br>
-			&nbsp;&nbsp; -Now using an experimental internal database structure to automatically set the correct schedule according to the day (Only in 2024)<br>
-			&nbsp;&nbsp; -Changed color scheme dropdown menu's colors when switching to be more consistent<br>
-			&nbsp;&nbsp; -Added missing "Gray on black" color scheme option to color scheme dropdown menu<br>
-			<br> Version 1.2.13: <br>
-			<br> Navigation: <br>
-			&nbsp;&nbsp; -Added buttons to navigate across different schedules <br>
-			&nbsp;&nbsp; -Added button toggle between odd and even days <br>
-			&nbsp;&nbsp; -Added Normal, Late Start, and Minimum/Finals Schedules <br>
-			&nbsp;&nbsp; -Dropdown menu shows Anchor, Rally, and Extended Lunch Schedules <br>
-			<br> Clock/Time: <br>
-			&nbsp;&nbsp; -Time adjustment input now turns reddish to indicate invalid number <br>
-			&nbsp;&nbsp; -Added the ability to change Time adjustment by scrolling on hover <br>
-			&nbsp;&nbsp; -Fixed Time incorrectly displaying if the time adjustment input is not a valid number <br>
-			&nbsp;&nbsp; -Added ability to change update time per millisecond for accuracy (Default: 100) <br>
-			&nbsp;&nbsp; -Swapped Current date/time text to subtitles when selecting Min Extended Snack <br>
-			<br> Optimization/Fixes: <br>
-			&nbsp;&nbsp; -Clock now changes immediately upon entering new time adjustment value <br>
-			&nbsp;&nbsp; -Schedule now loads instantly instead of after one second <br>
-			&nbsp;&nbsp; -Removed functions that were never called in the first place <br>
-			<br> Other: <br>
-			&nbsp;&nbsp; -Added Changelog <br>
-			<button id="changelogClose">Close</button>
-		</div>
-		<br><br>
-
-		<script>
-			// DO NOT DELETE
-			function Grab(getElementById){
-				return document.getElementById(getElementById);
-			}
-
-			Grab('changelogButton').addEventListener('click', function() {
-			
-				Grab("changelogButton").classList.toggle('selected-state');
-				Grab('changelogPanel').classList.toggle('show');
-			});
-
-			Grab('changelogClose').addEventListener('click', function() {
-			
-				Grab("changelogButton").classList.remove('selected-state');
-				Grab('changelogPanel').classList.remove('show');
-			});
-
-
-			function updateAndCallAgain() {
-				var selectedValue = Grab('numbers').value;
-				showclock();
-				setTimeout(updateAndCallAgain, selectedValue);
-				checkTimerType();
-				checkDayChange();
-			}
-
-			let today = new Date().getDate();
-			function checkDayChange() {
-				var og = new Date();
-				var currentDay = new Date(og.getTime() + (adjustseconds * 1000));
-				if (currentDay.getDate() !== today) {
-					today = currentDay.getDate();
-					AutoSchedule();
-				}
-			}
-			
-			window.onload = function() {
-				NormalSchedule();
-				updateAndCallAgain();
-				AutoSchedule();
-			};
-
-			Grab('numbers').addEventListener('change', function() {
-				var selectedValue = this.value;
-				updateAndCallAgain();
-			});
-			function checkTimerType() {
-				var timerType = Grab('timer_type').textContent;
-
-				// Check if the content of the div is "Loading..."
-				if (timerType === "Loading...") {
-					// If it is, call NormalSchedule after 20ms
-					NormalSchedule();
-				}
-			}
-		
-
-			let inputField = document.querySelector("#timeadj");
-
-			inputField.addEventListener("wheel", function(event) {
-				event.preventDefault(); // prevent default behavior
-				let currentVal = parseFloat(this.value);
-				if (isNaN(currentVal)) {
-					currentVal = 0;
-				}
-				let newVal;
-				if (event.deltaY > 0) {
-					newVal = currentVal - 1; // scroll up, decrease value
-				} else {
-					newVal = currentVal + 1; // scroll down, increase value
-				}
-				this.value = newVal;
-				timeadj();
-			});
-			
-			// date and time variables
-			var days=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-			var months=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-			var randm=false;
-			var adjustseconds=0;
-			
-			function ErrorTimeAdj(){
-				Grab('timeadj').style.backgroundColor='SandyBrown';
-				adjustseconds=0;
-				secondsDisplay.textContent = ''; 
-				resultDisplay.textContent = '';
-			}
-
-			function ValidTimeAdj(){
-				Grab('timeadj').style.backgroundColor='White';
-			}
-			
-			function timeadj(){
-				let oldAdjustSeconds = adjustseconds;
-				adjustseconds = Grab('timeadj').value;
-
-				// Check if the new value is a real number
-				if (isNaN(adjustseconds)) {
-					// If it's not a real number, revert to the old value
-					adjustseconds = oldAdjustSeconds;
-					ErrorTimeAdj();
-				} else {
-					ValidTimeAdj();
-				}
-				
-				evaluateMath();
-				showclock();
-			}
-
-			function inputTimeAdj(input){
-				let oldAdjustSeconds = adjustseconds;
-				adjustseconds = parseFloat(input);
-
-				if (isNaN(adjustseconds)) {
-					if (!(isNaN(oldAdjustSeconds))) {
-						adjustseconds = oldAdjustSeconds;
-					} else {
-						adjustseconds = 0;
-					}
-					ErrorTimeAdj();
-				} else {
-					ValidTimeAdj();
-				}
-				
-				evaluateMath();
-				showclock();
-			}
-
-			//	Special math?????????????????????????????????????????????????????????
-			function evaluateMath() {
-				let input = Grab('timeadj').value;
-				var oldAdjustSeconds = adjustseconds;
-				let result = math.evaluate(input);
-
-				if (!isNaN(math.evaluate(input))) {
-					try {
-						if (!isNaN(result) && !(/^[0-9]+$/.test(input))) {
-							formatMath(true, result);
-						} else if ((/^[0-9]+$/.test(input))) {
-							adjustseconds = input;
-							if (Math.abs(input)>60) {
-								formatMath(true, input);
-								secondsDisplay.textContent = ''; 
-							} 
-							if (Math.abs(input)<60){
-								secondsDisplay.textContent = ''; 
-								resultDisplay.textContent = '';
-							}
-						}
-						adjustseconds = result;
-						ValidTimeAdj();
-						
-					} catch (error) {
-						adjustseconds = oldAdjustSeconds;
-						ErrorTimeAdj();
-						formatMath(false);
-					}
-				} else {
-					formatMath(false);
-				}
-				if(!isFinite(result)) {
-					adjustseconds = 0;
-					secondsDisplay.textContent = 'and the universe is now dead because of you'; 
-					resultDisplay.textContent = 'Infinity';
-				}
-			}
-
-			function formatMath(isMathExpression, result) {
-				var resultDisplay = Grab('resultDisplay');
-				var secondsDisplay = Grab('secondsDisplay');
-
-				if (isMathExpression) {
-					var formattedResult = formatTime(result);
-					if (formattedResult == 0){
-						resultDisplay.textContent = '= 0s'; 
-					} else { 
-						resultDisplay.textContent = '= ' + formattedResult; 
-					}
-					secondsDisplay.textContent = '= ' + result + ' seconds';
-				} else {
-					resultDisplay.textContent = '';
-					secondsDisplay.textContent = '';
-				}
-			}
-
-			function adjustInputWidth(value) {
-				var inputElement = Grab('timeadj');
-				var inputWidth = getTextWidth(value);
-				inputElement.style.width = inputWidth + 'px';
-			}
-
-			// Helper function to calculate the width of the text
-			function getTextWidth(text) {
-				var canvas = document.createElement('canvas');
-				var context = canvas.getContext('2d');
-				context.font = getComputedStyle(document.body).fontSize + ' Arial'; // Set font and size
-				var width = context.measureText(text).width;
-				if (width<30) {
-					width = 30;
-				}
-				return width;
-			}
-
-
-			function formatTime(seconds) {
-				var isNegative = seconds < 0;
-
-				seconds = Math.abs(seconds);
-				var centuries = Math.floor(seconds / (3600 * 24 * 365 * 100));
-				var years = Math.floor(seconds % (3600 * 24 * 365 * 100) / (3600 * 24 * 365));
-				var days = Math.floor((seconds % (3600 * 24 * 365)) / (3600 * 24));
-				var hours = Math.floor((seconds % (3600 * 24)) / 3600);
-				var minutes = Math.floor((seconds % 3600) / 60);
-				var remainingSeconds = Math.floor(seconds % 60);
-
-				var formattedTime = '';
-				if (isNegative) {
-					formattedTime += '-';
-				}
-
-				if (centuries != 0) {
-					formattedTime += centuries + 'c ';
-				}
-
-				if (years != 0) {
-					formattedTime += years + 'y ';
-				}
-
-				if (days != 0) {
-					formattedTime += days + 'd ';
-				}
-				
-				if (hours != 0) {
-					formattedTime += hours + 'h ';
-				}
-
-				if (minutes != 0) {
-					formattedTime += minutes + 'm ';
-				}
-
-				if (remainingSeconds != 0 || formattedTime === '-') {
-					formattedTime += remainingSeconds + 's';
-				}
-
-				return formattedTime.trim();
-			}
-
-			function colorizerandom(){
-				var r1=Math.floor((Math.random() * 254) + 1);
-				var g1=Math.floor((Math.random() * 254) + 1);
-				var b1=Math.floor((Math.random() * 254) + 1);
-				var r2=Math.floor((Math.random() * 254) + 1);
-				var g2=Math.floor((Math.random() * 254) + 1);
-				var b2=Math.floor((Math.random() * 254) + 1);
-				document.body.style.color="rgb("+r1+","+g1+","+b1+")";
-				document.body.style.backgroundColor="rgb("+r2+","+g2+","+b2+")";
-			}
-
-			// Handles switching background and text color based on dropdown menu input
-			function ck(){
-				opt=Grab("colorscheme");
-				if (opt.value=='gb'){randm=false;opt.style.color='black';opt.style.backgroundColor='white';document.body.style.color='grey';document.body.style.backgroundColor='black';}
-				if (opt.value=='wb'){randm=false;opt.style.color='black';opt.style.backgroundColor='white';document.body.style.color='white';document.body.style.backgroundColor='black';}
-				if (opt.value=='bw'){randm=false;opt.style.color='black';opt.style.backgroundColor='white';document.body.style.color='black';document.body.style.backgroundColor='white';}
-				if (opt.value=='dk'){randm=false;opt.style.color='crimson';opt.style.backgroundColor='black';document.body.style.color='crimson';document.body.style.backgroundColor='black';}
-				if (opt.value=='bg'){randm=false;opt.style.color='#5077BE';opt.style.backgroundColor='#D9FFB2';document.body.style.color='#5077BE';document.body.style.backgroundColor='#D9FFB2';}
-				if (opt.value=='py'){randm=false;opt.style.color='#B44DE0';opt.style.backgroundColor='#FFFF99';document.body.style.color='#B44DE0';document.body.style.backgroundColor='#FFFF99';}
-				if (opt.value=='sr'){randm=true;colorizerandom();}
-			}
-
-
-
-			// setTimeout(showclock, 1000);
-			let randomChange = false;
-			// Handles code for the actual clock functionality
-			function showclock(){
-				var curperiod=-1;
-				var og=new Date();
-				var d=new Date(og.getTime()+(adjustseconds*1000));
-				
-				var fdate=d.getDate();
-				if (fdate<10){fdate='0'+fdate;}
-				var fhours=d.getHours();
-				var ampm = fhours >= 12 ? 'PM' : 'AM';
-				fhours = fhours % 12;
-				if (fhours==0){fhours=12;}
-				if (fhours<10){fhours='0'+fhours;}
-				var fminutes=d.getMinutes();
-				if (fminutes<10){fminutes='0'+fminutes;}
-				var fseconds=d.getSeconds();
-				if ((randm) && (fseconds==0) && !randomChange) {
-					colorizerandom();
-					randomChange = true;
-				} else if (!(fseconds==0)) {
-					randomChange = false;
-				}
-				if (fseconds<10){fseconds='0'+fseconds;}
-				var dd=days[d.getDay()]+' '+months[d.getMonth()]+' '+fdate+' '+d.getFullYear()+' '+fhours+':'+fminutes+':'+fseconds+' '+ampm;
-				Grab("currentdt").innerHTML=dd;
-				cursecs=((d.getHours())*3600)+((d.getMinutes())*60)+(d.getSeconds());
-				if (typeof starts !== "undefined") {
-					perc=starts.length;
-					if (cursecs<starts[0]){ // Before the Schedule
-						Grab("currentperiodsubtitle").innerHTML="Countdown to";
-						Grab("currentschedue").innerHTML=names[0];
-						Grab("endofschedulesubtitle").innerHTML='';
-						Grab("currentduration").innerHTML=(secondstohhmmss(Math.abs(cursecs-starts[0])));
-						Grab("nextperiodsubtitle").innerHTML='';
-						Grab("nextschedule").innerHTML='';
-						Grab("nextduration").innerHTML='';
-					}else if (cursecs>starts[perc-1]){ // End of Schedule
-						Grab("currentperiodsubtitle").innerHTML='';
-						Grab("currentschedue").innerHTML= names[perc-1];
-						Grab("currentlengthofperiod").innerHTML='';
-						Grab("endofschedulesubtitle").innerHTML='Time elapsed since end of schedule';
-						Grab("currentduration").innerHTML=(secondstohhmmss(cursecs-starts[perc-1]));    
-						Grab("nextperiodsubtitle").innerHTML='';
-						Grab("nextschedule").innerHTML='';
-						Grab("nextduration").innerHTML='';
-					} else {
-						for (x=0;x<perc-1;x++){
-							if ((starts[x]<cursecs) && (starts[x+1]>cursecs)){ // In session
-								curperiod=x;
-								Grab("currentperiodsubtitle").innerHTML="We are now "+(secondstohhmmss(cursecs-starts[x]))+" into:";
-								Grab("currentschedue").innerHTML=names[x];
-								Grab("endofschedulesubtitle").innerHTML='';
-								Grab("currentduration").innerHTML='';
-								//Grab("currentduration").innerHTML=(secondstohhmmss(cursecs-starts[x]));
-								// Grab("nextperiodsubtitle").innerHTML="nextduration to:";
-								Grab("nextschedule").innerHTML="(" + names[x+1] + ") starts in:";
-								Grab("nextduration").innerHTML=(secondstohhmmss(Math.abs(cursecs-starts[x+1])));
-							}
-						}
-					}
-
-					var ts="<div style='margin-top:30px;display:block;width:100%;text-align:center'><div style='display:inline-block;margin-left:auto;margin-right:auto;text-align:left;width:auto'>Today's Schedule:<br />";
-					//ts=ts+times[0]+'&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'+names[0]+'<br />';
-					for (x=0;x<perc-1;x++){
-						if (x==curperiod){ts=ts+'<strong>'}
-						disptime=times[x];
-						disptimex=times[x+1];
-						disptimez=times[perc-1];
-						//alert(disptime.substring(0,2));
-						// hc=disptime.substring(0,2);
-						// alert(hc*2);
-						//return;
-						if (disptime.substring(0,2)<12){
-							disptime=disptime+' AM';
-						}else{
-							hc=disptime.substring(0,2);
-							if (hc>12){hc=hc-12};
-							if (hc<10){hc='0'+hc;}
-							disptime=hc+disptime.substring(2,5)+' PM';
-						}
-						if (disptimex.substring(0,2)<12){
-							disptimex=disptimex+' AM';
-						}else{
-							hc=disptimex.substring(0,2);
-							if (hc>12){hc=hc-12};
-							if (hc<10){hc='0'+hc;}
-							disptimex=hc+disptimex.substring(2,5)+' PM';
-						}
-						if (disptimez.substring(0,2)<12){
-							disptimez=disptimex+' AM';
-						}else{
-							hc=disptimez.substring(0,2);
-							if (hc>12){hc=hc-12};
-							if (hc<10){hc='0'+hc;}
-							disptimez=hc+disptimez.substring(2,5)+' PM';
-						}
-						ts=ts+disptime+'-'+disptimex+' '+names[x]+"<br >";
-						if (x==curperiod){
-							ts=ts+'</strong>';
-							Grab('currentlengthofperiod').innerHTML=disptime+'-'+disptimex;
-						}
-					}
-					
-					ts=ts+disptimez+'&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'+names[perc-1]+'</div></div>';
-					Grab("schedule").innerHTML=ts;
-				}
-				delete window.d;
-			}
-
-			function secondstohhmmss(secs){
-				var h=parseInt(secs/3600);
-				if (h<10){h='0'+h}
-				if (h==0){h='00'}
-				
-				var secs=(secs-(h*3600));
-				var m=parseInt(secs/60);
-				if (m<10){m='0'+m}
-				if (m==0){m='00'}    
-				var secs=parseInt(secs-(m*60));
-				
-				var s=secs;
-				if (s<10){s='0'+s}
-				if (h!='00'){
-					return h+':'+m+':'+s;
-				}else if(m!='00'){
-					return m+':'+s;    
-				}else{
-					return s;    
-				}
-			}
-
-			// Most modifications
-			let isEven = false;
-			var schedule = -1; // used to store values for even/odd function
-			/*
-			0 = normal
-			1 = late
-			2 = minimum / finals
-			3 = rally day
-			4 = anchor day
-			5 = extended snack schedule
-			*/
-
-			// Experimental test
-			function AutoSchedule() {
-				const currentDate = getAdjustedDate();
-				const currentDay = currentDate.getDate();
-				const currentMonth = currentDate.getMonth() + 1;
-				const currentYear = currentDate.getFullYear();
-
-				if (currentYear === 2024) {
-					const scheduleType = getScheduleType(currentMonth, currentDay);
-					handleScheduleType(scheduleType);
-
-					const isEvenSchedule = isEvenScheduleDay(currentMonth, currentDay);
-					if (isEvenSchedule !== isEven) {
-						ToggleScheduleOddEven();
-					}
-				}
-			}
-
-			function getAdjustedDate() {
-				const og = new Date();
-				return new Date(og.getTime() + (adjustseconds * 1000));
-			}
-
-			function getScheduleType(currentMonth, currentDay) {
-				const schedule = {
-					1: { late: [22, 29], navnight: [23] },
-					2: { late: [5, 12, 26] },
-					3: { late: [4, 11, 18, 25] },
-					4: { late: [8, 15, 22, 29] },
-					5: { late: [6, 13, 20] },
-					6: { final: [3, 4], extended: [5] }
-				};
-
-				if (schedule[currentMonth]?.late?.includes(currentDay)) {
-					return 'late';
-				}
-				if (schedule[currentMonth]?.final?.includes(currentDay)) {
-					return 'final';
-				}
-				if (schedule[currentMonth]?.extended?.includes(currentDay)) {
-					return 'extended';
-				}
-				if (schedule[currentMonth]?.navnight?.includes(currentDay)) {
-					return 'navnight';
-				}
-				return 'normal';
-			}
-
-			function handleScheduleType(scheduleType) {
-				switch (scheduleType) {
-					case 'late':
-						LateSchedule();
-						break;
-					case 'final':
-						MinimumSchedule();
-						break;
-					case 'extended':
-						ExtendedSnackSchedule();
-						UpdateSpecialDropDown();
-						break;
-					case 'navnight':
-						NavigationNight();
-						break;
-					default:
-						NormalSchedule();
-				}
-			}
-
-			function isEvenScheduleDay(currentMonth, currentDay) {
-				const evenScheduleDates = {
-					1: [22, 24, 26, 30],
-					2: [1, 5, 7, 9, 13, 15, 21, 23, 27, 29],
-					3: [4, 6, 11, 13, 18, 20, 22, 26, 28],
-					4: [9, 11, 15, 17, 19, 23, 25, 29],
-					5: [1, 6, 8, 10, 14, 16, 20, 22, 28, 30],
-					6: [4]
-				};
-
-				return evenScheduleDates[currentMonth]?.includes(currentDay);
-			}
-			
-			function UpdateSpecialDropDown() {
-				// Get the dropdown menu
-				var dropdownMenu = Grab("special-schedule");
-				let internal = schedule;
-				switch (internal) {
-					case 3:
-						dropdownMenu.selectedIndex = 2;
-						break;
-					case 4:
-						dropdownMenu.selectedIndex = 1;
-						break;
-					case 5:
-						dropdownMenu.selectedIndex = 3;
-						break;
-					default:
-						dropdownMenu.selectedIndex = 0;
-				}
-				HandleSpecialScheduleChange();
-			}
-
-
-			function handleButtonClick() {
-				var dropdownMenu = Grab('special-schedule');
-				var oddEvenButton = Grab('odd-even-toggle');
-				var dropdown = Grab("special-schedule");
-				
-				dropdownMenu.style.backgroundColor = ''; // Reset to default color
-				dropdownMenu.selectedIndex = 0;
-				oddEvenButton.style.display = 'inline';
-				dropdown.classList.remove('special-schedule-select');
-
-				ClearSubtitle();
-				updateClock();
-			}
-
-			function updateClock() {
-				setTimeout(showclock, 20)
-			}
-			function NavigationNight() {
-				MinimumSchedule();
-				times.push('18:00', '20:00');
-				starts.push(64800, 72000);
-				names.push('Navigation Night', "End of Day");
-			}
-
-			function NormalSchedule() {
-				schedule = 0;
-				handleButtonClick();
-
-				// Clear the existing arrays
-				times.length = 0;
-				starts.length = 0;
-				names.length = 0;
-
-				if (isEven) {
-					Grab("timer_type").innerHTML = "EVEN NORMAL BLOCK";
-					times.push('08:30', '10:02', '10:11', '10:17', '11:49', '11:55', '13:27', '13:58', '14:04', '15:36');
-					starts.push(30600, 36120, 36660, 37020, 42540, 42900, 48420, 50280, 50640, 56160);
-					names.push('Period 2', 'Snack', 'Passing Period', 'Period 4', 'Passing Period', 'Period 6', 'Lunch', 'Passing Period', 'Period 8', 'End of School');
-				} else {
-					Grab("timer_type").innerHTML = "ODD NORMAL BLOCK";
-					times.push('08:30', '10:02', '10:11', '10:17', '11:49', '11:55', '13:27', '13:58', '14:04', '15:36');
-					starts.push(30600, 36120, 36660, 37020, 42540, 42900, 48420, 50280, 50640, 56160);
-					names.push('Period 1', 'Snack', 'Passing Period', 'Period 3', 'Passing Period', 'Period 5', 'Lunch', 'Passing Period', 'Period 7', 'End of School');
-				}
-
-				var buttons = document.querySelectorAll(".schedule-button");
-				buttons.forEach(function(button) {
-					button.classList.remove('selected-state');
-				});
-
-				var button = document.querySelector("#normal-schedule");
-				button.classList.add('selected-state');
-			}
-
-			function LateSchedule() {
-				schedule = 1;
-				handleButtonClick();
-
-				times.length = 0;
-				starts.length = 0;
-				names.length = 0;
-
-				if (isEven) {
-					Grab("timer_type").innerHTML = "EVEN LATE BLOCK";
-					times.push('10:00', '11:09', '11:18', '11:24', '12:35', '12:41', '13:50', '14:21', '14:27', '15:36');
-					starts.push(36000, 40140, 40680, 41040, 45300, 45660, 49800, 51660, 52020, 56160);
-					names.push('Period 2', 'Snack', 'Passing Period', 'Period 4', 'Passing Period', 'Period 6', 'Lunch', 'Passing Period', 'Period 8', 'End of School');
-				} else {
-					Grab("timer_type").innerHTML = "ODD LATE BLOCK";
-					times.push('10:00', '11:09', '11:18', '11:24', '12:35', '12:41', '13:50', '14:21', '14:27', '15:36');
-					starts.push(36000, 40140, 40680, 41040, 45300, 45660, 49800, 51660, 52020, 56160);
-					names.push('Period 1', 'Snack', 'Passing Period', 'Period 3', 'Passing Period', 'Period 5', 'Lunch', 'Passing Period', 'Period 7', 'End of School');
-				}
-
-				var buttons = document.querySelectorAll(".schedule-button");
-				buttons.forEach(function(button) {
-					button.classList.remove('selected-state');
-				});
-
-				var button = document.querySelector("#late-schedule");
-				button.classList.add('selected-state');
-			}
-
-			function MinimumSchedule() {
-				schedule = 2;
-				handleButtonClick();
-
-				
-				times.length = 0;
-				starts.length = 0;
-				names.length = 0;
-
-				if (isEven) {
-					Grab("timer_type").innerHTML = "EVEN MINIMUM BLOCK";
-					times.push('08:30', '09:34', '09:43', '09:49', '10:56', '11:02', '12:06', '12:12', '13:16');
-					starts.push(30600, 34440, 34980, 35340, 39360, 39720, 43560, 43920, 47760);
-					names.push('Period 2', 'Snack', 'Passing Period', 'Period 4', 'Passing Period', 'Period 6', 'Passing Period', 'Period 8', 'End of School');
-				} else {
-					Grab("timer_type").innerHTML = "ODD MINIMUM BLOCK";
-					times.push('08:30', '09:34', '09:43', '09:49', '10:56', '11:02', '12:06', '12:12', '13:16');
-					starts.push(30600, 34440, 34980, 35340, 39360, 39720, 43560, 43920, 47760);
-					names.push('Period 1', 'Snack', 'Passing Period', 'Period 3', 'Passing Period', 'Period 5', 'Passing Period', 'Period 7', 'End of School');
-				}
-
-				var buttons = document.querySelectorAll(".schedule-button");
-				buttons.forEach(function(button) {
-					button.classList.remove('selected-state');
-				});
-
-				var button = document.querySelector("#minimum-schedule");
-				button.classList.add('selected-state');
-			}
-
-			// handles switching between even and odd
-			function ToggleScheduleOddEven() {
-				isEven = !isEven;
-				switch (schedule){
-					case 0:
-						NormalSchedule();
-						break;
-					case 1:
-						LateSchedule();
-						break;
-					case 2:
-						MinimumSchedule();
-						break;
-					case 3:
-						RallySchedule();
-						break;
-					default:
-						NormalSchedule();
-				}
-				var button = document.querySelector("#odd-even-toggle");
-				if (isEven) {
-					button.classList.remove('normal-state');
-					button.classList.add('toggled-state');
-				} else {
-					button.classList.remove('toggled-state');
-					button.classList.add('normal-state');
-				}
-			}
-
-			function HandleSpecialScheduleChange() {
-				updateSpecialScheduleDropdown();
-				updateOddEvenToggleButton();
-				clearSelectedStateButtons();
-				handleSpecialScheduleSelection();
-				updateClock();
-			}
-
-			function updateSpecialScheduleDropdown() {
-				var dropdown = Grab("special-schedule");
-				var selectedIndex = dropdown.selectedIndex;
-
-				if (selectedIndex !== 0) {
-					dropdown.classList.add('special-schedule-select');
-					dropdown.style.backgroundColor = 'grey';
-				} else {
-					dropdown.classList.remove('special-schedule-select');
-					dropdown.style.backgroundColor = ''; // Reset to default color
-				}
-			}
-
-			function updateOddEvenToggleButton() {
-				var dropdown = Grab("special-schedule");
-				var selectedIndex = dropdown.selectedIndex;
-				var oddEvenButton = Grab('odd-even-toggle');
-
-				if (selectedIndex === 0 || selectedIndex === 2) {
-					oddEvenButton.style.display = 'inline';
-				} else {
-					oddEvenButton.style.display = 'none';
-				}
-			}
-
-			function clearSelectedStateButtons() {
-				var buttons = document.querySelectorAll('.selected-state');
-				buttons.forEach(function(button) {
-					button.classList.remove('selected-state');
-				});
-			}
-
-			function handleSpecialScheduleSelection() {
-				var selectedOption = Grab('special-schedule').value;
-				switch(selectedOption) {
-					case 'Nothing':
-						NormalSchedule();
-						ClearSubtitle();
-						break;
-					case 'anchorSchedule':
-						AnchorSchedule();
-						ClearSubtitle();
-						break;
-					case 'rallySchedule':
-						RallySchedule();
-						ClearSubtitle();
-						break;
-					case 'ExtendedSnackSchedule':
-						ExtendedSnackSchedule(); 
-						break;
-					default:
-						break;
-				}
-			}
-
-			function AnchorSchedule() {
-				schedule = 4;
-				Grab("timer_type").innerHTML = "ANCHOR DAY";
-
-				// Clear the arrays
-				times.length = 0;
-				starts.length = 0;
-				names.length = 0;
-
-				// Push the values into the arrays
-				times.push('10:00', '10:31', '10:37', '11:14', '11:23', '11:29', '12:00', '12:06', '12:37', '13:08', '13:14', '13:45', '13:51', '14:22', '14:28', '14:59', '15:05', '15:36');
-				starts.push(36000, 37860, 38220, 40440, 40980, 41340, 43200, 43560, 45420, 47280, 47640, 49500, 49860, 51720, 52080, 53940, 54300, 56160);
-				names.push('Period 1', 'Snack', 'Period 2', 'Snack', 'Passing Period', 'Period 3', 'Passing Period', 'Period 4', 'Lunch', 'Passing Period', 'Period 5', 'Passing Period', 'Period 6', 'Passing Period', 'Period 7', 'Passing Period', 'Period 8', 'End of School');
-			}
-
-			function RallySchedule() {
-				schedule = 3;
-				times.length = 0;
-				starts.length = 0;
-				names.length = 0;
-
-				if (isEven) {
-					Grab("timer_type").innerHTML = "EVEN RALLY DAY";
-					times.push('08:30', '09:50', '10:00', '10:06', '11:10', '12:13', '12:19', '13:39', '14:10', '14:16', '15:36');
-					starts.push(30600, 35400, 36000, 36360, 40200, 43980, 44340, 49140, 51000, 51360, 56160);
-					names.push('Period 2', 'Snack', 'Period 4', 'Rally A (P4)', 'Rally B (P4)', 'Passing Period', 'Period 6', 'Lunch', 'Passing Period', 'Period 8', 'End of School');
-				} else {
-					Grab("timer_type").innerHTML = "ODD RALLY DAY";
-					times.push('08:30', '09:50', '10:00', '10:06', '11:10', '12:13', '12:19', '13:39', '14:10', '14:16', '15:36');
-					starts.push(30600, 35400, 36000, 36360, 40200, 43980, 44340, 49140, 51000, 51360, 56160);
-					names.push('Period 1', 'Snack', 'Period 3', 'Rally A (P3)', 'Rally B (P3)', 'Passing Period', 'Period 5', 'Lunch', 'Passing Period', 'Period 7', 'End of School');				}
-			}
-
-			function ExtendedSnackSchedule() {
-				schedule = 5;
-				Grab("timer_type").innerHTML = "MINIMUM DAY";
-				Grab("subtitle").innerHTML = "(Extended Snack)";
-
-				// Clear the arrays
-				times.length = 0;
-				starts.length = 0;
-				names.length = 0;
-
-				// Push the values into the arrays
-				times.push('08:30', '08:58', '09:04', '09:32', '09:38', '10:06', '10:12', '10:40', '11:00', '11:06', '11:34', '11:40', '12:08', '12:14', '12:42', '12:48', '13:16');
-				starts.push(30600, 32280, 32640, 34320, 34680, 36360, 36720, 38400, 39600, 39960, 41640, 42000, 43680, 44040, 45720, 46080, 47760);
-				names.push('Period 1', 'Passing Period', 'Period 2', 'Passing Period', 'Period 3', 'Passing Period', 'Period 4', 'Extended Snack', 'Passing Period', 'Period 5', 'Passing Period', 'Period 6', 'Passing Period', 'Period 7', 'Passing Period', 'Period 8', 'End of School');
-			}
-
-			function ClearSubtitle() {
-				Grab("subtitle").innerHTML = "";
-			}
-
-		</script>
-	
-<script></script></div></body>
+  <head>
+    <meta http-equiv="cache-control" content="no-cache" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="-1" />
+    <style type="text/css"></style>
+
+    <!--Added mobile optimization-->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/9.4.4/math.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+    <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!--Added buttons to switch between Schedules-->
+  </head>
+  <body>
+    <div class="button-panel">
+      <button
+        id="odd-even-toggle"
+        onclick="ToggleScheduleOddEven()"
+        class="normal-state schedule-button"
+        style="display: inline">
+        Odd/Even Toggle
+      </button>
+      <button
+        id="normal-schedule"
+        onclick="NormalSchedule()"
+        class="schedule-button selected-state">
+        Normal Schedule
+      </button>
+      <button
+        id="late-schedule"
+        onclick="LateSchedule()"
+        class="schedule-button">
+        Late Start Schedule
+      </button>
+      <button
+        id="minimum-schedule"
+        onclick="MinimumSchedule()"
+        class="schedule-button">
+        Minimum Day Schedule
+      </button>
+
+      <!--Special Schedules
+        Anchor Day
+        Rally Day
+        Minimum Day Extended Snack
+        -->
+      <select id="special-schedule" onchange="HandleSpecialScheduleChange()">
+        <option value="Nothing">Special Schedules</option>
+        <option value="anchorSchedule">Anchor Day</option>
+        <option value="rallySchedule">Rally Day</option>
+        <option value="ExtendedSnackSchedule">Min Extended Snack</option>
+      </select>
+    </div>
+
+    <link
+      rel="icon"
+      type="image/gif"
+      href="//d1gqnmj8k8rdwp.cloudfront.net/rewordifyicon.gif" />
+    <title>Schedule Monitor</title>
+    <meta charset="utf-8" />
+    <meta
+      name="description"
+      content="Rewordify.com School Clock shows you what period you're in, every second of the day." />
+
+    <style>
+      body {
+        text-align: center;
+        font-family: "Lucida Console", Monaco, monospace;
+      }
+      @media (max-width: 600px) {
+        .button-panel {
+          flex-direction: column;
+        }
+
+        .schedule-button {
+          margin-right: 0;
+          margin-bottom: 10px;
+        }
+
+        #special-schedule {
+          margin-right: 0;
+          margin-bottom: 10px;
+        }
+
+        .centered-dropdown {
+          text-align: center;
+        }
+
+        .special-schedule-select {
+          border: 3px solid grey;
+        }
+      }
+
+      #changelogPanel {
+        position: fixed;
+        top: 0;
+        left: -500px;
+        width: 400px;
+        height: 100%;
+        background-color: grey;
+        color: #fff;
+        text-align: left;
+        padding: 5px;
+        border-right: 1px solid #000;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+        transition: transform 0.3s ease-in-out;
+        overflow-y: auto;
+        z-index: 9999;
+      }
+
+      #changelogPanel.show {
+        transform: translateX(500px);
+      }
+
+      #changelogButton {
+        font-size: 12px;
+        padding: 5px 10px;
+        border-radius: 5px;
+        background-color: #fff;
+        color: #000;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+
+        /* Positioning */
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+      }
+
+      #changelogClose {
+        font-size: 12px;
+        background-color: #fff;
+        color: #000;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+
+        /* Positioning */
+        position: absolute;
+        top: 6px;
+        right: 2px;
+        padding: 2px 4px;
+        border-radius: 5px;
+        background-color: #fff;
+        color: #000;
+        margin-right: 10px;
+      }
+
+      .button-panel {
+        background-color: #333;
+        padding: 10px;
+        top: 0;
+        left: 0;
+        right: 0;
+        order: -1;
+        z-index: 1000;
+      }
+
+      .schedule-button {
+        font-size: 15px;
+        padding: 5px 10px;
+        border-radius: 5px;
+        background-color: #fff;
+        color: #000;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+        margin-right: 10px;
+      }
+
+      .button-panel button:last-child {
+        margin-right: 0;
+      }
+
+      #special-schedule {
+        font-size: 15px;
+        padding: 5px 10px;
+        border-radius: 5px;
+        background-color: #fff;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+        margin-right: 10px;
+      }
+
+      .centered-dropdown {
+        text-align: center;
+      }
+
+      .special-schedule-select {
+        border: 2px solid black;
+        color: #fff;
+      }
+
+      /*  Color toggle for odd/even button for visual information */
+      #odd-even-toggle.toggled-state {
+        background-color: gold;
+        color: #000;
+      }
+
+      #odd-even-toggle.normal-state {
+        background-color: maroon;
+        color: #fff;
+      }
+
+      /* Handles greying out buttons if selected */
+      .selected-state {
+        background-color: #808080;
+        color: #fff;
+        border: 2px solid rgb(0, 0, 0);
+      }
+
+      body {
+        background-color: black;
+        color: gray;
+      }
+
+      #container {
+        text-align: center;
+        margin-top: 5px;
+        font-family: "Lucida Console", Monaco, monospace;
+      }
+
+      #currentdt {
+        font-size: 2.5em;
+        margin-top: 16px;
+      }
+
+      #nextperiodsubtitle {
+        margin-top: 24px;
+      }
+
+      #nextduration {
+        font-size: 2.2em;
+        margin-top: 6px;
+      }
+
+      #nextschedule {
+        font-size: 2em;
+        margin-top: 10px;
+      }
+
+      #currentperiodsubtitle {
+        margin-top: 24px;
+        font-size: 1.5em;
+      }
+
+      #endofschedulesubtitle {
+        margin-top: 5px;
+        font-size: 1em;
+      }
+
+      #currentduration {
+        font-size: 5em;
+        margin-top: 8px;
+        color: orange;
+      }
+
+      #currentlengthofperiod {
+        font-size: 1.8em;
+        margin-top: 8px;
+      }
+
+      #currentschedue {
+        font-size: 3.5em;
+        margin-top: 10px;
+      }
+
+      #schedule {
+        margin-bottom: 10px;
+      }
+
+      #ad {
+        margin-top: 28px;
+        font-size: 0.8em;
+      }
+
+      .howtouse {
+        width: 75%;
+        max-width: 800px;
+        margin-left: auto;
+        margin-right: auto;
+        display: block;
+      }
+
+      .tinput {
+        width: 70px;
+        background-color: lemonchiffon;
+        margin-top: 4px;
+      }
+
+      .dinput {
+        width: 120px;
+        background-color: lemonchiffon;
+        margin-top: 4px;
+      }
+
+      #sform {
+        border: 1px solid gray;
+        padding: 8px;
+        background-color: #efefef;
+      }
+
+      #result {
+        border: 1px solid gray;
+        padding: 8px;
+        background-color: #efefef;
+        display: none;
+      }
+
+      #urltext {
+        padding: 4px;
+      }
+
+      @media only screen and (max-width: 540px) {
+        .howtouse {
+          width: 95%;
+        }
+      }
+    </style>
+
+    <div id="container">
+      <div id="timer_type" style="font-size: 4em">Loading...</div>
+      <div id="subtitle">Please wait</div>
+      <div id="currentdt"></div>
+      <div id="currentperiodsubtitle"></div>
+      <div id="currentschedue"></div>
+      <div id="currentlengthofperiod"></div>
+      <div id="endofschedulesubtitle"></div>
+      <div id="currentduration"></div>
+      <div id="nextperiodsubtitle"></div>
+      <div id="nextschedule"></div>
+      <div
+        id="nextduration"
+        style="font-size: 5em; margin-top: 8px; color: orange"></div>
+      <div id="schedule">
+        <div
+          style="
+            margin-top: 30px;
+            display: block;
+            width: 100%;
+            text-align: center;
+          ">
+          <div
+            style="
+              display: inline-block;
+              margin-left: auto;
+              margin-right: auto;
+              text-align: left;
+              width: auto;
+            "></div>
+        </div>
+      </div>
+
+      <script>
+        // Schedule is shown on screen
+        var starts = [];
+        var names = [];
+        var times = [];
+      </script>
+      <select style="margin-top: 12px" id="colorscheme" onchange="ck()">
+        <option value="gb" selected="">Gray on black</option>
+        <option value="wb">White on black</option>
+        <option value="bw">Black on white</option>
+        <option value="dk">Dark room</option>
+        <option value="bg">Blue on green</option>
+        <option value="py">Purple on yellow</option>
+        <option value="sr">Random by minute</option></select
+      ><br />
+      <!--
+        Added QOL to change time adjustment upon new input using oninput and scroll wheel
+        -->
+      Time adjustment in seconds:
+      <input
+        type="text"
+        style="margin-top: 12px; width: 30px"
+        id="timeadj"
+        value="0"
+        onfocus="if(this.value=='0'){this.value='';}"
+        oninput="if(this.value==''){inputTimeAdj('');} else { timeadj(); };adjustInputWidth(this.value);"
+        onblur="if(this.value==''){this.value='0'; timeadj();}" />
+      <div id="resultDisplay"></div>
+      <div id="secondsDisplay"></div>
+
+      <br /><br />
+      Updates per ms:
+      <select name="updateTime" id="numbers" class="centered-dropdown">
+        <option value="2000">2000</option>
+        <option value="1000" selected="">1000</option>
+        <option value="250">250</option>
+        <option value="200">200</option>
+        <option value="100" selected="">100</option>
+        <option value="50">50</option>
+        <option value="0">Real Time</option>
+      </select>
+      <button id="changelogButton">Changelog</button>
+
+      <div id="changelogPanel">
+        <!-- 
+            &nbsp;&nbsp; - <br>
+            -->
+        <br />
+        Version 1.4.26: <br />
+        &nbsp;&nbsp; -Buttons look better now <br />
+        &nbsp;&nbsp; -Moved changelog to a panel <br />
+        &nbsp;&nbsp; -Trello board has been created
+        https://trello.com/b/b8STAMDw/clock <br />
+        &nbsp;&nbsp; -Optimized code (again) <br />
+        &nbsp;&nbsp; -I guess the adjustment field is now a calculator... I
+        wonder what log(2phi)*2(10/3)+cos(0)/sec(pi/2) is...<br />
+        <br />
+        Version 1.3.21: <br />
+        &nbsp;&nbsp; -Fixed a bug where adjusting the time with the scroll wheel
+        will cause a desync due to not updating timeAdj properly <br />
+        &nbsp;&nbsp; -Fixed a bug that that caused the screen to flash at the
+        rate of updates per ms when color scheme was set to random by minute<br />
+        &nbsp;&nbsp; -(Forgot to mention in 1.2) The ability to now use decimals
+        to adjust time more precisely<br />
+        &nbsp;&nbsp; -Now using an experimental internal database structure to
+        automatically set the correct schedule according to the day (Only in
+        2024)<br />
+        &nbsp;&nbsp; -Changed color scheme dropdown menu'displaySeconds colors
+        when switching to be more consistent<br />
+        &nbsp;&nbsp; -Added missing "Gray on black" color scheme option to color
+        scheme dropdown menu<br />
+        <br />
+        Version 1.2.13: <br />
+        <br />
+        Navigation: <br />
+        &nbsp;&nbsp; -Added buttons to navigate across different schedules
+        <br />
+        &nbsp;&nbsp; -Added button toggle between odd and even days <br />
+        &nbsp;&nbsp; -Added Normal, Late Start, and Minimum/Finals Schedules
+        <br />
+        &nbsp;&nbsp; -Dropdown menu shows Anchor, Rally, and Extended Lunch
+        Schedules <br />
+        <br />
+        Clock/Time: <br />
+        &nbsp;&nbsp; -Time adjustment input now turns reddish to indicate
+        invalid number <br />
+        &nbsp;&nbsp; -Added the ability to change Time adjustment by scrolling
+        on hover <br />
+        &nbsp;&nbsp; -Fixed Time incorrectly displaying if the time adjustment
+        input is not a valid number <br />
+        &nbsp;&nbsp; -Added ability to change update time per millisecond for
+        accuracy (Default: 100) <br />
+        &nbsp;&nbsp; -Swapped Current date/time text to subtitles when selecting
+        Min Extended Snack <br />
+        <br />
+        Optimization/Fixes: <br />
+        &nbsp;&nbsp; -Clock now changes immediately upon entering new time
+        adjustment value <br />
+        &nbsp;&nbsp; -Schedule now loads instantly instead of after one second
+        <br />
+        &nbsp;&nbsp; -Removed functions that were never called in the first
+        place <br />
+        <br />
+        Other: <br />
+        &nbsp;&nbsp; -Added Changelog <br />
+        <button id="changelogClose">Close</button>
+      </div>
+      <br /><br />
+
+      <script>
+        // DO NOT DELETE
+        function Grab(getElementById) {
+          return document.getElementById(getElementById);
+        }
+
+        Grab("changelogButton").addEventListener("click", function () {
+          Grab("changelogButton").classList.toggle("selected-state");
+          Grab("changelogPanel").classList.toggle("show");
+        });
+
+        Grab("changelogClose").addEventListener("click", function () {
+          Grab("changelogButton").classList.remove("selected-state");
+          Grab("changelogPanel").classList.remove("show");
+        });
+
+        function updateAndCallAgain() {
+          var selectedValue = Grab("numbers").value;
+          showclock();
+          setTimeout(updateAndCallAgain, selectedValue);
+          checkTimerType();
+          checkDayChange();
+        }
+
+        let today = new Date().getDate();
+        function checkDayChange() {
+          var og = new Date();
+          var currentDay = new Date(og.getTime() + adjustseconds * 1000);
+          if (currentDay.getDate() !== today) {
+            today = currentDay.getDate();
+            AutoSchedule();
+          }
+        }
+
+        window.onload = function () {
+          NormalSchedule();
+          updateAndCallAgain();
+          AutoSchedule();
+        };
+
+        Grab("numbers").addEventListener("change", function () {
+          var selectedValue = this.value;
+          updateAndCallAgain();
+        });
+        function checkTimerType() {
+          var timerType = Grab("timer_type").textContent;
+
+          // Check if the content of the div is "Loading..."
+          if (timerType === "Loading...") {
+            // If it is, call NormalSchedule after 20ms
+            NormalSchedule();
+          }
+        }
+
+        let inputField = document.querySelector("#timeadj");
+
+        inputField.addEventListener("wheel", function (event) {
+          event.preventDefault(); // prevent default behavior
+          let currentVal = parseFloat(this.value);
+          if (isNaN(currentVal)) {
+            currentVal = 0;
+          }
+          let newVal;
+          if (event.deltaY > 0) {
+            newVal = currentVal - 1; // scroll up, decrease value
+          } else {
+            newVal = currentVal + 1; // scroll down, increase value
+          }
+          this.value = newVal;
+          timeadj();
+        });
+
+        // date and time variables
+        var days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        var months = [
+          "Jan",
+          "Feb",
+          "Mar",
+          "Apr",
+          "May",
+          "Jun",
+          "Jul",
+          "Aug",
+          "Sep",
+          "Oct",
+          "Nov",
+          "Dec",
+        ];
+        var randm = false;
+        var adjustseconds = 0;
+
+        function ErrorTimeAdj() {
+          Grab("timeadj").style.backgroundColor = "SandyBrown";
+          adjustseconds = 0;
+          secondsDisplay.textContent = "";
+          resultDisplay.textContent = "";
+        }
+
+        function ValidTimeAdj() {
+          Grab("timeadj").style.backgroundColor = "White";
+        }
+
+        function timeadj() {
+          let oldAdjustSeconds = adjustseconds;
+          adjustseconds = Grab("timeadj").value;
+
+          // Check if the new value is a real number
+          if (isNaN(adjustseconds)) {
+            // If it'displaySeconds not a real number, revert to the old value
+            adjustseconds = oldAdjustSeconds;
+            ErrorTimeAdj();
+          } else {
+            ValidTimeAdj();
+          }
+
+          evaluateMath();
+          showclock();
+        }
+
+        function inputTimeAdj(input) {
+          let oldAdjustSeconds = adjustseconds;
+          adjustseconds = parseFloat(input);
+
+          if (isNaN(adjustseconds)) {
+            if (!isNaN(oldAdjustSeconds)) {
+              adjustseconds = oldAdjustSeconds;
+            } else {
+              adjustseconds = 0;
+            }
+            ErrorTimeAdj();
+          } else {
+            ValidTimeAdj();
+          }
+
+          evaluateMath();
+          showclock();
+        }
+
+        //  Special math?????????????????????????????????????????????????????????
+        function evaluateMath() {
+          let input = Grab("timeadj").value;
+          var oldAdjustSeconds = adjustseconds;
+          let result = math.evaluate(input);
+
+          if (!isNaN(math.evaluate(input))) {
+            try {
+              if (!isNaN(result) && !/^[0-9]+$/.test(input)) {
+                formatMath(true, result);
+              } else if (/^[0-9]+$/.test(input)) {
+                adjustseconds = input;
+                if (Math.abs(input) > 60) {
+                  formatMath(true, input);
+                  secondsDisplay.textContent = "";
+                }
+                if (Math.abs(input) < 60) {
+                  secondsDisplay.textContent = "";
+                  resultDisplay.textContent = "";
+                }
+              }
+              adjustseconds = result;
+              ValidTimeAdj();
+            } catch (error) {
+              adjustseconds = oldAdjustSeconds;
+              ErrorTimeAdj();
+              formatMath(false);
+            }
+          } else {
+            formatMath(false);
+          }
+          if (!isFinite(result)) {
+            adjustseconds = 0;
+            secondsDisplay.textContent =
+              "and the universe is now dead because of you";
+            resultDisplay.textContent = "Infinity";
+          }
+        }
+
+        function formatMath(isMathExpression, result) {
+          var resultDisplay = Grab("resultDisplay");
+          var secondsDisplay = Grab("secondsDisplay");
+
+          if (isMathExpression) {
+            var formattedResult = formatTime(result);
+            if (formattedResult == 0) {
+              resultDisplay.textContent = "= 0s";
+            } else {
+              resultDisplay.textContent = "= " + formattedResult;
+            }
+            secondsDisplay.textContent = "= " + result + " seconds";
+          } else {
+            resultDisplay.textContent = "";
+            secondsDisplay.textContent = "";
+          }
+        }
+
+        function adjustInputWidth(value) {
+          var inputElement = Grab("timeadj");
+          var inputWidth = getTextWidth(value);
+          inputElement.style.width = inputWidth + "px";
+        }
+
+        // Helper function to calculate the width of the text
+        function getTextWidth(text) {
+          var canvas = document.createElement("canvas");
+          var context = canvas.getContext("2d");
+          context.font = getComputedStyle(document.body).fontSize + " Arial"; // Set font and size
+          var width = context.measureText(text).width;
+          if (width < 30) {
+            width = 30;
+          }
+          return width;
+        }
+
+        function formatTime(seconds) {
+          var isNegative = seconds < 0;
+
+          seconds = Math.abs(seconds);
+          var centuries = Math.floor(seconds / (3600 * 24 * 365 * 100));
+          var years = Math.floor(
+            (seconds % (3600 * 24 * 365 * 100)) / (3600 * 24 * 365)
+          );
+          var days = Math.floor((seconds % (3600 * 24 * 365)) / (3600 * 24));
+          var hours = Math.floor((seconds % (3600 * 24)) / 3600);
+          var minutes = Math.floor((seconds % 3600) / 60);
+          var remainingSeconds = Math.floor(seconds % 60);
+
+          var formattedTime = "";
+          if (isNegative) {
+            formattedTime += "-";
+          }
+
+          if (centuries != 0) {
+            formattedTime += centuries + "c ";
+          }
+
+          if (years != 0) {
+            formattedTime += years + "y ";
+          }
+
+          if (days != 0) {
+            formattedTime += days + "d ";
+          }
+
+          if (hours != 0) {
+            formattedTime += hours + "h ";
+          }
+
+          if (minutes != 0) {
+            formattedTime += minutes + "m ";
+          }
+
+          if (remainingSeconds != 0 || formattedTime === "-") {
+            formattedTime += remainingSeconds + "s ";
+          }
+
+          return formattedTime.trim();
+        }
+
+        function colorizerandom() {
+          var r1 = Math.floor(Math.random() * 254 + 1);
+          var g1 = Math.floor(Math.random() * 254 + 1);
+          var b1 = Math.floor(Math.random() * 254 + 1);
+          var r2 = Math.floor(Math.random() * 254 + 1);
+          var g2 = Math.floor(Math.random() * 254 + 1);
+          var b2 = Math.floor(Math.random() * 254 + 1);
+          document.body.style.color = "rgb(" + r1 + "," + g1 + "," + b1 + ")";
+          document.body.style.backgroundColor =
+            "rgb(" + r2 + "," + g2 + "," + b2 + ")";
+        }
+
+        // Handles switching background and text color based on dropdown menu input
+        function ck() {
+          opt = Grab("colorscheme");
+          if (opt.value == "gb") {
+            randm = false;
+            opt.style.color = "black";
+            opt.style.backgroundColor = "white";
+            document.body.style.color = "grey";
+            document.body.style.backgroundColor = "black";
+          }
+          if (opt.value == "wb") {
+            randm = false;
+            opt.style.color = "black";
+            opt.style.backgroundColor = "white";
+            document.body.style.color = "white";
+            document.body.style.backgroundColor = "black";
+          }
+          if (opt.value == "bw") {
+            randm = false;
+            opt.style.color = "black";
+            opt.style.backgroundColor = "white";
+            document.body.style.color = "black";
+            document.body.style.backgroundColor = "white";
+          }
+          if (opt.value == "dk") {
+            randm = false;
+            opt.style.color = "crimson";
+            opt.style.backgroundColor = "black";
+            document.body.style.color = "crimson";
+            document.body.style.backgroundColor = "black";
+          }
+          if (opt.value == "bg") {
+            randm = false;
+            opt.style.color = "#5077BE";
+            opt.style.backgroundColor = "#D9FFB2";
+            document.body.style.color = "#5077BE";
+            document.body.style.backgroundColor = "#D9FFB2";
+          }
+          if (opt.value == "py") {
+            randm = false;
+            opt.style.color = "#B44DE0";
+            opt.style.backgroundColor = "#FFFF99";
+            document.body.style.color = "#B44DE0";
+            document.body.style.backgroundColor = "#FFFF99";
+          }
+          if (opt.value == "sr") {
+            randm = true;
+            colorizerandom();
+          }
+        }
+
+        // setTimeout(showclock, 1000);
+        let randomChange = false;
+        // Handles code for the actual clock functionality
+        function showclock() {
+          var currentPeriod = -1;
+          var originalDate = new Date();
+          var adjustedDate = new Date(
+            originalDate.getTime() + adjustseconds * 1000
+          );
+
+          var formattedDate = adjustedDate.getDate();
+          if (formattedDate < 10) {
+            formattedDate = "0" + formattedDate;
+          }
+          var formattedHours = adjustedDate.getHours();
+          var meridiem = formattedHours >= 12 ? "PM" : "AM";
+          formattedHours = formattedHours % 12;
+          if (formattedHours == 0) {
+            formattedHours = 12;
+          }
+          if (formattedHours < 10) {
+            formattedHours = "0" + formattedHours;
+          }
+          var fomattedMinutes = adjustedDate.getMinutes();
+          if (fomattedMinutes < 10) {
+            fomattedMinutes = "0" + fomattedMinutes;
+          }
+          var formattedSeconds = adjustedDate.getSeconds();
+          if (randm && formattedSeconds == 0 && !randomChange) {
+            colorizerandom();
+            randomChange = true;
+          } else if (!(formattedSeconds == 0)) {
+            randomChange = false;
+          }
+          if (formattedSeconds < 10) {
+            formattedSeconds = "0" + formattedSeconds;
+          }
+          var displayedDate =
+            days[adjustedDate.getDay()] +
+            " " +
+            months[adjustedDate.getMonth()] +
+            " " +
+            formattedDate +
+            " " +
+            adjustedDate.getFullYear() +
+            " " +
+            formattedHours +
+            ":" +
+            fomattedMinutes +
+            ":" +
+            formattedSeconds +
+            " " +
+            meridiem;
+          Grab("currentdt").innerHTML = displayedDate;
+          currentSeconds =
+            adjustedDate.getHours() * 3600 +
+            adjustedDate.getMinutes() * 60 +
+            adjustedDate.getSeconds();
+          if (typeof starts !== "undefined") {
+            periodIndex = starts.length - 1;
+            if (currentSeconds < starts[0]) {
+              // Before the Schedule
+              Grab("currentperiodsubtitle").innerHTML = "Countdown to";
+              Grab("currentschedue").innerHTML = names[0];
+              Grab("endofschedulesubtitle").innerHTML = "";
+              Grab("currentduration").innerHTML = secondstohhmmss(
+                Math.abs(currentSeconds - starts[0])
+              );
+              Grab("nextperiodsubtitle").innerHTML = "";
+              Grab("nextschedule").innerHTML = "";
+              Grab("nextduration").innerHTML = "";
+            } else if (currentSeconds > starts[periodIndex]) {
+              // End of Schedule
+              Grab("currentperiodsubtitle").innerHTML = "";
+              Grab("currentschedue").innerHTML = names[periodIndex];
+              Grab("currentlengthofperiod").innerHTML = "";
+              Grab("endofschedulesubtitle").innerHTML =
+                "Time elapsed since end of schedule";
+              Grab("currentduration").innerHTML = secondstohhmmss(
+                currentSeconds - starts[periodIndex]
+              );
+              Grab("nextperiodsubtitle").innerHTML = "";
+              Grab("nextschedule").innerHTML = "";
+              Grab("nextduration").innerHTML = "";
+            } else {
+              for (x = 0; x < periodIndex; x++) {
+                if (
+                  starts[x] < currentSeconds &&
+                  starts[x + 1] > currentSeconds
+                ) {
+                  // In session
+                  currentPeriod = x;
+                  Grab("currentperiodsubtitle").innerHTML =
+                    "We are now " +
+                    secondstohhmmss(currentSeconds - starts[x]) +
+                    " into:";
+                  Grab("currentschedue").innerHTML = names[x];
+                  Grab("endofschedulesubtitle").innerHTML = "";
+                  Grab("currentduration").innerHTML = "";
+                  //Grab("currentduration").innerHTML=(secondstohhmmss(currentSeconds-starts[x]));
+                  // Grab("nextperiodsubtitle").innerHTML="nextduration to:";
+                  Grab("nextschedule").innerHTML =
+                    "(" + names[x + 1] + ") starts in:";
+                  Grab("nextduration").innerHTML = secondstohhmmss(
+                    Math.abs(currentSeconds - starts[x + 1])
+                  );
+                }
+              }
+            }
+
+            var ts =
+              "<div style='margin-top:30px;display:block;width:100%;text-align:center'><div style='display:inline-block;margin-left:auto;margin-right:auto;text-align:left;width:auto'>Today'displaySeconds Schedule:<br />";
+            //ts=ts+times[0]+'&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'+names[0]+'<br />';
+            for (x = 0; x < periodIndex; x++) {
+              if (x == currentPeriod) {
+                ts = ts + "<strong>";
+              }
+              disptime = times[x];
+              disptimex = times[x + 1];
+              disptimez = times[periodIndex];
+              //alert(disptime.substring(0,2));
+              // hc=disptime.substring(0,2);
+              // alert(hc*2);
+              //return;
+              if (disptime.substring(0, 2) < 12) {
+                disptime = disptime + " AM";
+              } else {
+                hc = disptime.substring(0, 2);
+                if (hc > 12) {
+                  hc = hc - 12;
+                }
+                if (hc < 10) {
+                  hc = "0" + hc;
+                }
+                disptime = hc + disptime.substring(2, 5) + " PM";
+              }
+              if (disptimex.substring(0, 2) < 12) {
+                disptimex = disptimex + " AM";
+              } else {
+                hc = disptimex.substring(0, 2);
+                if (hc > 12) {
+                  hc = hc - 12;
+                }
+                if (hc < 10) {
+                  hc = "0" + hc;
+                }
+                disptimex = hc + disptimex.substring(2, 5) + " PM";
+              }
+              if (disptimez.substring(0, 2) < 12) {
+                disptimez = disptimex + " AM";
+              } else {
+                hc = disptimez.substring(0, 2);
+                if (hc > 12) {
+                  hc = hc - 12;
+                }
+                if (hc < 10) {
+                  hc = "0" + hc;
+                }
+                disptimez = hc + disptimez.substring(2, 5) + " PM";
+              }
+              ts = ts + disptime + "-" + disptimex + " " + names[x] + "<br >";
+              if (x == currentPeriod) {
+                ts = ts + "</strong>";
+                Grab("currentlengthofperiod").innerHTML =
+                  disptime + "-" + disptimex;
+              }
+            }
+
+            ts =
+              ts +
+              disptimez +
+              "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;" +
+              names[periodIndex] +
+              "</div></div>";
+            Grab("schedule").innerHTML = ts;
+          }
+          delete window.d;
+        }
+
+        function secondstohhmmss(secs) {
+          var hour = parseInt(secs / 3600);
+          if (hour < 10) {
+            hour = "0" + hour;
+          }
+          if (hour == 0) {
+            hour = "00";
+          }
+
+          var secs = secs - hour * 3600;
+          var minute = parseInt(secs / 60);
+          if (minute < 10) {
+            minute = "0" + minute;
+          }
+          if (minute == 0) {
+            minute = "00";
+          }
+          var secs = parseInt(secs - minute * 60);
+
+          var displaySeconds = secs;
+          if (displaySeconds < 10) {
+            displaySeconds = "0" + displaySeconds;
+          }
+          if (hour != "00") {
+            return hour + ":" + minute + ":" + displaySeconds;
+          } else if (minute != "00") {
+            return minute + ":" + displaySeconds;
+          } else {
+            return displaySeconds;
+          }
+        }
+
+        // Most modifications
+        let isEven = false;
+        var schedule = -1; // used to store values for even/odd function
+        /*
+            0 = normal
+            1 = late
+            2 = minimum / finals
+            3 = rally day
+            4 = anchor day
+            5 = extended snack schedule
+            */
+
+        // Experimental test
+        function AutoSchedule() {
+          const currentDate = getAdjustedDate();
+          const currentDay = currentDate.getDate();
+          const currentMonth = currentDate.getMonth() + 1;
+          const currentYear = currentDate.getFullYear();
+
+          if (currentYear === 2024) {
+            const scheduleType = getScheduleType(currentMonth, currentDay);
+            handleScheduleType(scheduleType);
+
+            const isEvenSchedule = isEvenScheduleDay(currentMonth, currentDay);
+            if (isEvenSchedule !== isEven) {
+              ToggleScheduleOddEven();
+            }
+          }
+        }
+
+        function getAdjustedDate() {
+          const og = new Date();
+          return new Date(og.getTime() + adjustseconds * 1000);
+        }
+
+        function getScheduleType(currentMonth, currentDay) {
+          const schedule = {
+            1: { late: [22, 29], navnight: [23] },
+            2: { late: [5, 12, 26] },
+            3: { late: [4, 11, 18, 25] },
+            4: { late: [8, 15, 22, 29] },
+            5: { late: [6, 13, 20] },
+            6: { final: [3, 4], extended: [5] },
+          };
+
+          if (schedule[currentMonth]?.late?.includes(currentDay)) {
+            return "late";
+          }
+          if (schedule[currentMonth]?.final?.includes(currentDay)) {
+            return "final";
+          }
+          if (schedule[currentMonth]?.extended?.includes(currentDay)) {
+            return "extended";
+          }
+          if (schedule[currentMonth]?.navnight?.includes(currentDay)) {
+            return "navnight";
+          }
+          return "normal";
+        }
+
+        function handleScheduleType(scheduleType) {
+          switch (scheduleType) {
+            case "late":
+              LateSchedule();
+              break;
+            case "final":
+              MinimumSchedule();
+              break;
+            case "extended":
+              ExtendedSnackSchedule();
+              UpdateSpecialDropDown();
+              break;
+            case "navnight":
+              NavigationNight();
+              break;
+            default:
+              NormalSchedule();
+          }
+        }
+
+        function isEvenScheduleDay(currentMonth, currentDay) {
+          const evenScheduleDates = {
+            1: [22, 24, 26, 30],
+            2: [1, 5, 7, 9, 13, 15, 21, 23, 27, 29],
+            3: [4, 6, 11, 13, 18, 20, 22, 26, 28],
+            4: [9, 11, 15, 17, 19, 23, 25, 29],
+            5: [1, 6, 8, 10, 14, 16, 20, 22, 28, 30],
+            6: [4],
+          };
+
+          return evenScheduleDates[currentMonth]?.includes(currentDay);
+        }
+
+        function UpdateSpecialDropDown() {
+          // Get the dropdown menu
+          var dropdownMenu = Grab("special-schedule");
+          let internal = schedule;
+          switch (internal) {
+            case 3:
+              dropdownMenu.selectedIndex = 2;
+              break;
+            case 4:
+              dropdownMenu.selectedIndex = 1;
+              break;
+            case 5:
+              dropdownMenu.selectedIndex = 3;
+              break;
+            default:
+              dropdownMenu.selectedIndex = 0;
+          }
+          HandleSpecialScheduleChange();
+        }
+
+        function handleButtonClick() {
+          var dropdownMenu = Grab("special-schedule");
+          var oddEvenButton = Grab("odd-even-toggle");
+          var dropdown = Grab("special-schedule");
+
+          dropdownMenu.style.backgroundColor = ""; // Reset to default color
+          dropdownMenu.selectedIndex = 0;
+          oddEvenButton.style.display = "inline";
+          dropdown.classList.remove("special-schedule-select");
+
+          ClearSubtitle();
+          updateClock();
+        }
+
+        function updateClock() {
+          setTimeout(showclock, 20);
+        }
+        function NavigationNight() {
+          MinimumSchedule();
+          times.push("18:00", "20:00");
+          starts.push(64800, 72000);
+          names.push("Navigation Night", "End of Day");
+        }
+
+        function NoSchool() {
+          times.length = 0;
+          starts.length = 0;
+          names.length = 0;
+        }
+
+        function NormalSchedule() {
+          schedule = 0;
+          handleButtonClick();
+
+          // Clear the existing arrays
+          times.length = 0;
+          starts.length = 0;
+          names.length = 0;
+
+          if (isEven) {
+            Grab("timer_type").innerHTML = "EVEN NORMAL BLOCK";
+            times.push(
+              "08:30",
+              "10:02",
+              "10:11",
+              "10:17",
+              "11:49",
+              "11:55",
+              "13:27",
+              "13:58",
+              "14:04",
+              "15:36"
+            );
+            updateStarts();
+            names.push(
+              "Period 2",
+              "Snack",
+              "Passing Period",
+              "Period 4",
+              "Passing Period",
+              "Period 6",
+              "Lunch",
+              "Passing Period",
+              "Period 8",
+              "End of School"
+            );
+          } else {
+            Grab("timer_type").innerHTML = "ODD NORMAL BLOCK";
+            times.push(
+              "08:30",
+              "10:02",
+              "10:11",
+              "10:17",
+              "11:49",
+              "11:55",
+              "13:27",
+              "13:58",
+              "14:04",
+              "15:36"
+            );
+            updateStarts();
+            names.push(
+              "Period 1",
+              "Snack",
+              "Passing Period",
+              "Period 3",
+              "Passing Period",
+              "Period 5",
+              "Lunch",
+              "Passing Period",
+              "Period 7",
+              "End of School"
+            );
+          }
+
+          var buttons = document.querySelectorAll(".schedule-button");
+          buttons.forEach(function (button) {
+            button.classList.remove("selected-state");
+          });
+
+          var button = document.querySelector("#normal-schedule");
+          button.classList.add("selected-state");
+        }
+
+        function LateSchedule() {
+          schedule = 1;
+          handleButtonClick();
+
+          times.length = 0;
+          starts.length = 0;
+          names.length = 0;
+          times.push(
+            "10:00",
+            "11:09",
+            "11:18",
+            "11:24",
+            "12:35",
+            "12:41",
+            "13:50",
+            "14:21",
+            "14:27",
+            "15:36"
+          );
+          updateStarts();
+          if (isEven) {
+            Grab("timer_type").innerHTML = "EVEN LATE BLOCK";
+            names.push(
+              "Period 2",
+              "Snack",
+              "Passing Period",
+              "Period 4",
+              "Passing Period",
+              "Period 6",
+              "Lunch",
+              "Passing Period",
+              "Period 8",
+              "End of School"
+            );
+          } else {
+            Grab("timer_type").innerHTML = "ODD LATE BLOCK";
+            names.push(
+              "Period 1",
+              "Snack",
+              "Passing Period",
+              "Period 3",
+              "Passing Period",
+              "Period 5",
+              "Lunch",
+              "Passing Period",
+              "Period 7",
+              "End of School"
+            );
+          }
+
+          var buttons = document.querySelectorAll(".schedule-button");
+          buttons.forEach(function (button) {
+            button.classList.remove("selected-state");
+          });
+
+          var button = document.querySelector("#late-schedule");
+          button.classList.add("selected-state");
+        }
+
+        function MinimumSchedule() {
+          schedule = 2;
+          handleButtonClick();
+
+          times.length = 0;
+          starts.length = 0;
+          names.length = 0;
+          times.push(
+            "08:30",
+            "09:34",
+            "09:43",
+            "09:49",
+            "10:56",
+            "11:02",
+            "12:06",
+            "12:12",
+            "13:16"
+          );
+          updateStarts();
+          if (isEven) {
+            Grab("timer_type").innerHTML = "EVEN MINIMUM BLOCK";
+            names.push(
+              "Period 2",
+              "Snack",
+              "Passing Period",
+              "Period 4",
+              "Passing Period",
+              "Period 6",
+              "Passing Period",
+              "Period 8",
+              "End of School"
+            );
+          } else {
+            Grab("timer_type").innerHTML = "ODD MINIMUM BLOCK";
+            names.push(
+              "Period 1",
+              "Snack",
+              "Passing Period",
+              "Period 3",
+              "Passing Period",
+              "Period 5",
+              "Passing Period",
+              "Period 7",
+              "End of School"
+            );
+          }
+
+          var buttons = document.querySelectorAll(".schedule-button");
+          buttons.forEach(function (button) {
+            button.classList.remove("selected-state");
+          });
+
+          var button = document.querySelector("#minimum-schedule");
+          button.classList.add("selected-state");
+        }
+
+        function AnchorSchedule() {
+          schedule = 4;
+          Grab("timer_type").innerHTML = "ANCHOR DAY";
+
+          // Clear the arrays
+          times.length = 0;
+          starts.length = 0;
+          names.length = 0;
+
+          // Push the values into the arrays
+          times.push(
+            "10:00",
+            "10:31",
+            "10:37",
+            "11:14",
+            "11:23",
+            "11:29",
+            "12:00",
+            "12:06",
+            "12:37",
+            "13:08",
+            "13:14",
+            "13:45",
+            "13:51",
+            "14:22",
+            "14:28",
+            "14:59",
+            "15:05",
+            "15:36"
+          );
+          updateStarts();
+          names.push(
+            "Period 1",
+            "Snack",
+            "Period 2",
+            "Snack",
+            "Passing Period",
+            "Period 3",
+            "Passing Period",
+            "Period 4",
+            "Lunch",
+            "Passing Period",
+            "Period 5",
+            "Passing Period",
+            "Period 6",
+            "Passing Period",
+            "Period 7",
+            "Passing Period",
+            "Period 8",
+            "End of School"
+          );
+        }
+
+        function updateStarts() {
+          starts = times.map((time) => {
+            let [hours, minutes] = time.split(":").map(Number);
+            return hours * 3600 + minutes * 60;
+          });
+        }
+
+        function RallySchedule() {
+          schedule = 3;
+          times.length = 0;
+          starts.length = 0;
+          names.length = 0;
+          times.push(
+            "08:30",
+            "09:50",
+            "10:00",
+            "10:06",
+            "11:04",
+            "12:13",
+            "12:19",
+            "13:39",
+            "14:10",
+            "14:16",
+            "15:36"
+          );
+          updateStarts();
+          if (isEven) {
+            Grab("timer_type").innerHTML = "EVEN RALLY DAY";
+            names.push(
+              "Period 2",
+              "Snack",
+              "Period 4",
+              "Rally A (P4)",
+              "Rally B (P4)",
+              "Passing Period",
+              "Period 6",
+              "Lunch",
+              "Passing Period",
+              "Period 8",
+              "End of School"
+            );
+          } else {
+            Grab("timer_type").innerHTML = "ODD RALLY DAY";
+            names.push(
+              "Period 1",
+              "Snack",
+              "Period 3",
+              "Rally A (P3)",
+              "Rally B (P3)",
+              "Passing Period",
+              "Period 5",
+              "Lunch",
+              "Passing Period",
+              "Period 7",
+              "End of School"
+            );
+          }
+        }
+
+        function ExtendedSnackSchedule() {
+          schedule = 5;
+          Grab("timer_type").innerHTML = "MINIMUM DAY";
+          Grab("subtitle").innerHTML = "(Extended Snack)";
+
+          // Clear the arrays
+          times.length = 0;
+          starts.length = 0;
+          names.length = 0;
+
+          // Push the values into the arrays
+          times.push(
+            "08:30",
+            "08:58",
+            "09:04",
+            "09:32",
+            "09:38",
+            "10:06",
+            "10:12",
+            "10:40",
+            "11:00",
+            "11:06",
+            "11:34",
+            "11:40",
+            "12:08",
+            "12:14",
+            "12:42",
+            "12:48",
+            "13:16"
+          );
+          updateStarts();
+          names.push(
+            "Period 1",
+            "Passing Period",
+            "Period 2",
+            "Passing Period",
+            "Period 3",
+            "Passing Period",
+            "Period 4",
+            "Extended Snack",
+            "Passing Period",
+            "Period 5",
+            "Passing Period",
+            "Period 6",
+            "Passing Period",
+            "Period 7",
+            "Passing Period",
+            "Period 8",
+            "End of School"
+          );
+        }
+
+        // handles switching between even and odd
+        function ToggleScheduleOddEven() {
+          isEven = !isEven;
+          switch (schedule) {
+            case 0:
+              NormalSchedule();
+              break;
+            case 1:
+              LateSchedule();
+              break;
+            case 2:
+              MinimumSchedule();
+              break;
+            case 3:
+              RallySchedule();
+              break;
+            default:
+              NormalSchedule();
+          }
+          var button = document.querySelector("#odd-even-toggle");
+          if (isEven) {
+            button.classList.remove("normal-state");
+            button.classList.add("toggled-state");
+          } else {
+            button.classList.remove("toggled-state");
+            button.classList.add("normal-state");
+          }
+        }
+
+        function HandleSpecialScheduleChange() {
+          updateSpecialScheduleDropdown();
+          updateOddEvenToggleButton();
+          clearSelectedStateButtons();
+          handleSpecialScheduleSelection();
+          updateClock();
+        }
+
+        function updateSpecialScheduleDropdown() {
+          var dropdown = Grab("special-schedule");
+          var selectedIndex = dropdown.selectedIndex;
+
+          if (selectedIndex !== 0) {
+            dropdown.classList.add("special-schedule-select");
+            dropdown.style.backgroundColor = "grey";
+          } else {
+            dropdown.classList.remove("special-schedule-select");
+            dropdown.style.backgroundColor = ""; // Reset to default color
+          }
+        }
+
+        function updateOddEvenToggleButton() {
+          var dropdown = Grab("special-schedule");
+          var selectedIndex = dropdown.selectedIndex;
+          var oddEvenButton = Grab("odd-even-toggle");
+
+          if (selectedIndex === 0 || selectedIndex === 2) {
+            oddEvenButton.style.display = "inline";
+          } else {
+            oddEvenButton.style.display = "none";
+          }
+        }
+
+        function clearSelectedStateButtons() {
+          var buttons = document.querySelectorAll(".selected-state");
+          buttons.forEach(function (button) {
+            button.classList.remove("selected-state");
+          });
+        }
+
+        function handleSpecialScheduleSelection() {
+          var selectedOption = Grab("special-schedule").value;
+          switch (selectedOption) {
+            case "Nothing":
+              NormalSchedule();
+              ClearSubtitle();
+              break;
+            case "anchorSchedule":
+              AnchorSchedule();
+              ClearSubtitle();
+              break;
+            case "rallySchedule":
+              RallySchedule();
+              ClearSubtitle();
+              break;
+            case "ExtendedSnackSchedule":
+              ExtendedSnackSchedule();
+              break;
+            default:
+              break;
+          }
+        }
+
+        function ClearSubtitle() {
+          Grab("subtitle").innerHTML = "";
+        }
+      </script>
+    </div>
+  </body>
+</html>
