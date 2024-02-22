@@ -1,4 +1,5 @@
 # Schedule Monitor
+[Website view](https://oirehm.github.io/schedulemonitor/)
 
 Schedule Monitor is a simple single-page application (SPA) that provides real-time schedule information. It's particularly useful for tracking time until the next period begins.
 
@@ -9,7 +10,7 @@ Schedule Monitor is a simple single-page application (SPA) that provides real-ti
 * Change background color with preset color schemes
 * Automatic switching between schedules based on current date
 * Navigate through different available schedules with buttons
-* Time input includes a built-in calculator: ``log(2phi)*2(10/3)+cos(0)/sec(pi/2)``
+* Time input includes a built-in calculator: ``log(2phi)*2(10/3)+cos(0)/sec(pi)``
 
 ## Prerequisites
 
