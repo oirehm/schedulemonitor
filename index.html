@@ -43,11 +43,11 @@
         Minimum Day Schedule
       </button>
       <button
-      <!--Special Schedules
-        Anchor Day
-        Rally Day
-        Minimum Day Extended Snack
-        -->
+        id="auto-schedule"
+        onclick="AutoSchedule()"
+        class="schedule-button">
+        Auto
+      </button>
       <select id="special-schedule" onchange="HandleSpecialScheduleChange()">
         <option value="Nothing">Special Schedules</option>
         <option value="anchorSchedule">Anchor Day</option>
@@ -457,20 +457,7 @@
         <button id="changelogClose">Close</button>
       </div>
       <br /><br />
-          starts = times.map((time) => {
-            const [hours, minutes] = time.split(":").map(Number);
-            return hours * 3600 + minutes * 60;
-          });
-        }
-
-        // Add event listener for the custom schedule form
-        document
-          .getElementById("customScheduleForm")
-          .addEventListener("submit", saveCustomSchedule);
-
-        // Display the saved schedules when the page loads
-        displaySavedSchedules();
-      </script>
+      <a href="href/schedules.html">View Saved Schedules</a>
       <script>
         // DO NOT DELETE
         function Grab(getElementById) {

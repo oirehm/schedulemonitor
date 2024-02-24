@@ -1,0 +1,142 @@
+<h1>Schedule editor</h1>
+
+<form id="customScheduleForm">
+  <label for="customScheduleName">Schedule Name:</label>
+  <input type="text" id="customScheduleName" required />
+  <br />
+  <label for="customPeriodNames">Period Names (comma-separated):</label>
+  <input type="text" id="customPeriodNames" required />
+  <br />
+  <label for="customPeriodTimes"
+    >Period Start Times (comma-separated, 24-hour format):</label
+  >
+  <input type="text" id="customPeriodTimes" required />
+  <br />
+  <button type="submit">Save Schedule</button>
+</form>
+
+<div id="savedSchedules">
+  <h3>Saved Schedules:</h3>
+  <ul id="savedSchedulesList"></ul>
+</div>
+
+<script>
+  const customScheduleForm = document.getElementById("customScheduleForm");
+  const toggleFormButton = document.getElementById("toggleCustomScheduleForm");
+
+  // Toggle the visibility of the form when the button is clicked
+  toggleFormButton.addEventListener("click", () => {
+    customScheduleForm.style.display =
+      customScheduleForm.style.display === "none" ? "block" : "none";
+    toggleFormButton.textContent =
+      customScheduleForm.style.display === "none"
+        ? "Create Custom Schedule"
+        : "Hide Form";
+  });
+
+  // Function to save a custom schedule
+  function saveCustomSchedule(event) {
+    event.preventDefault();
+
+    const scheduleName = document.getElementById("customScheduleName").value;
+    const periodNames = document
+      .getElementById("customPeriodNames")
+      .value.split(",");
+    const periodTimes = document
+      .getElementById("customPeriodTimes")
+      .value.split(",");
+
+    const customSchedule = {
+      name: scheduleName,
+      periods: periodNames,
+      times: periodTimes,
+    };
+
+    // Store the custom schedule in local storage
+    const savedSchedules =
+      JSON.parse(localStorage.getItem("savedSchedules")) || [];
+    savedSchedules.push(customSchedule);
+    localStorage.setItem("savedSchedules", JSON.stringify(savedSchedules));
+
+    // Clear the form inputs
+    document.getElementById("customScheduleForm").reset();
+
+    // Update the saved schedules list
+    displaySavedSchedules();
+  }
+
+  // Function to display the list of saved schedules
+  function displaySavedSchedules() {
+    const savedSchedulesList = document.getElementById("savedSchedulesList");
+    savedSchedulesList.innerHTML = "";
+
+    const savedSchedules =
+      JSON.parse(localStorage.getItem("savedSchedules")) || [];
+
+    savedSchedules.forEach((schedule, index) => {
+      const listItem = document.createElement("li");
+      const scheduleLink = document.createElement("a");
+      scheduleLink.href = "#";
+      scheduleLink.textContent = schedule.name;
+      scheduleLink.addEventListener("click", () => loadCustomSchedule(index));
+
+      const deleteButton = document.createElement("button");
+      deleteButton.textContent = "Delete";
+      deleteButton.addEventListener("click", () => deleteCustomSchedule(index));
+
+      listItem.appendChild(scheduleLink);
+      listItem.appendChild(deleteButton);
+      savedSchedulesList.appendChild(listItem);
+    });
+  }
+
+  // Function to load and display a custom schedule
+  function loadCustomSchedule(index) {
+    const savedSchedules =
+      JSON.parse(localStorage.getItem("savedSchedules")) || [];
+    const selectedSchedule = savedSchedules[index];
+
+    // Clear the existing schedule arrays
+    times.length = 0;
+    starts.length = 0;
+    names.length = 0;
+
+    // Populate the schedule arrays with the custom schedule data
+    names.push(...selectedSchedule.periods);
+    updateStarts(selectedSchedule.times);
+
+    // Call showclock() to display the loaded schedule
+    showclock();
+  }
+
+  // Helper function to update the starts array based on the provided times
+  function updateStarts(times) {
+    starts = times.map((time) => {
+      const [hours, minutes] = time.split(":").map(Number);
+      return hours * 3600 + minutes * 60;
+    });
+  }
+
+  // Function to delete a custom schedule
+  function deleteCustomSchedule(index) {
+    const savedSchedules =
+      JSON.parse(localStorage.getItem("savedSchedules")) || [];
+
+    // Remove the schedule from the array
+    savedSchedules.splice(index, 1);
+
+    // Update the local storage with the updated array
+    localStorage.setItem("savedSchedules", JSON.stringify(savedSchedules));
+
+    // Update the saved schedules list
+    displaySavedSchedules();
+  }
+
+  // Add event listener for the custom schedule form
+  document
+    .getElementById("customScheduleForm")
+    .addEventListener("submit", saveCustomSchedule);
+
+  // Display the saved schedules when the page loads
+  displaySavedSchedules();
+</script>
