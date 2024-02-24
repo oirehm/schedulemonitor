@@ -1,5 +1,5 @@
-# Schedule Monitor (Beta Version)
-[Website view](https://monitorbeta.netlify.app/)
+# Schedule Monitor
+[Website view](https://oirehm.github.io/schedulemonitor/)
 
 Schedule Monitor is a simple single-page application (SPA) that provides real-time schedule information. It's particularly useful for tracking time until the next period begins.
 
@@ -32,6 +32,10 @@ If you have any questions or feedback, please feel free to reach out at jrmmcapa
 ## License
 
 This project is licensed under the [APACHE LICENSE 2.0](LICENSE.md).
+
+Sure, here's a formatted version of the version history:
+
+## [Changelog](Changelog.md)
 
 ## Acknowledgments
 
