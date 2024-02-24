@@ -29,13 +29,13 @@ After opening the application, you can adjust the time, change the background co
 
 If you have any questions or feedback, please feel free to reach out at jrmmcapagal@gmail.com.
 
-## Version History
-
-* 0.1.25 - Initial Release
-
 ## License
 
 This project is licensed under the [APACHE LICENSE 2.0](LICENSE.md).
+
+Sure, here's a formatted version of the version history:
+
+## [Changelog](Changelog.md)
 
 ## Acknowledgments
 
