@@ -1,37 +1,19 @@
-# Schedule Monitor
-[Website view](https://oirehm.github.io/schedulemonitor/)
+# Schedule Monitor (Beta Version)
+[Website view](https://monitorbeta.netlify.app/)
 
 Schedule Monitor is a simple single-page application (SPA) that provides real-time schedule information. It's particularly useful for tracking time until the next period begins.
 
-## Features
+## Note
 
-* Displays current time
-* Option to adjust time in seconds
-* Change background color with preset color schemes
-* Automatic switching between schedules based on current date
-* Navigate through different available schedules with buttons
-* Time input includes a built-in calculator: ``log(2phi)*2(10/3)+cos(0)/sec(pi)``
+## Note
 
-## Prerequisites
+This is an experimental version of Schedule Monitor and should be considered unstable.
 
-No dependencies are required to install and run this application.
-
-## Installation
-
-1. Download the latest release from the Releases section.
-2. Open the .html file in your preferred web browser.
-
-## Usage
-
-After opening the application, you can adjust the time, change the background color, and switch between schedules.
+Please note that there may be bugs and additional features yet to be implemented. As such, it is not recommended for regular use.
 
 ## Contact
 
 If you have any questions or feedback, please feel free to reach out at jrmmcapagal@gmail.com.
-
-## Version History
-
-* 0.1.25 - Initial Release
 
 ## License
 
