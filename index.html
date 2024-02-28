@@ -495,7 +495,6 @@
             nextDay();
           }
           this.value = newVal;
-          timeadj();
         });
 
         // date and time variables
@@ -520,12 +519,14 @@
           adjustseconds -= 86400;
           var inputBox = Grab("timeadj");
           inputBox.value = adjustseconds;
+          AutoSchedule();
           timeadj();
         }
         function nextDay() {
           adjustseconds += 86400;
           var inputBox = Grab("timeadj");
           inputBox.value = adjustseconds;
+          AutoSchedule();
           timeadj();
         }
         function ErrorTimeAdj() {

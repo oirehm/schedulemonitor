@@ -1,3 +1,7 @@
+## Version 1.5.51
+
+- Fixed bug where switching days with the day selector would not properly run the auto schedule feature
+
 ## Version 1.5.50
 
 - Added new "Auto" button manually set the schedule to today.
