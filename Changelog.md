@@ -1,6 +1,9 @@
 ## Version 1.5.51
 
-- Fixed bug where switching days with the day selector would not properly run the auto schedule feature
+- Fixed bug where switching days with the day selector would not properly run the auto schedule feature.
+- Removed unused code
+- Added an icon for the tab
+- Separated css into its own file
 
 ## Version 1.5.50
 

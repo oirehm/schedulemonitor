@@ -1,0 +1,164 @@
+body {
+  text-align: center;
+  font-family: "Lucida Console", Monaco, monospace;
+}
+@media (max-width: 600px) {
+  .button-panel {
+    flex-direction: column;
+  }
+
+  .schedule-button {
+    margin-right: 0;
+    margin-bottom: 10px;
+  }
+
+  #special-schedule {
+    margin-right: 0;
+    margin-bottom: 10px;
+  }
+
+  .centered-dropdown {
+    text-align: center;
+  }
+
+  .special-schedule-select {
+    border: 3px solid grey;
+  }
+}
+
+#changelogButton {
+  font-size: 12px;
+  padding: 5px 10px;
+  border-radius: 5px;
+  background-color: #fff;
+  color: #000;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+
+  /* Positioning */
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+}
+
+.button-panel {
+  background-color: #333;
+  padding: 10px;
+  top: 0;
+  left: 0;
+  right: 0;
+  order: -1;
+  z-index: 1000;
+}
+
+.schedule-button {
+  font-size: 15px;
+  padding: 5px 10px;
+  border-radius: 5px;
+  background-color: #fff;
+  color: #000;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+  margin-right: 10px;
+}
+
+.button-panel button:last-child {
+  margin-right: 0;
+}
+
+#special-schedule {
+  font-size: 15px;
+  padding: 5px 10px;
+  border-radius: 5px;
+  background-color: #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+  margin-right: 10px;
+}
+
+.centered-dropdown {
+  text-align: center;
+}
+
+.special-schedule-select {
+  border: 2px solid black;
+  color: #fff;
+}
+
+/*  Color toggle for odd/even button for visual information */
+#odd-even-toggle.toggled-state {
+  background-color: gold;
+  color: #000;
+  transition: 150ms;
+}
+
+#odd-even-toggle.normal-state {
+  background-color: maroon;
+  color: #fff;
+  transition: 150ms;
+}
+
+/* Handles greying out buttons if selected */
+.selected-state {
+  background-color: #808080;
+  color: #fff;
+  border: 2px solid rgb(0, 0, 0);
+  transition: 150ms;
+}
+
+body {
+  background-color: black;
+  color: gray;
+}
+
+#container {
+  text-align: center;
+  margin-top: 5px;
+  font-family: "Lucida Console", Monaco, monospace;
+}
+
+#currentdt {
+  font-size: 2.5em;
+  margin-top: 16px;
+}
+
+#nextperiodsubtitle {
+  margin-top: 24px;
+}
+
+#nextduration {
+  font-size: 2.2em;
+  margin-top: 6px;
+}
+
+#nextschedule {
+  font-size: 2em;
+  margin-top: 10px;
+}
+
+#currentperiodsubtitle {
+  margin-top: 24px;
+  font-size: 1.5em;
+}
+
+#endofschedulesubtitle {
+  margin-top: 5px;
+  font-size: 1em;
+}
+
+#currentduration {
+  font-size: 5em;
+  margin-top: 8px;
+  color: orange;
+}
+
+#currentlengthofperiod {
+  font-size: 1.8em;
+  margin-top: 8px;
+}
+
+#currentschedue {
+  font-size: 3.5em;
+  margin-top: 10px;
+}
+
+#schedule {
+  margin-bottom: 10px;
+}
