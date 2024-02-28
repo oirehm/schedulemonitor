@@ -810,7 +810,7 @@
             navnight: [23],
             noSchool: [1, 2, 3, 4, 5, 8, 15],
           },
-          2: { late: [5, 12, 26], noSchool: [16, 19] },
+          2: { late: [5, 12, 26], noSchool: [16, 19], rally: [29] },
           3: { late: [4, 11, 18, 25], noSchool: [8, 15, 29] },
           4: { late: [8, 15, 22, 29], noSchool: [1, 2, 3, 4, 5] },
           5: { late: [6, 13, 20], noSchool: [3, 24, 27] },
@@ -832,6 +832,9 @@
             if (schedule[currentMonth]?.late?.includes(currentDay)) {
               return "Late";
             }
+            if (schedule[currentMonth]?.rally?.includes(currentDay)) {
+              return "Rally";
+            }
             if (schedule[currentMonth]?.final?.includes(currentDay)) {
               return "Finals";
             }
@@ -839,7 +842,7 @@
               return "Extended Snack";
             }
             if (schedule[currentMonth]?.navnight?.includes(currentDay)) {
-              return "navnight";
+              return "Navigation Night";
             }
             if (schedule[currentMonth]?.noSchool?.includes(currentDay)) {
               return "No School";
@@ -859,11 +862,14 @@
               ExtendedSnackSchedule();
               UpdateSpecialDropDown();
               break;
-            case "navnight":
+            case "Navigation Night":
               NavigationNight();
               break;
             case "No School":
               noSchool();
+              break;
+            case "Rally":
+              RallySchedule();
               break;
             default:
               NormalSchedule();
