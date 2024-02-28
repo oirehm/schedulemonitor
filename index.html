@@ -42,7 +42,12 @@
         class="schedule-button">
         Minimum Day Schedule
       </button>
-
+      <button
+        id="auto-schedule"
+        onclick="AutoSchedule()"
+        class="schedule-button">
+        Auto
+      </button>
       <!--Special Schedules
         Anchor Day
         Rally Day
@@ -193,11 +198,13 @@
       #odd-even-toggle.toggled-state {
         background-color: gold;
         color: #000;
+        transition: 150ms;
       }
 
       #odd-even-toggle.normal-state {
         background-color: maroon;
         color: #fff;
+        transition: 150ms;
       }
 
       /* Handles greying out buttons if selected */
@@ -205,6 +212,7 @@
         background-color: #808080;
         color: #fff;
         border: 2px solid rgb(0, 0, 0);
+        transition: 150ms;
       }
 
       body {
@@ -378,84 +386,36 @@
         onblur="if(this.value==''){this.value='0'; timeadj();}" />
       <div id="resultDisplay"></div>
       <div id="secondsDisplay"></div>
-
-      <br /><br />
-      Updates per ms:
-      <select name="updateTime" id="numbers" class="centered-dropdown">
-        <option value="2000">2000</option>
-        <option value="1000" selected="">1000</option>
-        <option value="250">250</option>
-        <option value="200">200</option>
-        <option value="100" selected="">100</option>
-        <option value="50">50</option>
-        <option value="0">Real Time</option>
-      </select>
-      <button id="changelogButton">Changelog</button>
-
-      <div id="changelogPanel">
-        <!-- 
-            &nbsp;&nbsp; - <br>
-            -->
-        <br />
-        Version 1.4.26: <br />
-        &nbsp;&nbsp; -Buttons look better now <br />
-        &nbsp;&nbsp; -Moved changelog to a panel <br />
-        &nbsp;&nbsp; -Trello board has been created
-        https://trello.com/b/b8STAMDw/clock <br />
-        &nbsp;&nbsp; -Optimized code (again) <br />
-        &nbsp;&nbsp; -I guess the adjustment field is now a calculator... I
-        wonder what log(2phi)*2(10/3)+cos(0)/sec(pi/2) is...<br />
-        <br />
-        Version 1.3.21: <br />
-        &nbsp;&nbsp; -Fixed a bug where adjusting the time with the scroll wheel
-        will cause a desync due to not updating timeAdj properly <br />
-        &nbsp;&nbsp; -Fixed a bug that that caused the screen to flash at the
-        rate of updates per ms when color scheme was set to random by minute<br />
-        &nbsp;&nbsp; -(Forgot to mention in 1.2) The ability to now use decimals
-        to adjust time more precisely<br />
-        &nbsp;&nbsp; -Now using an experimental internal database structure to
-        automatically set the correct schedule according to the day (Only in
-        2024)<br />
-        &nbsp;&nbsp; -Changed color scheme dropdown menu'displaySeconds colors
-        when switching to be more consistent<br />
-        &nbsp;&nbsp; -Added missing "Gray on black" color scheme option to color
-        scheme dropdown menu<br />
-        <br />
-        Version 1.2.13: <br />
-        <br />
-        Navigation: <br />
-        &nbsp;&nbsp; -Added buttons to navigate across different schedules
-        <br />
-        &nbsp;&nbsp; -Added button toggle between odd and even days <br />
-        &nbsp;&nbsp; -Added Normal, Late Start, and Minimum/Finals Schedules
-        <br />
-        &nbsp;&nbsp; -Dropdown menu shows Anchor, Rally, and Extended Lunch
-        Schedules <br />
-        <br />
-        Clock/Time: <br />
-        &nbsp;&nbsp; -Time adjustment input now turns reddish to indicate
-        invalid number <br />
-        &nbsp;&nbsp; -Added the ability to change Time adjustment by scrolling
-        on hover <br />
-        &nbsp;&nbsp; -Fixed Time incorrectly displaying if the time adjustment
-        input is not a valid number <br />
-        &nbsp;&nbsp; -Added ability to change update time per millisecond for
-        accuracy (Default: 100) <br />
-        &nbsp;&nbsp; -Swapped Current date/time text to subtitles when selecting
-        Min Extended Snack <br />
-        <br />
-        Optimization/Fixes: <br />
-        &nbsp;&nbsp; -Clock now changes immediately upon entering new time
-        adjustment value <br />
-        &nbsp;&nbsp; -Schedule now loads instantly instead of after one second
-        <br />
-        &nbsp;&nbsp; -Removed functions that were never called in the first
-        place <br />
-        <br />
-        Other: <br />
-        &nbsp;&nbsp; -Added Changelog <br />
-        <button id="changelogClose">Close</button>
+      <br />
+      <div id="fastForward">
+        <button onclick="previousDay()" id="previousDay"><<</button>
+        Day selector
+        <button onclick="nextDay()" id="nextDay">>></button>
       </div>
+      <br />
+      <div id="frequencySelection">
+        Updates per ms:
+        <select name="updateTime" id="numbers" class="centered-dropdown">
+          <option value="2000">2000</option>
+          <option value="1000" selected="">1000</option>
+          <option value="250">250</option>
+          <option value="200">200</option>
+          <option value="100" selected="">100</option>
+          <option value="50">50</option>
+          <option value="0">Real Time</option>
+        </select>
+      </div>
+      <br />
+      <div id="tomorrowScheduleTitle">Tomorrow's Schedule:</div>
+      <div id="tomorrowScheduleDisplay">Unknown</div>
+      <button id="changelogButton">
+        <a
+          href="https://github.com/oirehm/schedulemonitor/blob/main/Changelog.md"
+          target="_blank"
+          >Changelog</a
+        >
+      </button>
+
       <br /><br />
 
       <script>
@@ -463,16 +423,6 @@
         function Grab(getElementById) {
           return document.getElementById(getElementById);
         }
-
-        Grab("changelogButton").addEventListener("click", function () {
-          Grab("changelogButton").classList.toggle("selected-state");
-          Grab("changelogPanel").classList.toggle("show");
-        });
-
-        Grab("changelogClose").addEventListener("click", function () {
-          Grab("changelogButton").classList.remove("selected-state");
-          Grab("changelogPanel").classList.remove("show");
-        });
 
         function updateAndCallAgain() {
           var selectedValue = Grab("numbers").value;
@@ -512,9 +462,9 @@
           }
         }
 
-        let inputField = document.querySelector("#timeadj");
+        let timeAdjInput = document.querySelector("#timeadj");
 
-        inputField.addEventListener("wheel", function (event) {
+        timeAdjInput.addEventListener("wheel", function (event) {
           event.preventDefault(); // prevent default behavior
           let currentVal = parseFloat(this.value);
           if (isNaN(currentVal)) {
@@ -525,6 +475,24 @@
             newVal = currentVal - 1; // scroll up, decrease value
           } else {
             newVal = currentVal + 1; // scroll down, increase value
+          }
+          this.value = newVal;
+          timeadj();
+        });
+
+        let fastForwardLeft = document.querySelector("#fastForward");
+
+        fastForwardLeft.addEventListener("wheel", function (event) {
+          event.preventDefault(); // prevent default behavior
+          let currentVal = parseFloat(this.value);
+          if (isNaN(currentVal)) {
+            currentVal = 0;
+          }
+          let newVal;
+          if (event.deltaY > 0) {
+            previousDay();
+          } else {
+            nextDay();
           }
           this.value = newVal;
           timeadj();
@@ -548,7 +516,18 @@
         ];
         var randm = false;
         var adjustseconds = 0;
-
+        function previousDay() {
+          adjustseconds -= 86400;
+          var inputBox = Grab("timeadj");
+          inputBox.value = adjustseconds;
+          timeadj();
+        }
+        function nextDay() {
+          adjustseconds += 86400;
+          var inputBox = Grab("timeadj");
+          inputBox.value = adjustseconds;
+          timeadj();
+        }
         function ErrorTimeAdj() {
           Grab("timeadj").style.backgroundColor = "SandyBrown";
           adjustseconds = 0;
@@ -878,7 +857,7 @@
                   Grab("currentschedue").innerHTML = names[x];
                   Grab("endofschedulesubtitle").innerHTML = "";
                   Grab("currentduration").innerHTML = "";
-                  //Grab("currentduration").innerHTML=(secondstohhmmss(currentSeconds-starts[x]));
+                  // Grab("currentduration").innerHTML=(secondstohhmmss(currentSeconds-starts[x]));
                   // Grab("nextperiodsubtitle").innerHTML="nextduration to:";
                   Grab("nextschedule").innerHTML =
                     "(" + names[x + 1] + ") starts in:";
@@ -889,20 +868,24 @@
               }
             }
 
-            var ts =
-              "<div style='margin-top:30px;display:block;width:100%;text-align:center'><div style='display:inline-block;margin-left:auto;margin-right:auto;text-align:left;width:auto'>Today's Schedule:<br />";
-            //ts=ts+times[0]+'&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'+names[0]+'<br />';
+            // Format displayed schedule
+            if (times.length > 0) {
+              var scheduleDisplay =
+                "<div style='margin-top:30px;display:block;width:100%;text-align:center'><div style='display:inline-block;margin-left:auto;margin-right:auto;text-align:left;width:auto'>Today's Schedule:<br />";
+            } else {
+              var scheduleDisplay = "No school today!";
+            }
+            //scheduleDisplay=scheduleDisplay+times[0]+'&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'+names[0]+'<br />';
             for (x = 0; x < periodIndex; x++) {
+              // Highlight current period in schedule
               if (x == currentPeriod) {
-                ts = ts + "<strong>";
+                scheduleDisplay = scheduleDisplay + "<strong>";
               }
               disptime = times[x];
               disptimex = times[x + 1];
               disptimez = times[periodIndex];
-              //alert(disptime.substring(0,2));
-              // hc=disptime.substring(0,2);
-              // alert(hc*2);
-              //return;
+
+              // Add meridiem to time
               if (disptime.substring(0, 2) < 12) {
                 disptime = disptime + " AM";
               } else {
@@ -939,25 +922,29 @@
                 }
                 disptimez = hc + disptimez.substring(2, 5) + " PM";
               }
-              ts = ts + disptime + "-" + disptimex + " " + names[x] + "<br >";
+              scheduleDisplay =
+                scheduleDisplay +
+                disptime +
+                "-" +
+                disptimex +
+                " " +
+                names[x] +
+                "<br >";
               if (x == currentPeriod) {
-                ts = ts + "</strong>";
+                scheduleDisplay = scheduleDisplay + "</strong>";
                 Grab("currentlengthofperiod").innerHTML =
                   disptime + "-" + disptimex;
               }
             }
 
-            ts =
-              ts +
-              disptimez +
-              "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;" +
-              names[periodIndex] +
-              "</div></div>";
-            Grab("schedule").innerHTML = ts;
+            // End part
+
+            Grab("schedule").innerHTML = scheduleDisplay;
           }
           delete window.d;
         }
 
+        // The actual displayed timer
         function secondstohhmmss(secs) {
           var hour = parseInt(secs / 3600);
           if (hour < 10) {
@@ -981,6 +968,9 @@
           if (displaySeconds < 10) {
             displaySeconds = "0" + displaySeconds;
           }
+          if (displaySeconds == 1) {
+            Grab("currentduration").innerHTML = "\0";
+          }
           if (hour != "00") {
             return hour + ":" + minute + ":" + displaySeconds;
           } else if (minute != "00") {
@@ -1002,68 +992,123 @@
             5 = extended snack schedule
             */
 
-        // Experimental test
         function AutoSchedule() {
           const currentDate = getAdjustedDate();
           const currentDay = currentDate.getDate();
           const currentMonth = currentDate.getMonth() + 1;
           const currentYear = currentDate.getFullYear();
+          const currentWeekDay = currentDate.getDay();
 
-          if (currentYear === 2024) {
-            const scheduleType = getScheduleType(currentMonth, currentDay);
-            handleScheduleType(scheduleType);
-
-            const isEvenSchedule = isEvenScheduleDay(currentMonth, currentDay);
-            if (isEvenSchedule !== isEven) {
-              ToggleScheduleOddEven();
-            }
+          let scheduleType = getScheduleType(
+            currentMonth,
+            currentDay,
+            currentWeekDay,
+            currentYear
+          );
+          handleScheduleType(scheduleType);
+          let result = "";
+          let isEvenSchedule = isEvenScheduleDay(currentMonth, currentDay);
+          if (isEvenSchedule !== isEven) {
+            ToggleScheduleOddEven();
           }
+          const tomorrowDate = getTomorrow();
+          const tomorrowDay = tomorrowDate.getDate();
+          const tomorrowMonth = tomorrowDate.getMonth() + 1;
+          const tomorrowYear = tomorrowDate.getFullYear();
+          const tomorrowWeekDay = tomorrowDate.getDay();
+
+          scheduleType = getScheduleType(
+            tomorrowMonth,
+            tomorrowDay,
+            tomorrowWeekDay,
+            tomorrowYear
+          );
+
+          isEvenSchedule = isEvenScheduleDay(tomorrowMonth, tomorrowDay);
+
+          if (scheduleType != "No School") {
+            if (isEvenSchedule) {
+              result += "Even ";
+            } else {
+              result += "Odd ";
+            }
+            result += scheduleType + " Block";
+          } else {
+            result += scheduleType;
+          }
+          Grab("tomorrowScheduleDisplay").innerHTML = result;
+          var button = document.querySelector("#auto-schedule");
+          button.classList.add("selected-state");
         }
 
         function getAdjustedDate() {
           const og = new Date();
           return new Date(og.getTime() + adjustseconds * 1000);
         }
-
-        function getScheduleType(currentMonth, currentDay) {
-          const schedule = {
-            1: { late: [22, 29], navnight: [23] },
-            2: { late: [5, 12, 26] },
-            3: { late: [4, 11, 18, 25] },
-            4: { late: [8, 15, 22, 29] },
-            5: { late: [6, 13, 20] },
-            6: { final: [3, 4], extended: [5] },
-          };
-
-          if (schedule[currentMonth]?.late?.includes(currentDay)) {
-            return "late";
-          }
-          if (schedule[currentMonth]?.final?.includes(currentDay)) {
-            return "final";
-          }
-          if (schedule[currentMonth]?.extended?.includes(currentDay)) {
-            return "extended";
-          }
-          if (schedule[currentMonth]?.navnight?.includes(currentDay)) {
-            return "navnight";
-          }
-          return "normal";
+        function getTomorrow() {
+          const og = new Date();
+          return new Date(og.getTime() + (adjustseconds + 86400) * 1000);
         }
+        const scheduleList = {
+          1: {
+            late: [22, 29],
+            navnight: [23],
+            noSchool: [1, 2, 3, 4, 5, 8, 15],
+          },
+          2: { late: [5, 12, 26], noSchool: [16, 19] },
+          3: { late: [4, 11, 18, 25], noSchool: [8, 15, 29] },
+          4: { late: [8, 15, 22, 29], noSchool: [1, 2, 3, 4, 5] },
+          5: { late: [6, 13, 20], noSchool: [3, 24, 27] },
+          6: { final: [3, 4], extended: [5] },
+        };
 
+        function getScheduleType(
+          currentMonth,
+          currentDay,
+          currentWeekDay,
+          currentYear
+        ) {
+          const schedule = scheduleList;
+          const dayOfWeek = new Date().getDay();
+          if (currentWeekDay === 0 || currentWeekDay === 6) {
+            return "No School";
+          }
+          if (currentYear == 2024) {
+            if (schedule[currentMonth]?.late?.includes(currentDay)) {
+              return "Late";
+            }
+            if (schedule[currentMonth]?.final?.includes(currentDay)) {
+              return "Finals";
+            }
+            if (schedule[currentMonth]?.extended?.includes(currentDay)) {
+              return "Extended Snack";
+            }
+            if (schedule[currentMonth]?.navnight?.includes(currentDay)) {
+              return "navnight";
+            }
+            if (schedule[currentMonth]?.noSchool?.includes(currentDay)) {
+              return "No School";
+            }
+          }
+          return "Normal";
+        }
         function handleScheduleType(scheduleType) {
           switch (scheduleType) {
-            case "late":
+            case "Late":
               LateSchedule();
               break;
-            case "final":
+            case "Finals":
               MinimumSchedule();
               break;
-            case "extended":
+            case "Extended Snack":
               ExtendedSnackSchedule();
               UpdateSpecialDropDown();
               break;
             case "navnight":
               NavigationNight();
+              break;
+            case "No School":
+              noSchool();
               break;
             default:
               NormalSchedule();
@@ -1126,11 +1171,37 @@
           starts.push(64800, 72000);
           names.push("Navigation Night", "End of Day");
         }
-
-        function NoSchool() {
+        function noSchool() {
           times.length = 0;
           starts.length = 0;
           names.length = 0;
+          clearSelectedStateButtons();
+          clearAll();
+          Grab("timer_type").innerHTML = "No School";
+        }
+
+        function clearAll() {
+          let divIds = [
+            "timer_type",
+            "subtitle",
+            "currentdt",
+            "currentperiodsubtitle",
+            "currentschedue",
+            "currentlengthofperiod",
+            "endofschedulesubtitle",
+            "currentduration",
+            "nextperiodsubtitle",
+            "nextschedule",
+            "nextduration",
+          ];
+
+          // Iterate over each div ID and clear the content
+          divIds.forEach(function (id) {
+            let div = document.getElementById(id);
+            if (div) {
+              div.innerHTML = "";
+            }
+          });
         }
 
         function NormalSchedule() {
@@ -1198,13 +1269,17 @@
             );
           }
 
+          clearSelectedStateButtons();
+
+          var button = document.querySelector("#normal-schedule");
+          button.classList.add("selected-state");
+        }
+
+        function clearSelectedStateButtons() {
           var buttons = document.querySelectorAll(".schedule-button");
           buttons.forEach(function (button) {
             button.classList.remove("selected-state");
           });
-
-          var button = document.querySelector("#normal-schedule");
-          button.classList.add("selected-state");
         }
 
         function LateSchedule() {
@@ -1257,10 +1332,7 @@
             );
           }
 
-          var buttons = document.querySelectorAll(".schedule-button");
-          buttons.forEach(function (button) {
-            button.classList.remove("selected-state");
-          });
+          clearSelectedStateButtons();
 
           var button = document.querySelector("#late-schedule");
           button.classList.add("selected-state");
@@ -1313,10 +1385,7 @@
             );
           }
 
-          var buttons = document.querySelectorAll(".schedule-button");
-          buttons.forEach(function (button) {
-            button.classList.remove("selected-state");
-          });
+          clearSelectedStateButtons();
 
           var button = document.querySelector("#minimum-schedule");
           button.classList.add("selected-state");
