@@ -34,8 +34,6 @@ If you have any questions or feedback, please feel free to reach out at jrmmcapa
 
 This project is licensed under the [APACHE LICENSE 2.0](LICENSE.md).
 
-Sure, here's a formatted version of the version history:
-
 ## [Changelog](Changelog.md)
 
 ## Acknowledgments
