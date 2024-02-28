@@ -21,6 +21,7 @@ No dependencies are required to install and run this application.
 1. Download the latest release from the Releases section.
 2. Open the .html file in your preferred web browser.
 
+Or view it online [here](https://oirehm.github.io/schedulemonitor/)
 ## Usage
 
 After opening the application, you can adjust the time, change the background color, and switch between schedules.
