@@ -787,7 +787,7 @@
             } else {
               result += "Odd ";
             }
-            result += scheduleType + " Block";
+            result += scheduleType + " Schedule";
           } else {
             result += scheduleType;
           }
@@ -844,6 +844,9 @@
             if (schedule[currentMonth]?.navnight?.includes(currentDay)) {
               return "Navigation Night";
             }
+            if (schedule[currentMonth]?.anchor?.includes(currentDay)) {
+              return "Anchor";
+            }
             if (schedule[currentMonth]?.noSchool?.includes(currentDay)) {
               return "No School";
             }
@@ -870,6 +873,9 @@
               break;
             case "Rally":
               RallySchedule();
+              break;
+            case "Anchor":
+              AnchorSchedule();
               break;
             default:
               NormalSchedule();
@@ -1384,7 +1390,7 @@
             button.classList.remove("selected-state");
           });
         }
-
+        // Dropdown
         function handleSpecialScheduleSelection() {
           var selectedOption = Grab("special-schedule").value;
           switch (selectedOption) {
