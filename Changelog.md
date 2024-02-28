@@ -1,10 +1,3 @@
-## Version 1.5.51
-
-- Fixed bug where switching days with the day selector would not properly run the auto schedule feature.
-- Removed unused code
-- Added an icon for the tab
-- Separated css into its own file
-
 ## Version 1.5.50
 
 - Added new "Auto" button manually set the schedule to today.
@@ -12,6 +5,13 @@
 - Added new information where you can see tomorrow's schedule
 - Added the ability to traverse between days
 - Moved changelog to open to a new github tab
+- Fixed bug where switching days with the day selector would not properly run the auto schedule feature.
+- Removed unused code
+- Added an icon for the tab
+- Separated css into its own file
+- Added link to view school calendar and schedule
+- Updated README finally to reflect additional changes
+- Added a no school display for non-student days
 
 ## Version 1.4.26
 
