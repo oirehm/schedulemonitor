@@ -312,7 +312,6 @@
             remainingTime = hours * 3600 + minutes * 60 + seconds;
 
             if (remainingTime <= 0) {
-              alert("Invalid time!");
               Grab("timerDisplay").classList.add("shake");
               setTimeout(() => {
                 Grab("timerDisplay").classList.remove("shake");
