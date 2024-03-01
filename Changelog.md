@@ -1,3 +1,14 @@
+## Version 1.6.55
+
+- Fixed bug where the panel would not update if the auto schedule was selecting a special schedule
+- Added a draggable countdown timer togglable by a button and flashes the screen red and beeps at the end (Click to stop the alarm)
+- Added button to github page
+- Put schedule modifiers into a separate draggable panel
+- Darkened the colors of the Odd/Even schedule
+- Added better hover transitions
+- Updated README.md to reflect on new features
+- Added a zen mode (Right click toggles the visibility of all extra buttons)
+
 ## Version 1.5.50
 
 - Added new "Auto" button manually set the schedule to today.

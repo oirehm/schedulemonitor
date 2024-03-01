@@ -25,33 +25,125 @@ body {
     border: 3px solid grey;
   }
 }
-
-#changelogButton {
+.button {
+  border-radius: 7px;
+  border-color: grey;
+}
+.button:hover {
+  scale: 1.05;
+  transition: 150ms;
+  border-color: rgb(179, 143, 28);
+  border-width: 2px;
+}
+#modifyContainier {
+  position: fixed;
+  top: 80%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgb(22, 19, 19);
+  padding: 20px;
+  border-radius: 5px;
+}
+.bottom {
   font-size: 12px;
   padding: 5px 10px;
   border-radius: 5px;
   background-color: #fff;
   color: #000;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
-
-  /* Positioning */
+}
+.bottom:hover {
+  scale: 1.05;
+  transition: 150ms;
+  border-color: rgb(179, 143, 28);
+  border-width: 2px;
+}
+.info {
+  transition: 1s;
+}
+#changelogButton {
   position: fixed;
   bottom: 20px;
   right: 20px;
 }
-
+#showTimerButton {
+  position: fixed;
+  bottom: 50px;
+  left: 20px;
+}
 #calendarButton {
-  font-size: 12px;
-  padding: 5px 10px;
-  border-radius: 5px;
-  background-color: #fff;
-  color: #000;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
-
-  /* Positioning */
   position: fixed;
   bottom: 20px;
   left: 20px;
+}
+
+#timerPanel {
+  position: fixed;
+  bottom: 23px;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  padding: 20px;
+  border-radius: 5px;
+}
+.timerFinishedBorder {
+  background-color: #862222;
+}
+.timerFinishedBody {
+  background-color: #180505;
+}
+@keyframes shake {
+  0% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-5px);
+  }
+  50% {
+    transform: translateX(5px);
+  }
+  75% {
+    transform: translateX(-5px);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+.slide-up {
+  animation: slideUp 0.5s forwards;
+}
+
+.slide-down {
+  animation: slideDown 0.5s forwards;
+}
+
+.shake {
+  animation: shake 0.4s;
+}
+
+.timerPanel {
+  background-color: #333;
+}
+.timerFinishedColor {
+  color: red;
+}
+
+#timerDisplay {
+  font-size: 52px;
+  cursor: pointer;
+  color: rgb(155, 105, 11);
+}
+
+#startButton,
+#pauseButton {
+  margin-top: 10px;
+}
+
+#githubButton {
+  position: fixed;
+  bottom: 50px;
+  right: 20px;
 }
 
 .button-panel {
@@ -67,13 +159,18 @@ body {
 .schedule-button {
   font-size: 15px;
   padding: 5px 10px;
-  border-radius: 5px;
   background-color: #fff;
   color: #000;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
   margin-right: 10px;
 }
+.hidden {
+  display: none;
+}
 
+.editButton {
+  padding: 2px 5px;
+}
 .button-panel button:last-child {
   margin-right: 0;
 }
@@ -81,7 +178,6 @@ body {
 #special-schedule {
   font-size: 15px;
   padding: 5px 10px;
-  border-radius: 5px;
   background-color: #fff;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
   margin-right: 10px;
@@ -98,14 +194,14 @@ body {
 
 /*  Color toggle for odd/even button for visual information */
 #odd-even-toggle.toggled-state {
-  background-color: gold;
-  color: #000;
+  background-color: rgb(58, 54, 29);
+  color: #a39a45;
   transition: 150ms;
 }
 
 #odd-even-toggle.normal-state {
-  background-color: maroon;
-  color: #fff;
+  background-color: rgb(43, 19, 19);
+  color: #643131;
   transition: 150ms;
 }
 
@@ -127,7 +223,12 @@ body {
   margin-top: 5px;
   font-family: "Lucida Console", Monaco, monospace;
 }
-
+.selected-bottom {
+  background-color: #808080;
+  color: #fff;
+  border: 2px solid rgb(0, 0, 0);
+  transition: 150ms;
+}
 #currentdt {
   font-size: 2.5em;
   margin-top: 16px;

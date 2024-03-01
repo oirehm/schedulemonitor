@@ -3,7 +3,6 @@
   <head>
     <head>
       <link rel="icon" href="icon/monitor.png" />
-      <link rel="apple-touch-icon" href="icon/monitor.png">
       <link rel="stylesheet" type="text/css" href="css/styles.css" />
     </head>
     <meta http-equiv="cache-control" content="no-cache" />
@@ -19,37 +18,37 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <!--Added buttons to switch between Schedules-->
   </head>
-  <body>
-    <div class="button-panel">
+  <body id="body">
+    <div class="button-panel info">
       <button
         id="odd-even-toggle"
         onclick="ToggleScheduleOddEven()"
-        class="normal-state schedule-button"
+        class="normal-state schedule-button button"
         style="display: inline">
         Odd/Even Toggle
       </button>
       <button
         id="normal-schedule"
         onclick="NormalSchedule()"
-        class="schedule-button selected-state">
+        class="schedule-button button">
         Normal Schedule
       </button>
       <button
         id="late-schedule"
         onclick="LateSchedule()"
-        class="schedule-button">
+        class="schedule-button button">
         Late Start Schedule
       </button>
       <button
         id="minimum-schedule"
         onclick="MinimumSchedule()"
-        class="schedule-button">
+        class="schedule-button button">
         Minimum Day Schedule
       </button>
       <button
         id="auto-schedule"
         onclick="AutoSchedule()"
-        class="schedule-button">
+        class="schedule-button button">
         Auto
       </button>
       <!--Special Schedules
@@ -57,7 +56,10 @@
         Rally Day
         Minimum Day Extended Snack
         -->
-      <select id="special-schedule" onchange="HandleSpecialScheduleChange()">
+      <select
+        id="special-schedule"
+        class="schedule-button button"
+        onchange="HandleSpecialScheduleChange()">
         <option value="Nothing">Special Schedules</option>
         <option value="anchorSchedule">Anchor Day</option>
         <option value="rallySchedule">Rally Day</option>
@@ -110,73 +112,369 @@
         var names = [];
         var times = [];
       </script>
-      <select style="margin-top: 12px" id="colorscheme" onchange="ck()">
-        <option value="gb" selected="">Gray on black</option>
-        <option value="wb">White on black</option>
-        <option value="bw">Black on white</option>
-        <option value="dk">Dark room</option>
-        <option value="bg">Blue on green</option>
-        <option value="py">Purple on yellow</option>
-        <option value="sr">Random by minute</option></select
-      ><br />
-      <!--
-        Added QOL to change time adjustment upon new input using oninput and scroll wheel
-        -->
-      Time adjustment in seconds:
-      <input
-        type="text"
-        style="margin-top: 12px; width: 30px"
-        id="timeadj"
-        value="0"
-        onfocus="if(this.value=='0'){this.value='';}"
-        oninput="if(this.value==''){inputTimeAdj('');} else { timeadj(); };adjustInputWidth(this.value);"
-        onblur="if(this.value==''){this.value='0'; timeadj();}" />
-      <div id="resultDisplay"></div>
-      <div id="secondsDisplay"></div>
-      <br />
-      <div id="fastForward">
-        <button onclick="previousDay()" id="previousDay"><<</button>
-        Day selector
-        <button onclick="nextDay()" id="nextDay">>></button>
-      </div>
-      <br />
-      <div id="frequencySelection">
-        Updates per ms:
-        <select name="updateTime" id="numbers" class="centered-dropdown">
-          <option value="2000">2000</option>
-          <option value="1000" selected="">1000</option>
-          <option value="250">250</option>
-          <option value="200">200</option>
-          <option value="100" selected="">100</option>
-          <option value="50">50</option>
-          <option value="0">Real Time</option>
-        </select>
-      </div>
       <br />
       <div id="tomorrowScheduleTitle">Tomorrow's Schedule:</div>
       <div id="tomorrowScheduleDisplay">Unknown</div>
-      <button id="changelogButton">
-        <a
-          href="https://github.com/oirehm/schedulemonitor/blob/main/Changelog.md"
-          target="_blank"
-          >Changelog</a
-        >
-      </button>
-      <button id="calendarButton">
-        <a
-          href="https://www.busd.k12.ca.us/cms/lib/CA02204429/Centricity/Domain/2350/BHS%20Calendar%20and%20Bell%20Schedule%202023-2024%20Updated.pdf"
-          target="_blank"
-          >School Schedules</a
-        >
-      </button>
+      <br />
+      <button id="toggleButton" class="button editButton info">Edit</button>
+      <div id="modifyContainier" class="hidden draggable">
+        Color Scheme:
+        <select style="margin-top: 12px" id="colorscheme" onchange="ck()">
+          <option value="gb" selected="">Gray on black</option>
+          <option value="wb">White on black</option>
+          <option value="bw">Black on white</option>
+          <option value="dk">Dark room</option>
+          <option value="bg">Blue on green</option>
+          <option value="py">Purple on yellow</option>
+          <option value="sr">Random by minute</option></select
+        ><br />
+        <!--
+        Added QOL to change time adjustment upon new input using oninput and scroll wheel
+        -->
+        Time adjustment in seconds:
+        <input
+          type="text"
+          style="margin-top: 12px; width: 30px"
+          id="timeadj"
+          value="0"
+          onfocus="if(this.value=='0'){this.value='';}"
+          oninput="if(this.value==''){inputTimeAdj('');} else { timeadj(); };adjustInputWidth(this.value);"
+          onblur="if(this.value==''){this.value='0'; timeadj();}" />
+        <div id="resultDisplay"></div>
+        <div id="secondsDisplay"></div>
+        <br />
+        <div id="fastForward">
+          <button onclick="previousDay()" id="previousDay" class="button">
+            <<
+          </button>
+          Day selector
+          <button onclick="nextDay()" id="nextDay" class="button">>></button>
+        </div>
+        <br />
+        <div id="frequencySelection">
+          Updates per ms:
+          <select name="updateTime" id="numbers" class="centered-dropdown">
+            <option value="2000">2000</option>
+            <option value="1000" selected="">1000</option>
+            <option value="250">250</option>
+            <option value="200">200</option>
+            <option value="100" selected="">100</option>
+            <option value="50">50</option>
+            <option value="0">Real Time</option>
+          </select>
+          <br /><br />
+          <button id="closeEdit" class="button">Close</button>
+        </div>
+      </div>
+      <br />
+      <div class="info">
+        <button id="changelogButton" class="bottom">
+          <a
+            href="https://github.com/oirehm/schedulemonitor/blob/main/Changelog.md"
+            target="_blank"
+            >Changelog</a
+          >
+        </button>
+        <button id="githubButton" class="bottom">
+          <a href="https://github.com/oirehm/schedulemonitor" target="_blank"
+            >Github</a
+          >
+        </button>
+        <button id="calendarButton" class="bottom">
+          <a
+            href="https://www.busd.k12.ca.us/cms/lib/CA02204429/Centricity/Domain/2350/BHS%20Calendar%20and%20Bell%20Schedule%202023-2024%20Updated.pdf"
+            target="_blank"
+            >School Schedules</a
+          >
+        </button>
+        <button id="showTimerButton" class="bottom" onclick="showTimer()">
+          Timer
+        </button>
+      </div>
+      <div id="timerPanel" class="hidden timerPanel draggable resizable">
+        <div id="timerDisplay">
+          <span id="hourTimer" contenteditable="true">00</span>:<span
+            id="minuteTimer"
+            contenteditable="true"
+            >00</span
+          >:<span id="secondTimer" contenteditable="true">00</span>
+        </div>
+        <br />
+        <div id="hintTimer" class="hidden">Click anywhere to stop alarm</div>
+        <button
+          id="startButton"
+          class="timerButton button"
+          onclick="startTimer()">
+          Start
+        </button>
+        <button
+          id="pauseButton"
+          class="hidden timerButton button"
+          onclick="pauseTimer()">
+          Pause
+        </button>
+        <button
+          id="stopAlarmButton button"
+          class="hidden timerButton"
+          onclick="stopTimerAlarm()">
+          Stop
+        </button>
+      </div>
 
+      <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
+
+      <script type="text/javascript">
+        // Store default display values of elements
+        var defaultDisplays = {};
+        var infoElements = document.querySelectorAll(".info");
+        infoElements.forEach(function (infoElement) {
+          defaultDisplays[infoElement] = getComputedStyle(infoElement).display;
+        });
+
+        document.addEventListener("contextmenu", function (event) {
+          event.preventDefault();
+          infoElements.forEach(function (infoElement) {
+            infoElement.style.display =
+              infoElement.style.display === "none"
+                ? defaultDisplays[infoElement]
+                : "none";
+          });
+        });
+
+        /*
+        interact(".resizable").resizable({
+          edges: { left: true, right: true, bottom: true, top: true },
+          listeners: {
+            move: function (event) {
+              var target = event.target;
+              var x = parseFloat(target.getAttribute("data-x")) || 0;
+              var y = parseFloat(target.getAttribute("data-y")) || 0;
+
+              target.style.width = event.rect.width + "px";
+              target.style.height = event.rect.height + "px";
+
+              x += event.deltaRect.left;
+              y += event.deltaRect.top;
+
+              target.style.transform = "translate(" + x + "px," + y + "px)";
+
+              target.setAttribute("data-x", x);
+              target.setAttribute("data-y", y);
+            },
+          },
+          modifiers: [
+            interact.modifiers.restrictEdges({
+              outer: "parent",
+            }),
+          ],
+          inertia: true,
+        });
+        */
+        interact(".draggable").draggable({
+          inertia: true,
+          modifiers: [
+            interact.modifiers.restrictRect({
+              restriction: "parent",
+              endOnly: true,
+            }),
+          ],
+          autoScroll: true,
+
+          listeners: {
+            move: function (event) {
+              var target = event.target;
+
+              var x =
+                (parseFloat(target.getAttribute("data-x")) || 0) + event.dx;
+              var y =
+                (parseFloat(target.getAttribute("data-y")) || 0) + event.dy;
+
+              target.style.transform = "translate(" + x + "px, " + y + "px)";
+
+              target.setAttribute("data-x", x);
+              target.setAttribute("data-y", y);
+            },
+          },
+        });
+
+        let timerInterval;
+        let isPaused = true;
+        let remainingTime = 0;
+        let isFinished = false;
+        let alarmStopped = false;
+
+        function startTimer() {
+          if (isPaused) {
+            let hours = parseInt(Grab("hourTimer").textContent);
+            let minutes = parseInt(Grab("minuteTimer").textContent);
+            let seconds = parseInt(Grab("secondTimer").textContent);
+
+            remainingTime = hours * 3600 + minutes * 60 + seconds;
+
+            if (remainingTime <= 0) {
+              alert("Invalid time!");
+              Grab("timerDisplay").classList.add("shake");
+              setTimeout(() => {
+                Grab("timerDisplay").classList.remove("shake");
+              }, 400);
+              return;
+            }
+
+            updateTimerDisplay();
+            timerInterval = setInterval(updateTimer, 1000);
+            isPaused = false;
+            toggleTimerButton();
+          }
+          Grab("hourTimer").removeAttribute("contenteditable");
+          Grab("minuteTimer").removeAttribute("contenteditable");
+          Grab("secondTimer").removeAttribute("contenteditable");
+        }
+
+        function pauseTimer() {
+          if (!isPaused) {
+            isPaused = true;
+            clearInterval(timerInterval);
+            toggleTimerButton();
+          }
+          Grab("hourTimer").setAttribute("contenteditable", "true");
+          Grab("minuteTimer").setAttribute("contenteditable", "true");
+          Grab("secondTimer").setAttribute("contenteditable", "true");
+        }
+        function toggleTimerButton() {
+          Grab("startButton").classList.toggle("hidden");
+          Grab("pauseButton").classList.toggle("hidden");
+        }
+
+        function updateTimer() {
+          if (isPaused) return;
+
+          remainingTime--;
+
+          if (remainingTime < 0) {
+            clearInterval(timerInterval);
+            finishTimer();
+            return;
+          }
+
+          updateTimerDisplay();
+        }
+
+        function finishTimer() {
+          isFinished = true;
+          alarmStopped = false;
+          pauseTimer();
+          finishInterval = setInterval(flash, 250);
+          Grab("startButton").classList.toggle("hidden");
+          Grab("stopAlarmButton").classList.toggle("hidden");
+          Grab("hintTimer").classList.toggle("hidden");
+        }
+
+        function flash() {
+          Grab("timerDisplay").classList.toggle("timerFinishedColor");
+          Grab("timerPanel").classList.toggle("timerFinishedBorder");
+          Grab("body").classList.toggle("timerFinishedBody");
+          Grab("timerPanel").classList.toggle("timerPanel");
+          const audioContext = new (window.AudioContext ||
+            window.webkitAudioContext)();
+
+          const gainNode = audioContext.createGain();
+          gainNode.gain.value = 0.2;
+
+          const oscillator = audioContext.createOscillator();
+          oscillator.type = "sine";
+          oscillator.frequency.setValueAtTime(1000, audioContext.currentTime);
+          oscillator.connect(gainNode).connect(audioContext.destination);
+          oscillator.start();
+          oscillator.stop(audioContext.currentTime + 0.1);
+        }
+
+        function stopTimerAlarm() {
+          alarmStopped = true;
+          isFinished = false;
+          clearInterval(finishInterval);
+
+          const timerDisplay = Grab("timerDisplay");
+          const timerPanel = Grab("timerPanel");
+          const body = Grab("body");
+          if (timerDisplay.classList.contains("timerFinishedColor")) {
+            timerDisplay.classList.remove("timerFinishedColor");
+            timerPanel.classList.remove("timerFinishedBorder");
+            body.classList.remove("timerFinishedBody");
+            timerPanel.classList.add("timerPanel");
+          }
+
+          Grab("startButton").classList.toggle("hidden");
+        }
+        function updateTimerDisplay() {
+          let hours = Math.floor(remainingTime / 3600);
+          let minutes = Math.floor((remainingTime % 3600) / 60);
+          let seconds = remainingTime % 60;
+
+          document.getElementById("hourTimer").textContent = hours
+            .toString()
+            .padStart(2, "0");
+          document.getElementById("minuteTimer").textContent = minutes
+            .toString()
+            .padStart(2, "0");
+          document.getElementById("secondTimer").textContent = seconds
+            .toString()
+            .padStart(2, "0");
+        }
+
+        const timers = document.querySelectorAll("[contenteditable=true]");
+
+        // Limits each input to two digits
+        timers.forEach((timer) => {
+          timer.addEventListener("input", function () {
+            let value = this.textContent.trim();
+
+            if (!isNaN(value)) {
+              value = value.slice(0, 2);
+              this.textContent = value.padStart(2, "0");
+            } else {
+              this.textContent = "00";
+            }
+          });
+        });
+        // Stops the alarm if a click is detected on the screen
+        document.addEventListener("click", function () {
+          if (isFinished) {
+            stopTimerAlarm();
+          }
+        });
+      </script>
       <br /><br />
 
-      <script>
+      <script type="text/javascript">
         // DO NOT DELETE
         function Grab(getElementById) {
           return document.getElementById(getElementById);
         }
+        function GrabQuery(querySelector) {
+          return document.querySelector(querySelector);
+        }
+
+        Grab("toggleButton").addEventListener("click", function () {
+          let panel = Grab("modifyContainier");
+          panel.classList.toggle("hidden");
+
+          let button = Grab("toggleButton");
+          button.classList.toggle("selected-bottom");
+        });
+
+        Grab("closeEdit").addEventListener("click", function () {
+          let panel = Grab("modifyContainier");
+          panel.classList.toggle("hidden");
+          let button = Grab("toggleButton");
+          button.classList.remove("selected-bottom");
+        });
+        // Show timer
+        Grab("showTimerButton").addEventListener("click", function () {
+          let panel = Grab("timerPanel");
+          panel.classList.toggle("hidden");
+          let button = Grab("showTimerButton");
+          button.classList.toggle("selected-bottom");
+        });
 
         function updateAndCallAgain() {
           var selectedValue = Grab("numbers").value;
@@ -186,8 +484,8 @@
           checkDayChange();
         }
 
-        let today = new Date().getDate();
         function checkDayChange() {
+          let today = new Date().getDate();
           var og = new Date();
           var currentDay = new Date(og.getTime() + adjustseconds * 1000);
           if (currentDay.getDate() !== today) {
@@ -216,7 +514,7 @@
           }
         }
 
-        let timeAdjInput = document.querySelector("#timeadj");
+        let timeAdjInput = GrabQuery("#timeadj");
 
         timeAdjInput.addEventListener("wheel", function (event) {
           event.preventDefault(); // prevent default behavior
@@ -234,7 +532,7 @@
           timeadj();
         });
 
-        let fastForwardLeft = document.querySelector("#fastForward");
+        let fastForwardLeft = GrabQuery("#fastForward");
 
         fastForwardLeft.addEventListener("wheel", function (event) {
           event.preventDefault(); // prevent default behavior
@@ -677,6 +975,7 @@
                 }
                 disptimez = hc + disptimez.substring(2, 5) + " PM";
               }
+              // Append schedule together on a line
               scheduleDisplay =
                 scheduleDisplay +
                 disptime +
@@ -792,7 +1091,7 @@
             result += scheduleType;
           }
           Grab("tomorrowScheduleDisplay").innerHTML = result;
-          var button = document.querySelector("#auto-schedule");
+          var button = GrabQuery("#auto-schedule");
           button.classList.add("selected-state");
         }
 
@@ -873,9 +1172,11 @@
               break;
             case "Rally":
               RallySchedule();
+              UpdateSpecialDropDown();
               break;
             case "Anchor":
               AnchorSchedule();
+              UpdateSpecialDropDown();
               break;
             default:
               NormalSchedule();
@@ -932,6 +1233,7 @@
         function updateClock() {
           setTimeout(showclock, 20);
         }
+
         function NavigationNight() {
           MinimumSchedule();
           times.push("18:00", "20:00");
@@ -1038,7 +1340,7 @@
 
           clearSelectedStateButtons();
 
-          var button = document.querySelector("#normal-schedule");
+          var button = GrabQuery("#normal-schedule");
           button.classList.add("selected-state");
         }
 
@@ -1101,7 +1403,7 @@
 
           clearSelectedStateButtons();
 
-          var button = document.querySelector("#late-schedule");
+          var button = GrabQuery("#late-schedule");
           button.classList.add("selected-state");
         }
 
@@ -1154,7 +1456,7 @@
 
           clearSelectedStateButtons();
 
-          var button = document.querySelector("#minimum-schedule");
+          var button = GrabQuery("#minimum-schedule");
           button.classList.add("selected-state");
         }
 
@@ -1341,7 +1643,7 @@
             default:
               NormalSchedule();
           }
-          var button = document.querySelector("#odd-even-toggle");
+          var button = GrabQuery("#odd-even-toggle");
           if (isEven) {
             button.classList.remove("normal-state");
             button.classList.add("toggled-state");

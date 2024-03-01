@@ -12,6 +12,7 @@ Schedule Monitor is a simple single-page application (SPA) that provides real-ti
 - Automatic switching between schedules based on current date
 - Navigate through different available schedules with buttons
 - Time input includes a built-in calculator: `log(2phi)*2(10/3)+cos(0)/sec(pi)`
+- Built-in timer
 
 ## Prerequisites
 
@@ -36,7 +37,7 @@ If you have any questions or feedback, please feel free to reach out at jrmmcapa
 
 ## License
 
-This project is licensed under the [APACHE LICENSE 2.0](LICENSE.md).
+[APACHE LICENSE 2.0](LICENSE.md).
 
 ## [Changelog](Changelog.md)
 
