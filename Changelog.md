@@ -1,3 +1,7 @@
+## Version 1.6.56 (Hotfix)
+
+- Fixed an error where the auto schedule would still work and bug out the schedule if set to a distant future date
+
 ## Version 1.6.55
 
 - Fixed bug where the panel would not update if the auto schedule was selecting a special schedule

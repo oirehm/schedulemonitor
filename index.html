@@ -1051,47 +1051,67 @@
           const currentMonth = currentDate.getMonth() + 1;
           const currentYear = currentDate.getFullYear();
           const currentWeekDay = currentDate.getDay();
-
-          let scheduleType = getScheduleType(
-            currentMonth,
-            currentDay,
-            currentWeekDay,
-            currentYear
-          );
-          handleScheduleType(scheduleType);
-          let result = "";
-          let isEvenSchedule = isEvenScheduleDay(currentMonth, currentDay);
-          if (isEvenSchedule !== isEven) {
-            ToggleScheduleOddEven();
-          }
-          const tomorrowDate = getTomorrow();
-          const tomorrowDay = tomorrowDate.getDate();
-          const tomorrowMonth = tomorrowDate.getMonth() + 1;
-          const tomorrowYear = tomorrowDate.getFullYear();
-          const tomorrowWeekDay = tomorrowDate.getDay();
-
-          scheduleType = getScheduleType(
-            tomorrowMonth,
-            tomorrowDay,
-            tomorrowWeekDay,
-            tomorrowYear
-          );
-
-          isEvenSchedule = isEvenScheduleDay(tomorrowMonth, tomorrowDay);
-
-          if (scheduleType != "No School") {
-            if (isEvenSchedule) {
-              result += "Even ";
-            } else {
-              result += "Odd ";
+          if (currentYear == 2024 && currentMonth <= 6) {
+            let scheduleType = getScheduleType(
+              currentMonth,
+              currentDay,
+              currentWeekDay,
+              currentYear
+            );
+            handleScheduleType(scheduleType);
+            let result = "";
+            let isEvenSchedule = isEvenScheduleDay(currentMonth, currentDay);
+            if (isEvenSchedule !== isEven) {
+              ToggleScheduleOddEven();
             }
-            result += scheduleType + " Schedule";
+
+            const tomorrowDate = getTomorrow();
+            const tomorrowDay = tomorrowDate.getDate();
+            const tomorrowMonth = tomorrowDate.getMonth() + 1;
+            const tomorrowYear = tomorrowDate.getFullYear();
+            const tomorrowWeekDay = tomorrowDate.getDay();
+
+            scheduleType = getScheduleType(
+              tomorrowMonth,
+              tomorrowDay,
+              tomorrowWeekDay,
+              tomorrowYear
+            );
+
+            isEvenSchedule = isEvenScheduleDay(tomorrowMonth, tomorrowDay);
+
+            if (scheduleType != "No School") {
+              if (isEvenSchedule) {
+                result += "Even ";
+              } else {
+                result += "Odd ";
+              }
+              result += scheduleType + " Schedule";
+            } else {
+              result += scheduleType;
+            }
+            Grab("tomorrowScheduleTitle").classList.remove("hidden");
+            Grab("tomorrowScheduleDisplay").classList.remove("hidden");
+            Grab("tomorrowScheduleDisplay").innerHTML = result;
+            var button = GrabQuery("#auto-schedule");
+            button.classList.add("selected-state");
           } else {
-            result += scheduleType;
+            Grab("tomorrowScheduleTitle").classList.add("hidden");
+            Grab("tomorrowScheduleDisplay").classList.add("hidden");
           }
-          Grab("tomorrowScheduleDisplay").innerHTML = result;
-          var button = GrabQuery("#auto-schedule");
-          button.classList.add("selected-state");
+        }
+        function removeElementById(id) {
+          var element = document.getElementById(id);
+          if (element) {
+            element.parentNode.removeChild(element);
+          }
+        }
+
+        function clearElementContentById(id) {
+          var element = document.getElementById(id);
+          if (element) {
+            element.innerHTML = "";
+          }
         }
 
         function getAdjustedDate() {
@@ -1123,10 +1143,14 @@
         ) {
           const schedule = scheduleList;
           const dayOfWeek = new Date().getDay();
-          if (currentWeekDay === 0 || currentWeekDay === 6) {
+          if (
+            (currentWeekDay === 0 || currentWeekDay === 6) &&
+            !isNaN(currentYear) &&
+            !isNaN(currentWeekDay)
+          ) {
             return "No School";
           }
-          if (currentYear == 2024) {
+          if (currentYear == 2024 && currentMonth <= 6) {
             if (schedule[currentMonth]?.late?.includes(currentDay)) {
               return "Late";
             }
