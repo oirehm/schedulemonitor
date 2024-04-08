@@ -58,13 +58,17 @@
         -->
       <select
         id="special-schedule"
-        class="schedule-button button"
+        class="schedule-button"
         onchange="HandleSpecialScheduleChange()">
         <option value="Nothing">Special Schedules</option>
         <option value="anchorSchedule">Anchor Day</option>
         <option value="rallySchedule">Rally Day</option>
         <option value="ExtendedSnackSchedule">Min Extended Snack</option>
       </select>
+
+      <button id="showTimerButton" class="bottom" onclick="showTimer()">
+        Timer
+      </button>
     </div>
 
     <title>Schedule Monitor</title>
@@ -167,30 +171,24 @@
         </div>
       </div>
       <br />
-      <div class="info">
-        <button id="changelogButton" class="bottom">
+      <footer>
+        <div class="info">
           <a
             href="https://github.com/oirehm/schedulemonitor/blob/main/Changelog.md"
             target="_blank"
             >Changelog</a
           >
-        </button>
-        <button id="githubButton" class="bottom">
           <a href="https://github.com/oirehm/schedulemonitor" target="_blank"
-            >Github</a
+            >GitHub</a
           >
-        </button>
-        <button id="calendarButton" class="bottom">
           <a
-            href="https://www.busd.k12.ca.us/cms/lib/CA02204429/Centricity/Domain/2350/BHS%20Calendar%20and%20Bell%20Schedule%202023-2024%20Updated.pdf"
+            href="https://resources.finalsite.net/images/v1696496343/busdk12caus/lytslm9vtsnirqkdqxs8/BHSCalendarandBellSchedule-2024Updated.pdf"
             target="_blank"
             >School Schedules</a
           >
-        </button>
-        <button id="showTimerButton" class="bottom" onclick="showTimer()">
-          Timer
-        </button>
-      </div>
+        </div>
+      </footer>
+
       <div id="timerPanel" class="hidden timerPanel draggable resizable">
         <div id="timerDisplay">
           <span id="hourTimer" contenteditable="true">00</span>:<span
@@ -274,7 +272,6 @@
           inertia: true,
           modifiers: [
             interact.modifiers.restrictRect({
-              restriction: "parent",
               endOnly: true,
             }),
           ],
@@ -480,17 +477,6 @@
           showclock();
           setTimeout(updateAndCallAgain, selectedValue);
           checkTimerType();
-          checkDayChange();
-        }
-
-        function checkDayChange() {
-          let today = new Date().getDate();
-          var og = new Date();
-          var currentDay = new Date(og.getTime() + adjustseconds * 1000);
-          if (currentDay.getDate() !== today) {
-            today = currentDay.getDate();
-            AutoSchedule();
-          }
         }
 
         window.onload = function () {
@@ -597,7 +583,7 @@
 
           // Check if the new value is a real number
           if (isNaN(adjustseconds)) {
-            // If it'displaySeconds not a real number, revert to the old value
+            // If it's not a real number, revert to the old value
             adjustseconds = oldAdjustSeconds;
             ErrorTimeAdj();
           } else {
@@ -606,6 +592,18 @@
 
           evaluateMath();
           showclock();
+
+          // Offset the dates by adjustseconds and oldAdjustSeconds
+          let currentDate = new Date();
+          let newDate = new Date(currentDate.getTime() + adjustseconds * 1000);
+          let oldDate = new Date(
+            currentDate.getTime() + oldAdjustSeconds * 1000
+          );
+
+          // Check if the dates are different
+          if (newDate.getDate() !== oldDate.getDate()) {
+            AutoSchedule();
+          }
         }
 
         function inputTimeAdj(input) {
@@ -1149,6 +1147,8 @@
             !isNaN(currentWeekDay)
           ) {
             return "No School";
+          } else {
+            return "Normal";
           }
           if (currentYear == 2024 && currentMonth <= 6) {
             if (schedule[currentMonth]?.late?.includes(currentDay)) {

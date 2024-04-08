@@ -1,3 +1,10 @@
+## Version 1.6.57
+
+- Moved time button to the panel.
+- Fixed the panel not connecting to the top of the screen.
+- Updated School Schedues link due to BHS new website
+- Added actual footers this time
+
 ## Version 1.6.56 (Hotfix)
 
 - Fixed an error where the auto schedule would still work and bug out the schedule if set to a distant future date

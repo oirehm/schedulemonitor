@@ -1,12 +1,9 @@
 body {
   text-align: center;
   font-family: "Lucida Console", Monaco, monospace;
+  margin-top: 80px;
 }
 @media (max-width: 600px) {
-  .button-panel {
-    flex-direction: column;
-  }
-
   .schedule-button {
     margin-right: 0;
     margin-bottom: 10px;
@@ -21,7 +18,7 @@ body {
     text-align: center;
   }
 
-  .special-schedule-select {
+  .special-schedule:hover {
     border: 3px solid grey;
   }
 }
@@ -66,11 +63,6 @@ body {
   bottom: 20px;
   right: 20px;
 }
-#showTimerButton {
-  position: fixed;
-  bottom: 50px;
-  left: 20px;
-}
 #calendarButton {
   position: fixed;
   bottom: 20px;
@@ -89,6 +81,7 @@ body {
 .timerFinishedBorder {
   background-color: #862222;
 }
+
 .timerFinishedBody {
   background-color: #180505;
 }
@@ -149,20 +142,39 @@ body {
 .button-panel {
   background-color: #333;
   padding: 10px;
+  width: 100%;
+  position: fixed;
   top: 0;
   left: 0;
-  right: 0;
-  order: -1;
-  z-index: 1000;
+  z-index: 999; /* Ensure the panel appears on top of other elements */
 }
 
 .schedule-button {
   font-size: 15px;
   padding: 5px 10px;
+  border-radius: 5px;
   background-color: #fff;
   color: #000;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
   margin-right: 10px;
+}
+
+.schedule-button:hover {
+  scale: 1.05;
+  transition: 150ms;
+  border-color: rgb(179, 143, 28);
+}
+
+.special-schedule-dropdown {
+  border-radius: 7px;
+  border-color: grey;
+}
+
+.special-schedule-dropdown:hover {
+  scale: 1.05;
+  transition: 150ms;
+  border-color: rgb(179, 143, 28);
+  border-width: 2px;
 }
 .hidden {
   display: none;
@@ -276,4 +288,81 @@ body {
 
 #schedule {
   margin-bottom: 10px;
+}
+/* Switch styles */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 34px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  -webkit-transition: 0.4s;
+  transition: 0.4s;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 26px;
+  width: 26px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  -webkit-transition: 0.4s;
+  transition: 0.4s;
+}
+
+input:checked + .slider {
+  background-color: #2196f3;
+}
+
+input:focus + .slider {
+  box-shadow: 0 0 1px #2196f3;
+}
+
+input:checked + .slider:before {
+  -webkit-transform: translateX(26px);
+  -ms-transform: translateX(26px);
+  transform: translateX(26px);
+}
+
+.slider.round {
+  border-radius: 34px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
+}
+
+footer {
+  margin-top: 200px;
+  text-align: center;
+}
+
+.info a {
+  display: inline-block;
+  vertical-align: top;
+  margin-right: 10px;
+  color: #2c2f31;
+}
+
+.info a::after {
+  display: block;
+  border-top: 1px solid #205792;
+  margin-top: 5px;
 }
