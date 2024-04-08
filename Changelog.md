@@ -1,3 +1,7 @@
+## Version 1.6.58
+
+- Possible fix for April 8th not set to late schedule?
+
 ## Version 1.6.57
 
 - Moved time button to the panel.
