@@ -1,3 +1,8 @@
+## Version 1.6.59
+
+- Added testing schedule for the CAASP weeks.
+- Fixed the hover animation of the special schedules moving the entire panel.
+
 ## Version 1.6.58
 
 - Possible fix for April 8th not set to late schedule?
