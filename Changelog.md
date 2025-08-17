@@ -1,3 +1,39 @@
+## Version 2.0.0 - Schedule Management System
+
+### Major Features
+
+- **Custom Schedule Creator & Manager**: Create, edit, organize, and reorder schedules with full control
+- **Persistent Storage**: All preferences and schedules save automatically in localStorage
+- **Import/Export**: Backup and share schedules and settings as JSON
+
+
+### Schedule Manager Features
+
+- Create standard or block (odd/even) schedules
+- Clone existing schedules to build off on
+- Configure button position on button panel
+- Hide unused schedules
+- Preview schedules before saving
+
+### Technical Improvements
+
+- Major code refactoring for performance improvements and maintainability
+- School Schedules button now dynamically updates based on the current school year
+
+### UI/UX Enhancements
+
+- Cleaner, more visually appealing interface
+
+### Known Issues
+
+* GUI does not scale correctly on different resolutions
+* Top panel alignment can block text display in certain screen sizes
+* Timer input is reversed
+* Countdown sometimes stops at `01` instead of `00`
+* Auto Schedule only works for Jan–June 2024 (v2.1 planned)
+* Custom schedule IDs cannot be renamed
+* Color scheme setting no longer functions
+
 ## Version 1.6.59
 
 - Added testing schedule for the CAASP weeks.
