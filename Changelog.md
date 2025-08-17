@@ -1,3 +1,7 @@
+## Version 2.0.1
+
+- Small patch to address needing to hard refresh to fix new CSS being displayed correctly
+
 ## Version 2.0.0 - Schedule Management System
 
 ### Major Features
