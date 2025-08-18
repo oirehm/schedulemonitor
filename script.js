@@ -6,9 +6,27 @@ let schedule = -1;
 let randomChange = false;
 let random = false;
 let adjustseconds = 0;
+let currentScheduleId = 'normal';
+let currentScheduleData = null;
+let sharedAudioContext = null;
+let lastDisplayState = {
+  displayedDate: '',
+  currentPeriodSubtitle: '',
+  currentSchedule: '',
+  endOfScheduleSubtitle: '',
+  currentDuration: '',
+  currentLength: '',
+  nextSchedule: '',
+  nextDuration: '',
+  scheduleHTML: '',
+  currentPeriod: -1,
+  lastScheduleId: null,
+  lastIsEven: null,
+  lastDayOfMonth: null,
+  lastScheduleTimes: null
+};
 const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-
 const scheduleTemplates = {
   normal: {
     displayName: "Normal Schedule",
@@ -71,18 +89,6 @@ const scheduleTemplates = {
     times: ["08:30", "08:58", "09:04", "09:32", "09:38", "10:06", "10:12", "10:40", "11:00", "11:06", "11:34", "11:40", "12:08", "12:14", "12:42", "12:48", "13:16"],
     names: ["Period 1", "Passing Period", "Period 2", "Passing Period", "Period 3", "Passing Period", "Period 4", "Extended Snack", "Passing Period", "Period 5", "Passing Period", "Period 6", "Passing Period", "Period 7", "Passing Period", "Period 8", "End of School"]
   },
-  testing: {
-    displayName: "Testing Schedule",
-    canToggleOddEven: true,
-    odd: {
-      times: ["08:30", "10:30", "10:39", "10:45", "11:45", "11:51", "12:51", "12:57", "13:57", "14:30", "14:36", "15:36"],
-      names: ["Testing Block", "Snack", "Passing Period", "Period 1", "Passing Period", "Period 3", "Passing Period", "Period 5", "Lunch", "Passing Period", "Period 7", "End of School"]
-    },
-    even: {
-      times: ["08:30", "10:30", "10:39", "10:45", "11:45", "11:51", "12:51", "12:57", "13:57", "14:30", "14:36", "15:36"],
-      names: ["Testing Block", "Snack", "Passing Period", "Period 2", "Passing Period", "Period 4", "Passing Period", "Period 6", "Lunch", "Passing Period", "Period 8", "End of School"]
-    }
-  },
   noSchool: {
     displayName: "No School",
     canToggleOddEven: false,
@@ -99,9 +105,7 @@ const StorageManager = {
     const stored = this.load();
     if (!stored || stored.version !== this.VERSION) {
       const oldTimeAdj = localStorage.getItem('timeAdjustment');
-      
       this.migrate(stored);
-
       if (oldTimeAdj) {
         this.savePreference('timeAdjustment', oldTimeAdj);
       }
@@ -165,9 +169,7 @@ const StorageManager = {
 
   migrate(oldData) {
     console.log('Migrating storage to version', this.VERSION);
-
     const newData = this.getDefaultData();
-
     if (oldData) {
       if (oldData.preferences) {
         newData.preferences = {
@@ -191,7 +193,6 @@ const StorageManager = {
         newData.scheduleOverrides = oldData.scheduleOverrides;
       }
     }
-
     this.save(newData);
   },
 
@@ -313,8 +314,818 @@ const StorageManager = {
     return this.save(defaultData);
   }
 };
-let currentScheduleId = 'normal';
-let currentScheduleData = null;
+
+const CalendarManager = {
+  STORAGE_KEY: 'calendarConfigData',
+  
+  getConfig() {
+    try {
+      const stored = localStorage.getItem(this.STORAGE_KEY);
+      if (stored) {
+        return JSON.parse(stored);
+      }
+    } catch (error) {
+      console.error('Error loading calendar config:', error);
+    }
+    return this.getDefaultConfig();
+  },
+
+  getDefaultConfig() {
+    const currentYear = new Date().getFullYear();
+    const nextYear = currentYear + 1;
+    return {
+      schoolYear: `${currentYear}-${nextYear}`,
+      startDate: `${currentYear}-08-01`,
+      endDate: `${nextYear}-06-30`,
+      dates: {}
+    };
+  },
+
+  saveConfig(config) {
+    try {
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(config));
+      return true;
+    } catch (error) {
+      console.error('Error saving calendar config:', error);
+      return false;
+    }
+  },
+
+  getScheduleForDate(dateString) {
+    const config = this.getConfig();
+    return config.dates[dateString] || null;
+  },
+
+  setScheduleForDate(dateString, scheduleId, isEven = null) {
+    const config = this.getConfig();
+    config.dates[dateString] = {
+      schedule: scheduleId,
+      isEven: isEven
+    };
+    return this.saveConfig(config);
+  },
+
+  setScheduleForDates(dateStrings, scheduleId, isEven = null) {
+    const config = this.getConfig();
+    dateStrings.forEach(dateString => {
+      config.dates[dateString] = {
+        schedule: scheduleId,
+        isEven: isEven
+      };
+    });
+    return this.saveConfig(config);
+  }
+};
+
+const CalendarUI = {
+  currentMonth: new Date().getMonth(),
+  currentYear: new Date().getFullYear(),
+  selectedDates: new Set(),
+  isSelecting: false,
+  selectionStart: null,
+  lastClickedDate: null,
+  hoveredDate: null,
+  isDragging: false,
+  
+open() {
+  document.getElementById('calendarModal').classList.remove('hidden');
+  this.render();
+  document.addEventListener('mouseup', this.handleGlobalMouseUp);
+  document.addEventListener('keydown', this.handleKeyboard);
+},
+
+  close() {
+    document.getElementById('calendarModal').classList.add('hidden');
+    this.selectedDates.clear();
+    this.isDragging = false; 
+    this.cleanupCalendar();
+    this.cleanup();
+    document.removeEventListener('mouseup', this.handleGlobalMouseUp);
+    document.removeEventListener('keydown', this.handleKeyboard);
+  },
+  cleanup() {
+    document.removeEventListener('mouseup', this.handleGlobalMouseUp);
+    document.removeEventListener('keydown', this.handleKeyboard);
+    const daysContainer = document.querySelector('.calendar-days');
+    if (daysContainer) {
+      const newContainer = daysContainer.cloneNode(false); // Clone without children or listeners
+      daysContainer.parentNode.replaceChild(newContainer, daysContainer);
+    }
+  },
+
+  handleKeyboard(e) {
+    if (document.getElementById('calendarModal').classList.contains('hidden')) return;
+    if (document.activeElement.tagName === 'INPUT') return;
+
+    const hasSelection = CalendarUI.selectedDates.size > 0;
+
+    switch(e.key) {
+      case 'ArrowLeft':
+        e.preventDefault();
+        CalendarUI.previousMonth();
+        break;
+      case 'ArrowRight':
+        e.preventDefault();
+        CalendarUI.nextMonth();
+        break;
+      case 'n':
+        if (!hasSelection) return;
+        e.preventDefault();
+        CalendarUI.setSelectedSchedule('normal', false);
+        break;
+      case 'l':
+        if (!hasSelection) return;
+        e.preventDefault();
+        CalendarUI.setSelectedSchedule('late', false);
+        break;
+      case 'm':
+        if (!hasSelection) return;
+        e.preventDefault();
+        CalendarUI.setSelectedSchedule('minimum', false);
+        break;
+      case 'x':
+        if (!hasSelection) return;
+        e.preventDefault();
+        CalendarUI.setSelectedSchedule('noSchool', false);
+        break;
+      case 'Delete':
+        if (!hasSelection) return;
+        e.preventDefault();
+        CalendarUI.clearSelectedDates();
+        break;
+      case 'o':
+        if (!hasSelection) return;
+        e.preventDefault();
+        CalendarUI.toggleSelectedOddEven(e.shiftKey);
+        break;
+      case 'h':
+        if (!hasSelection) return;
+        e.preventDefault();
+        CalendarUI.promptHolidayName();
+        break;
+      case 'Escape':
+        e.preventDefault();
+        CalendarUI.selectedDates.clear();
+        CalendarUI.render();
+        break;
+    }
+  },
+  toggleSelectedOddEvenAlternating() {
+    const dates = Array.from(this.selectedDates).sort((a, b) => new Date(a) - new Date(b));
+    let isEven = false;
+    dates.forEach(dateString => {
+      const existing = CalendarManager.getScheduleForDate(dateString);
+      if (existing && existing.schedule !== 'noSchool') {
+        const allSchedules = StorageManager.getAllSchedules();
+        const schedule = allSchedules[existing.schedule];
+        if (schedule && schedule.canToggleOddEven) {
+          CalendarManager.setScheduleForDate(dateString, existing.schedule, isEven);
+          isEven = !isEven;
+        }
+      }
+    });
+    this.render();
+  },
+
+  render() {
+    const monthYearElement = document.getElementById('currentMonthYear');
+    monthYearElement.textContent = `${months[this.currentMonth]} ${this.currentYear}`;
+    this.renderWeekdays();
+    this.renderDays();
+    this.updateLegend();
+  },
+
+  renderWeekdays() {
+    const weekdaysContainer = document.querySelector('.calendar-weekdays');
+    weekdaysContainer.innerHTML = '';
+    const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const weekNumHeader = document.createElement('div');
+    weekNumHeader.className = 'calendar-weekday week-number-header';
+    // weekNumHeader.textContent = 'Week';
+    weekdaysContainer.appendChild(weekNumHeader);
+    weekdays.forEach(day => {
+      const dayElement = document.createElement('div');
+      dayElement.className = 'calendar-weekday';
+      dayElement.textContent = day;
+      weekdaysContainer.appendChild(dayElement);
+    });
+  },
+  initializeWeekends() {
+    const config = CalendarManager.getConfig();
+    const daysInMonth = new Date(this.currentYear, this.currentMonth + 1, 0).getDate();
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(this.currentYear, this.currentMonth, day);
+      const dayOfWeek = date.getDay();
+      if (dayOfWeek === 0 || dayOfWeek === 6) {
+        const dateString = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+        if (!config.dates[dateString]) {
+          CalendarManager.setScheduleForDate(dateString, 'noSchool', null);
+        }
+      }
+    }
+  },
+  cleanupCalendar() {
+    const daysContainer = document.querySelector('.calendar-days');
+    if (daysContainer) {
+      while (daysContainer.firstChild) {
+        daysContainer.removeChild(daysContainer.firstChild);
+      }
+    }
+  },
+
+  renderDays() {
+    const daysContainer = document.querySelector('.calendar-days');
+    daysContainer.innerHTML = '';
+    const firstDay = new Date(this.currentYear, this.currentMonth, 1).getDay();
+    const daysInMonth = new Date(this.currentYear, this.currentMonth + 1, 0).getDate();
+    const config = CalendarManager.getConfig();
+    const today = new Date();
+    const todayString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+    const firstDate = new Date(this.currentYear, this.currentMonth, 1);
+    let currentWeek = this.getWeekNumber(firstDate);
+    let lastWeek = currentWeek - 1;
+
+    if (firstDay > 0 || currentWeek !== lastWeek) {
+      const weekNumElement = document.createElement('div');
+      weekNumElement.className = 'week-number';
+      weekNumElement.textContent = currentWeek;
+      daysContainer.appendChild(weekNumElement);
+      lastWeek = currentWeek;
+    }
+
+    for (let i = 0; i < firstDay; i++) {
+      const emptyDay = document.createElement('div');
+      emptyDay.className = 'calendar-day-empty';
+      daysContainer.appendChild(emptyDay);
+    }
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const currentDate = new Date(this.currentYear, this.currentMonth, day);
+      currentWeek = this.getWeekNumber(currentDate);
+      if (currentDate.getDay() === 0 && currentWeek !== lastWeek) {
+        const weekNumElement = document.createElement('div');
+        weekNumElement.className = 'week-number';
+        weekNumElement.textContent = currentWeek;
+        daysContainer.appendChild(weekNumElement);
+        lastWeek = currentWeek;
+      }
+
+      const dayElement = document.createElement('div');
+      dayElement.className = 'calendar-day';
+      
+      const dateString = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const dayConfig = config.dates[dateString];
+
+      if (dateString === todayString) {
+        dayElement.classList.add('day-today');
+      }
+      
+      const dayNumber = document.createElement('div');
+      dayNumber.className = 'day-number';
+      dayNumber.textContent = day;
+      dayElement.appendChild(dayNumber);
+
+      if (dayConfig) {
+        const scheduleName = document.createElement('div');
+        const allSchedules = StorageManager.getAllSchedules();
+        const schedule = allSchedules[dayConfig.schedule];
+        const displayName = schedule ? schedule.displayName : dayConfig.schedule;
+        scheduleName.className = 'day-schedule';
+        scheduleName.title = '';
+        scheduleName.textContent = displayName;
+        dayElement.appendChild(scheduleName);
+
+        if (dayConfig.schedule === 'noSchool') {
+          dayElement.classList.add('day-noSchool');
+        } else if(dayConfig.schedule === 'holiday') {
+          dayElement.classList.add('day-holiday')
+        }
+        else if (dayConfig.isEven !== null) {
+          dayElement.classList.add(dayConfig.isEven ? 'day-even' : 'day-odd');
+        }
+
+        if (dayConfig && dayConfig.schedule) {
+          const regularSchedules = ['normal', 'late', 'minimum', 'noSchool', 'holiday'];
+          if (!regularSchedules.includes(dayConfig.schedule)) {
+            dayElement.classList.add('day-special');
+          }
+        }
+      }
+
+      if (currentDate.getDay() === 0 || currentDate.getDay() === 6) {
+        dayElement.classList.add('day-weekend');
+        
+        if (!dayConfig) {
+          CalendarManager.setScheduleForDate(dateString, 'noSchool', null);
+        }
+      }
+
+      dayElement.dataset.date = dateString;
+      dayElement.addEventListener('mousedown', (e) => this.handleMouseDown(e, dateString));
+      dayElement.addEventListener('mouseenter', (e) => this.handleMouseEnter(e, dateString));
+      dayElement.addEventListener('mouseup', () => this.handleMouseUp());
+      dayElement.addEventListener('contextmenu', (e) => this.handleRightClick(e, dateString));
+      dayElement.addEventListener('mouseenter', (e) => {
+        this.hoveredDate = dateString;
+        if (this.isSelecting && this.selectionStart) {
+          this.selectRange(this.selectionStart, dateString);
+        }
+      });
+
+
+      if (this.selectedDates.has(dateString)) {
+        dayElement.classList.add('day-selected');
+      }
+
+      daysContainer.appendChild(dayElement);
+    }
+
+
+  },
+
+
+  getWeekNumber(date) {
+    const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
+    const pastDaysOfYear = (date - firstDayOfYear) / 86400000;
+    return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+  },
+  setHolidayForSelected(name) {
+    const dates = Array.from(this.selectedDates);
+    dates.forEach(dateString => {
+      CalendarManager.setScheduleForDate(dateString, 'holiday', null, name);
+    });
+    this.render();
+  },
+  handleMouseDown(e, dateString) {
+    if (e.button === 0) {
+      e.preventDefault();
+      
+      if (e.shiftKey && this.lastClickedDate) {
+        this.selectRange(this.lastClickedDate, dateString);
+      } else if (e.ctrlKey || e.metaKey) {
+        if (this.selectedDates.has(dateString)) {
+          this.selectedDates.delete(dateString);
+        } else {
+          this.selectedDates.add(dateString);
+        }
+      } else {
+        this.isDragging = true;
+        this.selectionStart = dateString;
+        this.selectedDates.clear();
+        this.selectedDates.add(dateString);
+      }
+      
+      this.lastClickedDate = dateString;
+      this.render();
+    }
+  },
+  handleGlobalMouseUp: function(e) {
+    if (CalendarUI.isDragging) {
+      CalendarUI.isDragging = false;
+    }
+  },
+
+  handleMouseEnter(e, dateString) {
+    if (this.isDragging && this.selectionStart && e.buttons === 1) {
+      this.selectRange(this.selectionStart, dateString);
+    }
+  },
+
+  handleMouseUp(e) {
+    if (this.isDragging) {
+      this.isDragging = false;
+    }
+  },
+
+
+  handleRightClick(e, dateString) {
+    e.preventDefault();
+    if (!this.selectedDates.has(dateString)) {
+      this.selectedDates.clear();
+      this.selectedDates.add(dateString);
+      this.render();
+    }
+    this.showQuickEditMenu(e.pageX, e.pageY);
+  },
+
+  showQuickEditMenu(mouseX, mouseY) {
+    const menu = document.getElementById('calendarContextMenu');
+    if (this.contextMenuHandler) {
+      document.removeEventListener('click', this.contextMenuHandler);
+    }
+    menu.classList.remove('hidden');
+    const offset = 8;
+    const menuRect = menu.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+
+    let left = mouseX + offset;
+    let top = mouseY + offset;
+
+    if (left + menuRect.width > viewportWidth) {
+      left = mouseX - menuRect.width - offset;
+    }
+
+    if (top + menuRect.height > viewportHeight) {
+      top = mouseY - menuRect.height - offset;
+    }
+
+    menu.style.left = `${left}px`;
+    menu.style.top = `${top}px`;
+
+    const handleClickOutside = (e) => {
+      if (!menu.contains(e.target)) {
+        menu.classList.add('hidden');
+        document.removeEventListener('click', handleClickOutside);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+  },
+
+
+  selectRange(startDate, endDate) {
+    this.selectedDates.clear();
+    const [startYear, startMonth, startDay] = startDate.split('-').map(Number);
+    const [endYear, endMonth, endDay] = endDate.split('-').map(Number);
+    const start = new Date(startYear, startMonth - 1, startDay);
+    const end = new Date(endYear, endMonth - 1, endDay);
+    const minDate = start < end ? start : end;
+    const maxDate = start < end ? end : start;
+    
+    for (let d = new Date(minDate); d <= maxDate; d.setDate(d.getDate() + 1)) {
+      const dayOfWeek = d.getDay();
+      if (dayOfWeek === 0 || dayOfWeek === 6) continue;
+
+      const dateString = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      this.selectedDates.add(dateString);
+    }
+    
+    this.render();
+  },
+
+  setSelectedSchedule(scheduleId, defaultIsEven = false) {
+    const dates = Array.from(this.selectedDates);
+    const allSchedules = StorageManager.getAllSchedules();
+    const schedule = allSchedules[scheduleId];
+    
+    dates.forEach(dateString => {
+      if (scheduleId === 'noSchool') {
+        CalendarManager.setScheduleForDate(dateString, scheduleId, null);
+      } else if (schedule && schedule.canToggleOddEven) {
+        const existing = CalendarManager.getScheduleForDate(dateString);
+        const isEven = existing && existing.isEven !== null ? existing.isEven : defaultIsEven;
+        CalendarManager.setScheduleForDate(dateString, scheduleId, isEven);
+      } else {
+        CalendarManager.setScheduleForDate(dateString, scheduleId, null);
+      }
+    });
+    
+    this.render();
+  },
+
+  toggleSelectedOddEven() {
+    const dates = Array.from(this.selectedDates);
+    
+    dates.forEach(dateString => {
+      const existing = CalendarManager.getScheduleForDate(dateString);
+      if (existing && existing.schedule !== 'noSchool') {
+        const allSchedules = StorageManager.getAllSchedules();
+        const schedule = allSchedules[existing.schedule];
+        
+        if (schedule && schedule.canToggleOddEven) {
+          const newIsEven = existing.isEven === null ? false : !existing.isEven;
+          CalendarManager.setScheduleForDate(dateString, existing.schedule, newIsEven);
+        }
+      }
+    });
+    
+    this.render();
+  },
+
+  updateLegend() {
+    const legendElement = document.getElementById('calendarLegend');
+    legendElement.innerHTML = `
+      <span class="legend-item"><span class="legend-color day-odd"></span> Odd</span>
+      <span class="legend-item"><span class="legend-color day-even"></span> Even</span>
+      <span class="legend-item"><span class="legend-color day-noSchool"></span> No School</span>
+      <span class="legend-item">◆ Special/Custom</span>
+      <span class="legend-shortcuts">
+        <strong>Schedule Shortcuts:</strong> 
+        (N) Normal, (L) Late, (M) Minimum, (X) No School, (O) Toggle Odd/Even, (DEL) Clear
+      </span>
+    `;
+  },
+
+  previousMonth() {
+    this.currentMonth--;
+    if (this.currentMonth < 0) {
+      this.currentMonth = 11;
+      this.currentYear--;
+    }
+    this.selectedDates.clear();
+    this.render();
+  },
+
+  nextMonth() {
+    this.currentMonth++;
+    if (this.currentMonth > 11) {
+      this.currentMonth = 0;
+      this.currentYear++;
+    }
+    this.selectedDates.clear();
+    this.render();
+  },
+
+  goToToday() {
+    const today = new Date();
+    this.currentMonth = today.getMonth();
+    this.currentYear = today.getFullYear();
+    this.selectedDates.clear();
+    this.render();
+  },
+  clearSelectedDates() {
+    const dates = Array.from(this.selectedDates);
+    dates.forEach(dateString => {
+      CalendarManager.setScheduleForDate(dateString, '', null);
+    });
+    this.render();
+  }
+};
+function clearAllCalendarData() {
+  if (confirm('Are you sure you want to clear ALL calendar data? This cannot be undone.')) {
+    const config = CalendarManager.getConfig();
+    config.dates = {};
+    CalendarManager.saveConfig(config);
+    
+    if (CalendarUI.isYearView) {
+      CalendarUI.renderYearView();
+    } else {
+      CalendarUI.render();
+    }
+    
+    alert('Calendar data cleared!');
+  }
+}
+function populateScheduleMenus() {
+  const allSchedules = StorageManager.getAllSchedules();
+  const specialMenu = document.getElementById('specialSchedulesMenu');
+  const customMenu = document.getElementById('customSchedulesMenu');
+  
+  specialMenu.innerHTML = '';
+  customMenu.innerHTML = '';
+  
+  Object.keys(allSchedules).forEach(id => {
+    const schedule = allSchedules[id];
+    if (['normal', 'late', 'minimum', 'noSchool'].includes(id)) return;
+    
+    const menuItem = document.createElement('div');
+    menuItem.className = 'context-menu-item';
+    menuItem.textContent = schedule.displayName;
+    menuItem.onclick = () => setSelectedSchedule(id);
+    
+    if (schedule.isCustom) {
+      customMenu.appendChild(menuItem);
+    } else {
+      specialMenu.appendChild(menuItem);
+    }
+  });
+  if (customMenu.innerHTML === '') {
+    customMenu.innerHTML = '<div class="context-menu-disabled">No custom schedules</div>';
+  }
+}
+
+function openCalendar() {
+  populateScheduleMenus();
+  CalendarUI.open();
+}
+
+function closeCalendar() {
+  CalendarUI.close();
+}
+
+function previousMonth() {
+  CalendarUI.previousMonth();
+}
+
+function nextMonth() {
+  CalendarUI.nextMonth();
+}
+
+function goToToday() {
+  CalendarUI.goToToday();
+}
+
+function setSelectedSchedule(scheduleId) {
+  CalendarUI.setSelectedSchedule(scheduleId, false);
+}
+
+function toggleSelectedOddEven() {
+  const dates = Array.from(CalendarUI.selectedDates);
+  
+  dates.forEach(dateString => {
+    const existing = CalendarManager.getScheduleForDate(dateString);
+    if (existing && existing.schedule !== 'noSchool') {
+      const newIsEven = existing.isEven === null ? false : !existing.isEven;
+      CalendarManager.setScheduleForDate(dateString, existing.schedule, newIsEven);
+    }
+  });
+  
+  CalendarUI.render();
+  
+}
+
+function clearSelectedDates() {
+  const dates = Array.from(CalendarUI.selectedDates);
+  const config = CalendarManager.getConfig();
+  
+  dates.forEach(dateString => {
+    delete config.dates[dateString];
+  });
+  
+  CalendarManager.saveConfig(config);
+  CalendarUI.render();
+}
+
+function exportCalendar() {
+  const config = CalendarManager.getConfig();
+  const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const [startYear, endYear] = config.schoolYear.split('-');
+  const shortYear = `${startYear.slice(-2)}-${endYear.slice(-2)}`;
+  const date = new Date().toISOString().split('T')[0];
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `(${shortYear}) Calendar.${date}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importCalendar() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = (e) => {
+    const file = e.target.files[0];
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const config = JSON.parse(event.target.result);
+        CalendarManager.saveConfig(config);
+        CalendarUI.render();
+        alert('Calendar imported successfully!');
+      } catch (error) {
+        alert('Error importing calendar file');
+      }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+const YearOverviewUI = {
+  currentYear: new Date().getFullYear(),
+  
+  open() {
+    document.getElementById('yearOverviewModal').classList.remove('hidden');
+    this.render();
+  },
+  
+  close() {
+    document.getElementById('yearOverviewModal').classList.add('hidden');
+  },
+  
+  render() {
+    const config = CalendarManager.getConfig();
+    document.getElementById('overviewYearDisplay').textContent = 
+      `${this.currentYear} - ${this.currentYear + 1} School Year`;
+    document.getElementById('yearOverviewTitle').textContent = 
+      `${this.currentYear} - ${this.currentYear + 1}`;
+    
+    const gridContainer = document.getElementById('yearOverviewGrid');
+    gridContainer.innerHTML = '';
+    const startMonth = 7;
+    
+    for (let i = 0; i < 12; i++) {
+      const monthIndex = (startMonth + i) % 12;
+      const yearForMonth = i < 5 ? this.currentYear : this.currentYear + 1;
+      
+      const monthContainer = document.createElement('div');
+      monthContainer.className = 'year-month-container';
+      
+      const monthHeader = document.createElement('div');
+      monthHeader.className = 'year-month-header';
+      monthHeader.textContent = `${months[monthIndex]} ${yearForMonth}`;
+      monthContainer.appendChild(monthHeader);
+      
+      const miniCalendar = this.renderMiniMonth(yearForMonth, monthIndex, config);
+      monthContainer.appendChild(miniCalendar);
+      
+      monthContainer.addEventListener('click', () => {
+        this.close();
+        CalendarUI.currentMonth = monthIndex;
+        CalendarUI.currentYear = yearForMonth;
+        CalendarUI.render();
+      });
+      
+      gridContainer.appendChild(monthContainer);
+    }
+  },
+  
+  renderMiniMonth(year, month, config) {
+    const container = document.createElement('div');
+    container.className = 'mini-calendar';
+    const weekdaysContainer = document.createElement('div');
+    weekdaysContainer.className = 'mini-weekdays';
+    ['S', 'M', 'T', 'W', 'T', 'F', 'S'].forEach(day => {
+      const dayHeader = document.createElement('div');
+      dayHeader.className = 'mini-weekday';
+      dayHeader.textContent = day;
+      weekdaysContainer.appendChild(dayHeader);
+    });
+    container.appendChild(weekdaysContainer);
+    const daysContainer = document.createElement('div');
+    daysContainer.className = 'mini-days';
+    
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const today = new Date();
+    const todayString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    
+    for (let i = 0; i < firstDay; i++) {
+      const emptyDay = document.createElement('div');
+      emptyDay.className = 'mini-day-empty';
+      daysContainer.appendChild(emptyDay);
+    }
+    
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dayElement = document.createElement('div');
+      dayElement.className = 'mini-day';
+      
+      const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const dayConfig = config.dates[dateString];
+      
+      if (dateString === todayString) {
+        dayElement.classList.add('mini-day-today');
+      }
+      
+      if (dayConfig) {
+        if (dayConfig.schedule === 'noSchool' || dayConfig.schedule === 'holiday') {
+          dayElement.classList.add('mini-day-noSchool');
+        } else if (dayConfig.isEven === true) {
+          dayElement.classList.add('mini-day-even');
+        } else if (dayConfig.isEven === false) {
+          dayElement.classList.add('mini-day-odd');
+        } else if( dayConfig.schedule === '') {
+          // Nothing
+        } else  {
+          dayElement.classList.add('mini-day-scheduled');
+        }
+      } else {
+        const dayOfWeek = new Date(year, month, day).getDay();
+        if (dayOfWeek === 0 || dayOfWeek === 6) {
+          dayElement.classList.add('mini-day-noSchool');
+        }
+      }
+      
+      dayElement.textContent = day;
+      dayElement.title = dateString;
+      
+      daysContainer.appendChild(dayElement);
+    }
+    
+    container.appendChild(daysContainer);
+    return container;
+  },
+  
+  previousYear() {
+    this.currentYear--;
+    this.render();
+  },
+  
+  nextYear() {
+    this.currentYear++;
+    this.render();
+  }
+};
+
+function openYearOverview() {
+  YearOverviewUI.open();
+}
+
+function closeYearOverview() {
+  YearOverviewUI.close();
+}
+
+function previousYear() {
+  YearOverviewUI.previousYear();
+}
+
+function nextYear() {
+  YearOverviewUI.nextYear();
+}
 function loadPreferences() {
   const colorScheme = StorageManager.getPreference('colorScheme');
   if (colorScheme) {
@@ -1307,6 +2118,8 @@ function regenerateScheduleButtons() {
 }
 
 function loadSchedule(scheduleId, forceOddEven = null) {
+  lastDisplayState.lastScheduleId = null;
+  lastDisplayState.currentPeriod = -999;
   times.length = 0;
   starts.length = 0;
   names.length = 0;
@@ -1355,25 +2168,32 @@ function loadSchedule(scheduleId, forceOddEven = null) {
   } else {
     switch (scheduleId) {
       case 'normal':
+        schedule = 0;
         displayTitle += "NORMAL BLOCK";
         break;
       case 'late':
+        schedule = 1;
         displayTitle += "LATE BLOCK";
         break;
       case 'minimum':
+        schedule = 2;
         displayTitle += "MINIMUM BLOCK";
         break;
-      case 'testing':
-        displayTitle += "TESTING SCHEDULE";
-        break;
       case 'rally':
+        schedule = 3;
         displayTitle += "RALLY DAY";
         break;
       case 'anchor':
+        schedule = 4;
         displayTitle = "ANCHOR DAY";
         break;
       case 'extendedSnack':
+        schedule = 5;
         displayTitle = "MINIMUM DAY";
+        break;
+      case 'testing':
+        schedule = 7;
+        displayTitle += "TESTING SCHEDULE";
         break;
       default:
         displayTitle += template.displayName.toUpperCase();
@@ -1389,7 +2209,7 @@ function loadSchedule(scheduleId, forceOddEven = null) {
   }
 
   updateButtonStates(scheduleId);
-  showclock();
+  updateMainDisplay();
   StorageManager.savePreference('lastUsedSchedule', scheduleId);
 }
 
@@ -1531,9 +2351,10 @@ function flash() {
   document.getElementById("timerPanel").classList.toggle("timerFinishedBorder");
   document.getElementById("body").classList.toggle("timerFinishedBody");
   document.getElementById("timerPanel").classList.toggle("timerPanel");
-  const audioContext = new(window.AudioContext ||
-    window.webkitAudioContext)();
-  const gainNode = audioContext.createGain();
+  if (!sharedAudioContext) {
+    sharedAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  const gainNode = sharedAudioContext.createGain();
   gainNode.gain.value = 0.2;
   const oscillator = audioContext.createOscillator();
   oscillator.type = "sine";
@@ -1592,13 +2413,13 @@ document.addEventListener("click", function() {
 });
 
 document.getElementById("toggleButton").addEventListener("click", function() {
-  let panel = document.getElementById("modifyContainer");
+  let panel = document.getElementById("settingsModal");
   panel.classList.toggle("hidden");
   let button = document.getElementById("toggleButton");
   button.classList.toggle("selected-bottom");
 });
 document.getElementById("closeEdit").addEventListener("click", function() {
-  let panel = document.getElementById("modifyContainer");
+  let panel = document.getElementById("settingsModal");
   panel.classList.toggle("hidden");
   let button = document.getElementById("toggleButton");
   button.classList.remove("selected-bottom");
@@ -1612,43 +2433,12 @@ document.getElementById("showTimerButton").addEventListener("click", function() 
 });
 
 function updateAndCallAgain() {
-  var selectedValue = document.getElementById("updateFrequencies").value;
-  showclock();
+  var selectedValue = Math.max(16, parseInt(document.getElementById("updateFrequencies").value));
+  updateMainDisplay();
   setTimeout(updateAndCallAgain, selectedValue);
   checkTimerType();
 }
 
-window.onload = function () {
-  StorageManager.init();
-  regenerateScheduleButtons();
-  loadPreferences();
-
-  const lastUsedSchedule = StorageManager.getPreference('lastUsedSchedule');
-  if (lastUsedSchedule && lastUsedSchedule !== 'auto') {
-    const allSchedules = StorageManager.getAllSchedules();
-    if (allSchedules[lastUsedSchedule]) {
-      loadSchedule(lastUsedSchedule);
-    } else {
-      NormalSchedule();
-    }
-  } else {
-    NormalSchedule();
-  }
-
-  updateAndCallAgain();
-  
-
-  if (!lastUsedSchedule || lastUsedSchedule === 'auto') AutoSchedule();
-  
-  const link = document.getElementById("schoolSchedule");
-  const urls = getSchoolScheduleLink();
-
-  link.href = urls.main;
-  if (urls.fallback) {
-    link.title = `If schedule isn't posted yet, try: ${urls.fallback}`;
-  }
-
-};
 function getSchoolScheduleLink() {
     const now = new Date();
     let year = now.getFullYear() % 100;
@@ -1742,7 +2532,7 @@ function timeadj() {
   }
 
   evaluateMath();
-  showclock();
+  updateMainDisplay();
 
   const currentTime = Date.now();
   const newDate = new Date(currentTime + adjustseconds * 1000);
@@ -1769,7 +2559,7 @@ function inputTimeAdj(input) {
     ValidTimeAdj();
   }
   evaluateMath();
-  showclock();
+  updateMainDisplay();
 }
 
 function evaluateMath() {
@@ -1954,7 +2744,6 @@ function formatDisplayedDate(date) {
   return `${days[date.getDay()]} ${months[date.getMonth()]} ${padZero(date.getDate())} ${date.getFullYear()} ${parts.hh12Str}:${parts.mmStr}:${parts.ssStr} ${parts.meridiem}`;
 }
 
-
 function getCurrentSecondsFromDate(date) {
   return date.getHours() * 3600 + date.getMinutes() * 60 + date.getSeconds();
 }
@@ -1968,17 +2757,37 @@ function formatScheduleTime(timeStr) {
   return padZero(hour12) + minutePart + " " + meridiem;
 }
 
-function showclock() {
+function updateMainDisplay() {
   const originalDate = new Date();
   const adjustedDate = new Date(originalDate.getTime() + (adjustseconds || 0) * 1000);
 
+  const currentDayOfMonth = adjustedDate.getDate();
+  const dayChanged = lastDisplayState.lastDayOfMonth !== currentDayOfMonth;
+  if (dayChanged) {
+    lastDisplayState.lastDayOfMonth = currentDayOfMonth;
+  }
+
+  const scheduleChanged = lastDisplayState.lastScheduleId !== currentScheduleId || 
+                         lastDisplayState.lastIsEven !== isEven ||
+                         JSON.stringify(lastDisplayState.lastScheduleTimes) !== JSON.stringify(times);
+  
+  if (scheduleChanged) {
+    lastDisplayState.lastScheduleId = currentScheduleId;
+    lastDisplayState.lastIsEven = isEven;
+    lastDisplayState.lastScheduleTimes = [...times];
+    lastDisplayState.currentPeriod = -999; 
+  }
+
   const displayedDate = formatDisplayedDate(adjustedDate);
   const currentDateEl = document.getElementById("currentdate");
-  if (currentDateEl) currentDateEl.innerHTML = displayedDate;
+  if (currentDateEl && lastDisplayState.displayedDate !== displayedDate) {
+    currentDateEl.textContent = displayedDate;
+    lastDisplayState.displayedDate = displayedDate;
+  }
 
   const parts = timePartsFromDate(adjustedDate);
   if (random && parts.ss === 0 && !randomChange) {
-    colorizerandom();
+    colorizeRandom();
     randomChange = true;
   } else if (parts.ss !== 0) {
     randomChange = false;
@@ -1988,75 +2797,61 @@ function showclock() {
 
   if (typeof starts === "undefined" || !Array.isArray(starts) || starts.length === 0) {
     const scheduleEl = document.getElementById("scheduledisplay");
-    if (scheduleEl) scheduleEl.innerHTML = "No school today!";
-    delete window.d;
+    if (scheduleEl && lastDisplayState.scheduleHTML !== "No school today!") {
+      scheduleEl.innerHTML = "No school today!";
+      lastDisplayState.scheduleHTML = "No school today!";
+    }
     return;
   }
 
   const periodIndex = starts.length - 1;
   let currentPeriod = -1;
-
-  const currentPeriodSubtitleEl = document.getElementById("currentperiodsubtitle");
-  const currentScheduleEl = document.getElementById("currentschedule");
-  const endOfScheduleSubtitleEl = document.getElementById("endofschedulesubtitle");
-  const currentDurationEl = document.getElementById("currentduration");
-  const currentLengthEl = document.getElementById("currentlengthofperiod");
-  const nextPeriodSubtitleEl = document.getElementById("nextperiodsubtitle");
-  const nextScheduleEl = document.getElementById("nextschedule");
-  const nextDurationEl = document.getElementById("nextduration");
-
-  if (currentPeriodSubtitleEl) currentPeriodSubtitleEl.innerHTML = "";
-  if (currentScheduleEl) currentScheduleEl.innerHTML = "";
-  if (endOfScheduleSubtitleEl) endOfScheduleSubtitleEl.innerHTML = "";
-  if (currentDurationEl) currentDurationEl.innerHTML = "";
-  if (currentLengthEl) currentLengthEl.innerHTML = "";
-  if (nextPeriodSubtitleEl) nextPeriodSubtitleEl.innerHTML = "";
-  if (nextScheduleEl) nextScheduleEl.innerHTML = "";
-  if (nextDurationEl) nextDurationEl.innerHTML = "";
+  const updateElement = (id, content, stateKey) => {
+    const el = document.getElementById(id);
+    if (el && lastDisplayState[stateKey] !== content) {
+      el.innerHTML = content;
+      lastDisplayState[stateKey] = content;
+    }
+  };
 
   if (currentSeconds < starts[0]) {
-    if (currentPeriodSubtitleEl) currentPeriodSubtitleEl.innerHTML = "Countdown to";
-    if (currentScheduleEl) currentScheduleEl.innerHTML = names[0];
-    if (endOfScheduleSubtitleEl) endOfScheduleSubtitleEl.innerHTML = "";
-    if (currentDurationEl) currentDurationEl.innerHTML = formatDisplayTimer(Math.abs(currentSeconds - starts[0]));
-  }
-  else if (currentSeconds > starts[periodIndex]) {
-    if (currentPeriodSubtitleEl) currentPeriodSubtitleEl.innerHTML = "";
-    if (currentScheduleEl) currentScheduleEl.innerHTML = names[periodIndex];
-    if (currentLengthEl) currentLengthEl.innerHTML = "";
-    if (endOfScheduleSubtitleEl) endOfScheduleSubtitleEl.innerHTML = "Time elapsed since end of schedule";
-    if (currentDurationEl) currentDurationEl.innerHTML = formatDisplayTimer(currentSeconds - starts[periodIndex]);
-  }
-  else {
+    updateElement("currentperiodsubtitle", "Countdown to", "currentPeriodSubtitle");
+    updateElement("currentschedule", names[0], "currentSchedule");
+    updateElement("endofschedulesubtitle", "", "endOfScheduleSubtitle");
+    updateElement("currentduration", formatDisplayTimer(Math.abs(currentSeconds - starts[0])), "currentDuration");
+    updateElement("currentlengthofperiod", "", "currentLength");
+  } else if (currentSeconds > starts[periodIndex]) {
+    updateElement("currentperiodsubtitle", "", "currentPeriodSubtitle");
+    updateElement("currentschedule", names[periodIndex], "currentSchedule");
+    updateElement("currentlengthofperiod", "", "currentLength");
+    updateElement("endofschedulesubtitle", "Time elapsed since end of schedule", "endOfScheduleSubtitle");
+    updateElement("currentduration", formatDisplayTimer(currentSeconds - starts[periodIndex]), "currentDuration");
+  } else {
     for (let x = 0; x < periodIndex; x++) {
       if (starts[x] < currentSeconds && starts[x + 1] > currentSeconds) {
         currentPeriod = x;
-        if (currentPeriodSubtitleEl) {
-          let elapsed = currentSeconds - starts[x];
-          let elapsedStr = formatDisplayTimer(elapsed);
-          if (elapsed < 60) {
-            elapsedStr += " seconds";
-          }
-          document.getElementById("currentperiodsubtitle").innerHTML =
-            "We are now " + elapsedStr + " into:";
-
+        let elapsed = currentSeconds - starts[x];
+        let elapsedStr = formatDisplayTimer(elapsed);
+        if (elapsed < 60) {
+          elapsedStr += " seconds";
         }
-        if (currentScheduleEl) currentScheduleEl.innerHTML = names[x];
-        if (endOfScheduleSubtitleEl) endOfScheduleSubtitleEl.innerHTML = "";
-        if (currentDurationEl) currentDurationEl.innerHTML = "";
-        if (nextScheduleEl) nextScheduleEl.innerHTML = `<strong>${names[x + 1]}</strong> starts in:`;
-        if (nextDurationEl) nextDurationEl.innerHTML = formatDisplayTimer(Math.abs(currentSeconds - starts[x + 1]));
-        if (currentLengthEl) currentLengthEl.innerHTML = "";
+        
+        updateElement("currentperiodsubtitle", "We are now " + elapsedStr + " into:", "currentPeriodSubtitle");
+        updateElement("currentschedule", names[x], "currentSchedule");
+        updateElement("endofschedulesubtitle", "", "endOfScheduleSubtitle");
+        updateElement("currentduration", "", "currentDuration");
+        updateElement("nextschedule", `<strong>${names[x + 1]}</strong> starts in:`, "nextSchedule");
+        updateElement("nextduration", formatDisplayTimer(Math.abs(currentSeconds - starts[x + 1])), "nextDuration");
+        updateElement("currentlengthofperiod", "", "currentLength");
         break;
       }
     }
   }
 
-  const scheduleEl = document.getElementById("scheduledisplay");
-  if (scheduleEl) {
-    let scheduleDisplay = "No school today!";
-
-    if (Array.isArray(times) && times.length > 0) {
+  if (lastDisplayState.currentPeriod !== currentPeriod || scheduleChanged || dayChanged) {
+    lastDisplayState.currentPeriod = currentPeriod;
+    const scheduleEl = document.getElementById("scheduledisplay");
+    if (scheduleEl && Array.isArray(times) && times.length > 0) {
       const lines = [];
       lines.push(`
         <div style="margin-top:30px; display:block; width:100%; text-align:center">
@@ -2072,25 +2867,23 @@ function showclock() {
 
         if (x === currentPeriod) {
           lines.push(`<strong>${periodLine}</strong>`);
-          if (currentLengthEl) currentLengthEl.innerHTML = `${startLabel} - ${endLabel}`;
+          const lengthEl = document.getElementById("currentlengthofperiod");
+          if (lengthEl) lengthEl.innerHTML = `${startLabel} - ${endLabel}`;
         } else {
           lines.push(periodLine);
         }
       });
 
       lines.push("</div></div>");
-      scheduleDisplay = lines.join("");
+      const newHTML = lines.join("");
+      scheduleEl.innerHTML = newHTML;
+      lastDisplayState.scheduleHTML = newHTML;
     }
-
-    scheduleEl.innerHTML = scheduleDisplay;
   }
 
-
-  delete window.d;
-}
-
-function padZero(n) {
-  return n < 10 ? "0" + n : n;
+  if (dayChanged && adjustseconds === 0) {
+    AutoSchedule();
+  }
 }
 
 function formatDisplayTimer(totalSeconds) {
@@ -2107,64 +2900,46 @@ function formatDisplayTimer(totalSeconds) {
   return padZero(seconds);
 }
 
-/*
-  0 = normal
-  1 = late
-  2 = minimum / finals
-  3 = rally day
-  4 = anchor day
-  5 = extended snack schedule
-  */
 function AutoSchedule() {
   const currentDate = getAdjustedDate();
-  const currentDay = currentDate.getDate();
-  const currentMonth = currentDate.getMonth() + 1;
-  const currentYear = currentDate.getFullYear();
-  const currentWeekDay = currentDate.getDay();
-  if (currentYear == 2024 && currentMonth <= 6) {
-    let scheduleType = getScheduleType(
-      currentMonth,
-      currentDay,
-      currentWeekDay,
-      currentYear
-    );
-    handleScheduleType(scheduleType);
+  const dateString = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(currentDate.getDate()).padStart(2, '0')}`;
+  const scheduleConfig = CalendarManager.getScheduleForDate(dateString);
+  StorageManager.savePreference('lastUsedSchedule', 'auto');
+  if (scheduleConfig) {
+    if (scheduleConfig.isEven !== null && scheduleConfig.isEven !== isEven) {
+      isEven = scheduleConfig.isEven;
+      updateOddEvenToggleButton();
+    }
+    loadSchedule(scheduleConfig.schedule);
+  } else {
+    NormalSchedule();
+  }
+  const tomorrowDate = getTomorrow();
+  const tomorrowString = `${tomorrowDate.getFullYear()}-${String(tomorrowDate.getMonth() + 1).padStart(2, '0')}-${String(tomorrowDate.getDate()).padStart(2, '0')}`;
+  const tomorrowConfig = CalendarManager.getScheduleForDate(tomorrowString);
+  
+  if (tomorrowConfig) {
     let result = "";
-    let isEvenSchedule = isEvenScheduleDay(currentMonth, currentDay);
-    if (isEvenSchedule !== isEven) {
-      ToggleScheduleOddEven();
-    }
-    const tomorrowDate = getTomorrow();
-    const tomorrowDay = tomorrowDate.getDate();
-    const tomorrowMonth = tomorrowDate.getMonth() + 1;
-    const tomorrowYear = tomorrowDate.getFullYear();
-    const tomorrowWeekDay = tomorrowDate.getDay();
-    scheduleType = getScheduleType(
-      tomorrowMonth,
-      tomorrowDay,
-      tomorrowWeekDay,
-      tomorrowYear
-    );
-    isEvenSchedule = isEvenScheduleDay(tomorrowMonth, tomorrowDay);
-    if (scheduleType != "No School") {
-      if (isEvenSchedule) {
-        result += "Even ";
-      } else {
-        result += "Odd ";
-      }
-      result += scheduleType + " Schedule";
+    if (tomorrowConfig.schedule === "noSchool") {
+      result = "No School";
     } else {
-      result += scheduleType;
+      if (tomorrowConfig.isEven !== null) {
+        result += tomorrowConfig.isEven ? "Even " : "Odd ";
+      }
+      const allSchedules = StorageManager.getAllSchedules();
+      const schedule = allSchedules[tomorrowConfig.schedule];
+      result += schedule ? schedule.displayName : tomorrowConfig.schedule;
     }
+    
     document.getElementById("tomorrowScheduleTitle").classList.remove("hidden");
     document.getElementById("tomorrowScheduleDisplay").classList.remove("hidden");
     document.getElementById("tomorrowScheduleDisplay").innerHTML = result;
-    var button = document.querySelector("#auto-schedule");
-    button.classList.add("selected-state");
   } else {
     document.getElementById("tomorrowScheduleTitle").classList.add("hidden");
     document.getElementById("tomorrowScheduleDisplay").classList.add("hidden");
   }
+  document.querySelector("#auto-schedule").classList.add("selected-state");
+  document.querySelector("#auto-schedule").classList.add("selected-state");
 }
 
 function removeElementById(id) {
@@ -2190,148 +2965,7 @@ function getTomorrow() {
   const og = new Date();
   return new Date(og.getTime() + (adjustseconds + 86400) * 1000);
 }
-/* AUTO SCHEDULE, FIXED FOR 2024 2025
-const scheduleList = {
-  1: {
-    late: [22, 29],
-    noSchool: [1, 2, 3, 4, 5, 8, 15],
-  },
-  2: {
-    late: [5, 12, 26],
-    noSchool: [16, 19],
-    rally: [29],
-  },
-  3: {
-    late: [4, 11, 18, 25],
-    noSchool: [8, 15, 29],
-  },
-  4: {
-    late: [8, 15, 22, 29],
-    noSchool: [1, 2, 3, 4, 5],
-    testing: [16, 17, 18, 23, 24, 25],
-  },
-  5: {
-    late: [6, 13, 20],
-    noSchool: [3, 24, 27],
-  },
-  6: {
-    final: [3, 4],
-    extended: [5],
-  },
-};
 
-function getScheduleType(
-  currentMonth,
-  currentDay,
-  currentWeekDay,
-  currentYear
-) {
-  const schedule = scheduleList;
-  const dayOfWeek = new Date().getDay();
-  if (
-    (currentWeekDay === 0 || currentWeekDay === 6) &&
-    !isNaN(currentYear) &&
-    !isNaN(currentWeekDay)
-  ) {
-    return "No School";
-  }
-  if (currentYear == 2024 && currentMonth <= 6) {
-    if (schedule[currentMonth]?.late?.includes(currentDay)) {
-      return "Late";
-    }
-    if (schedule[currentMonth]?.rally?.includes(currentDay)) {
-      return "Rally";
-    }
-    if (schedule[currentMonth]?.final?.includes(currentDay)) {
-      return "Finals";
-    }
-    if (schedule[currentMonth]?.extended?.includes(currentDay)) {
-      return "Extended Snack";
-    }
-    if (schedule[currentMonth]?.anchor?.includes(currentDay)) {
-      return "Anchor";
-    }
-    if (schedule[currentMonth]?.noSchool?.includes(currentDay)) {
-      return "No School";
-    }
-    if (schedule[currentMonth]?.testing?.includes(currentDay)) {
-      return "Testing";
-    }
-  }
-  return "Normal";
-}
-
-function handleScheduleType(scheduleType) {
-  const allSchedules = StorageManager.getAllSchedules();
-  if (allSchedules[scheduleType]) {
-    loadSchedule(scheduleType);
-    return;
-  }
-  switch (scheduleType) {
-    case "Late":
-      LateSchedule();
-      break;
-    case "Finals":
-      MinimumSchedule();
-      break;
-    case "Extended Snack":
-      ExtendedSnackSchedule();
-      UpdateSpecialDropDown();
-      break;
-    case "No School":
-      noSchool();
-      break;
-    case "Rally":
-      RallySchedule();
-      UpdateSpecialDropDown();
-      break;
-    case "Anchor":
-      AnchorSchedule();
-      UpdateSpecialDropDown();
-      break;
-    case "Testing":
-      TestingSchedule();
-      UpdateSpecialDropDown();
-      break;
-    default:
-      NormalSchedule();
-  }
-}
-
-function isEvenScheduleDay(currentMonth, currentDay) {
-  const evenScheduleDates = {
-    1: [22, 24, 26, 30],
-    2: [1, 5, 7, 9, 13, 15, 21, 23, 27, 29],
-    3: [4, 6, 11, 13, 18, 20, 22, 26, 28],
-    4: [9, 11, 15, 17, 19, 23, 25, 29],
-    5: [1, 6, 8, 10, 14, 16, 20, 22, 28, 30],
-    6: [4],
-  };
-  return evenScheduleDates[currentMonth]?.includes(currentDay);
-}
-
-function UpdateSpecialDropDown() {
-  var dropdownMenu = document.getElementById("special-schedule");
-  let internal = schedule;
-  switch (internal) {
-    case 3:
-      dropdownMenu.selectedIndex = 2;
-      break;
-    case 4:
-      dropdownMenu.selectedIndex = 1;
-      break;
-    case 5:
-      dropdownMenu.selectedIndex = 3;
-      break;
-    case 7:
-      dropdownMenu.selectedIndex = 4;
-      break;
-    default:
-      dropdownMenu.selectedIndex = 0;
-  }
-  HandleSpecialScheduleChange();
-}
-*/
 function noSchool() {
   loadSchedule('noSchool');
 }
@@ -2359,16 +2993,23 @@ function clearAll() {
   });
 }
 
-function NormalSchedule() {
-  schedule = 0;
-  loadSchedule('normal');
-}
-
 function clearSelectedStateButtons() {
   var buttons = document.querySelectorAll(".schedule-button");
   buttons.forEach(function(button) {
     button.classList.remove("selected-state");
   });
+}
+
+function updateStarts() {
+  starts = times.map((time) => {
+    let [hours, minutes] = time.split(":").map(Number);
+    return hours * 3600 + minutes * 60;
+  });
+}
+
+function NormalSchedule() {
+  schedule = 0;
+  loadSchedule('normal');
 }
 
 function LateSchedule() {
@@ -2384,13 +3025,6 @@ function MinimumSchedule() {
 function AnchorSchedule() {
   schedule = 4;
   loadSchedule('anchor');
-}
-
-function updateStarts() {
-  starts = times.map((time) => {
-    let [hours, minutes] = time.split(":").map(Number);
-    return hours * 3600 + minutes * 60;
-  });
 }
 
 function RallySchedule() {
@@ -2410,7 +3044,6 @@ function TestingSchedule() {
 
 function ToggleScheduleOddEven() {
   isEven = !isEven;
-
   if (currentScheduleId && scheduleTemplates[currentScheduleId]) {
     loadSchedule(currentScheduleId);
   }
@@ -2427,7 +3060,6 @@ function ToggleScheduleOddEven() {
 
 function HandleSpecialScheduleChange() {
   var selectedOption = document.getElementById("special-schedule").value;
-
   const allSchedules = StorageManager.getAllSchedules();
   if (allSchedules[selectedOption]) {
     loadSchedule(selectedOption);
@@ -2453,24 +3085,10 @@ function HandleSpecialScheduleChange() {
   }
 }
 
-function updateSpecialScheduleDropdown() {
-  var dropdown = document.getElementById("special-schedule");
-  var selectedIndex = dropdown.selectedIndex;
-  if (selectedIndex !== 0) {
-    dropdown.classList.add("special-schedule-select");
-    dropdown.style.backgroundColor = "grey";
-  } else {
-    dropdown.classList.remove("special-schedule-select");
-    dropdown.style.backgroundColor = "";
-  }
-}
-
 function updateOddEvenToggleButton() {
   var oddEvenButton = document.getElementById("odd-even-toggle");
   oddEvenButton.disabled = !(currentScheduleData && currentScheduleData.canToggleOddEven);
 }
-
-
 
 function clearSelectedStateButtons() {
   var buttons = document.querySelectorAll(".selected-state");
@@ -2479,33 +3097,37 @@ function clearSelectedStateButtons() {
   });
 }
 
-function handleSpecialScheduleSelection() {
-  var selectedOption = document.getElementById("special-schedule").value;
-  switch (selectedOption) {
-    case "Nothing":
-      NormalSchedule();
-      ClearSubtitle();
-      break;
-    case "anchorSchedule":
-      AnchorSchedule();
-      ClearSubtitle();
-      break;
-    case "rallySchedule":
-      RallySchedule();
-      ClearSubtitle();
-      break;
-    case "ExtendedSnackSchedule":
-      ExtendedSnackSchedule();
-      break;
-    case "TestingSchedule":
-      TestingSchedule();
-      break;
-    case "MinimumSchedule":
-    default:
-      break;
-  }
-}
-
 function ClearSubtitle() {
   document.getElementById("subtitle").innerHTML = "";
 }
+
+window.onload = function () {
+  StorageManager.init();
+  regenerateScheduleButtons();
+  loadPreferences();
+  CalendarUI.initializeWeekends()
+  const lastUsedSchedule = StorageManager.getPreference('lastUsedSchedule');
+  if (lastUsedSchedule && lastUsedSchedule !== 'auto') {
+    const allSchedules = StorageManager.getAllSchedules();
+    if (allSchedules[lastUsedSchedule]) {
+      loadSchedule(lastUsedSchedule);
+    } else {
+      NormalSchedule();
+    }
+  } else {
+    NormalSchedule();
+  }
+
+  updateAndCallAgain();
+  
+
+  if (!lastUsedSchedule || lastUsedSchedule === 'auto') AutoSchedule();
+  
+  const link = document.getElementById("schoolSchedule");
+  const urls = getSchoolScheduleLink();
+
+  link.href = urls.main;
+  if (urls.fallback) {
+    link.title = `If schedule isn't posted yet, try: ${urls.fallback}`;
+  }
+};

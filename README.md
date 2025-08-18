@@ -15,7 +15,7 @@ Schedule Monitor is a single-page application (SPA) that provides real-time sche
 - **Built-in Timer**: Countdown timer with audio/visual alerts
 - **Multiple Color Schemes**: Including dark mode and custom themes
 
-### Schedule Management (v2.0+)
+### Schedule Management (v2.1+)
 - Create single or odd/even schedules
 - Edit any schedule (including defaults)
 - Drag & drop to reorder periods

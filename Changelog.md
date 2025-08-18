@@ -1,3 +1,25 @@
+## Version 2.1.0 – Full Calendar Release
+
+### Main Changes
+- Introduced **completely new Calendar interface**, returning the auto scheduling feature
+  - Ability to add standard and custom schedules
+  - Ability to import and export calendars
+  - Right click to select schedules
+  - Keyboard shortcuts to quickly add schedules
+
+### Technical Improvements
+- Improved performance of display updates
+- Small optimizations
+
+### Known Issues
+
+* GUI does not scale correctly on different resolutions
+* Top panel alignment can block text display in certain screen sizes
+* Timer input is reversed
+* Countdown sometimes stops at `01` instead of `00`
+* Custom schedule IDs cannot be renamed
+* Color scheme setting no longer functions
+  
 ## Version 2.0.1
 
 - Small patch to address needing to hard refresh to fix new CSS being displayed correctly

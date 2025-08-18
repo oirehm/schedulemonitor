@@ -1,26 +1,3 @@
-<!--
-TODO
-Use custom alerts rather than native alerts to match UI and to make modular
-Drag and drop to reorder schedules
-Fix timer and sync it with displayed clock countdown: drag issue, backward input issue
-Change main UI a little more, the current time should be a little more visible, maybe overhaul UI layout. same info but arranged differently?
-Fix math input when field is empty, default to 0
-Have the time actually display 00 instead of stop on 01
-Enhance button panel? maybe have it where it disappears after some time and you can hover up to it.
-change UI: change schedules (schedule buttons + manage), actual settings cog wheel (replaces Edit button), Extra tools? (Timer)
-Overhaul settings UI
-Add more settings
-- For current date, add date formatting type and customization on that, via buttons or direct configuration input
-- For count down, add display to show in various ways: MM:ss, HH:mm:ss
-Add localstorage limit visual in settings, based on stored json size
-When previewing schedule, it should exit the menu temporarily but return to the exact menu
-Reduce dom updates in showclock to not rebuild everything when only a few parts change
-
-
-i wonder if real time update default will hurt performance
-
--->
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -30,13 +7,11 @@ i wonder if real time update default will hurt performance
   <meta http-equiv="cache-control" content="no-cache" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="-1" />
-  
+
   <title>Schedule Monitor</title>
   <link rel="icon" href="icon/monitor.png" />
-  <link rel="stylesheet" type="text/css" href="css/styles.css?v=201" />
-
+  <link rel="stylesheet" type="text/css" href="css/styles.css?v=210" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/9.4.4/math.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML"></script>
   <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
   <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
@@ -49,8 +24,6 @@ i wonder if real time update default will hurt performance
       <option value="Nothing">Special Schedules</option>
     </select>
     <button id="auto-schedule" onclick="AutoSchedule()" class="schedule-button button">Auto</button>
-    <button id="showTimerButton" class="bottom" onclick="showTimer()">Timer</button>
-    <button id="manageSchedulesButton" class="bottom" onclick="openScheduleManager()">Manage</button>
   </div>
 
   <div id="container">
@@ -65,15 +38,11 @@ i wonder if real time update default will hurt performance
     <div id="nextperiodsubtitle"></div>
     <div id="nextschedule"></div>
     <div id="nextduration" style="font-size: 5em; margin-top: 8px; color: orange"></div>
-
     <div id="scheduledisplay"></div>
-
     <div id="tomorrowScheduleTitle" class="hidden">Tomorrow's Schedule:</div>
     <div id="tomorrowScheduleDisplay" class="hidden">Unknown</div>
 
-    <button id="toggleButton" class="button editButton info">Edit</button>
-
-    <div id="modifyContainer" class="hidden draggable">
+    <div id="settingsModal" class="hidden draggable">
       Color Scheme: 
       <select style="margin-top: 12px" id="colorscheme" onchange="colorBackground()">
         <option value="gb" selected>Gray on black</option>
@@ -110,13 +79,16 @@ i wonder if real time update default will hurt performance
           <option value="200">200</option>
           <option value="100">100</option>
           <option value="50">50</option>
-          <option value="2">Real Time</option>
+          <option value="16">Real Time</option>
         </select>
         <br /><br />
         <button id="closeEdit" class="button">Close</button>
       </div>
     </div>
-
+    <button id="showTimerButton" class="bottom" onclick="showTimer()">Timer</button>
+    <button id="manageSchedulesButton" class="bottom" onclick="openScheduleManager()">Schedules</button>
+    <button id="calendarButton" class="bottom" onclick="openCalendar()">Calendar</button>
+    <button id="toggleButton" class="bottom">Settings</button>
     <footer>
       <div class="info">
         <a href="https://github.com/oirehm/schedulemonitor/blob/main/Changelog.md" target="_blank">Changelog</a>
@@ -141,7 +113,7 @@ i wonder if real time update default will hurt performance
     <div id="scheduleManagerModal" class="hidden">
       <div id="scheduleManagerContent">
         <div id="scheduleManagerHeader">
-          <h2>Manage Schedules <span id="liveIndicator" style="font-size: 0.6em; color: #666; margin-left: 10px;">(Changes apply immediately)</span></h2>
+          <h2>Schedule Configuration <span id="liveIndicator" style="font-size: 0.6em; color: #666; margin-left: 10px;">(Changes apply immediately)</span></h2>
           <button class="button" onclick="closeScheduleManager()">×</button>
         </div>
         <div id="scheduleManagerBody">
@@ -231,7 +203,80 @@ i wonder if real time update default will hurt performance
         </div>
       </div>
     </div>
-
+    <!-- Calendar Configuration Modal -->
+    <div id="calendarModal" class="hidden">
+      <div id="calendarContent">
+        <div id="calendarHeader">
+          <h2>Calendar Configuration<span id="liveIndicator" style="font-size: 0.6em; color: #666; margin-left: 10px;">(Changes apply immediately)</span></h2>
+          <button class="button" onclick="closeCalendar()">×</button>
+        </div>
+        <div id="calendarBody">
+          <div id="calendarControls">
+            <button class="button" onclick="openYearOverview()">Year Overview</button>
+            <button class="button" onclick="previousMonth()">◀</button>
+            <span id="currentMonthYear"></span>
+            <button class="button" onclick="nextMonth()">▶</button>
+            <button class="button" onclick="goToToday()" style="margin-left: 20px;">Today</button>
+          </div>
+          <div id="calendarGrid">
+            <div class="calendar-weekdays"></div>
+            <div class="calendar-days"></div>
+          </div>
+          <div id="calendarLegend">
+            <span class="legend-item"><span class="legend-color day-odd"></span> Odd</span>
+            <span class="legend-item"><span class="legend-color day-even"></span> Even</span>
+            <span class="legend-item"><span class="legend-color day-noSchool"></span> No School</span>
+            <span class="legend-item">◆ Special Schedule</span>
+          </div>
+        </div>
+        <div id="calendarFooter">
+          <button class="button" onclick="exportCalendar()">Export Calendar</button>
+          <button class = "button" onclick="importCalendar()">Import Calendar</button>
+          <button class="button" onclick="clearAllCalendarData()">Clear All</button>
+        </div>
+      </div>
+    </div>
+    <!-- Enhanced context menu -->
+    <div id="calendarContextMenu" class="hidden">
+      <div class="context-menu-header">Regular Schedules</div>
+      <div class="context-menu-item" onclick="setSelectedSchedule('normal')">Normal</div>
+      <div class="context-menu-item" onclick="setSelectedSchedule('late')">Late Start</div>
+      <div class="context-menu-item" onclick="setSelectedSchedule('minimum')">Minimum</div>
+      <div class="context-menu-separator"></div>
+      <div class="context-menu-header">Special Schedules</div>
+      <div id="specialSchedulesMenu"></div>
+      <div class="context-menu-separator"></div>
+      <div class="context-menu-header">Custom Schedules</div>
+      <div id="customSchedulesMenu"></div>
+      <div class="context-menu-separator"></div>
+      <div class="context-menu-item" onclick="CalendarUI.promptHolidayName()">Set Holiday...</div>
+      <div class="context-menu-item" onclick="setSelectedSchedule('noSchool')">No School</div>
+      <div class="context-menu-separator"></div>
+      <div class="context-menu-item" onclick="clearSelectedDates()">Clear</div>
+    </div>
+    <!-- Year Overview Modal -->
+    <div id="yearOverviewModal" class="hidden">
+      <div id="yearOverviewContent">
+        <div id="yearOverviewHeader">
+          <h2>Year Overview - <span id="yearOverviewTitle"></span></h2>
+          <button class="button" onclick="closeYearOverview()">×</button>
+        </div>
+        <div id="yearOverviewBody">
+          <div id="yearOverviewControls">
+            <button class="button" onclick="previousYear()">◀</button>
+            <span id="overviewYearDisplay"></span>
+            <button class="button" onclick="nextYear()">▶</button>
+          </div>
+          <div id="yearOverviewGrid"></div>
+          <div id="yearOverviewLegend">
+            <span class="legend-item"><span class="legend-color day-odd"></span> Odd Day</span>
+            <span class="legend-item"><span class="legend-color day-even"></span> Even Day</span>
+            <span class="legend-item"><span class="legend-color day-scheduled"></span> Scheduled (No Odd/Even)</span>
+            <span class="legend-item"><span class="legend-color day-noSchool"></span> No School</span>
+          </div>
+        </div>
+      </div>
+    </div>
     <script src="script.js"></script>
   </div>
 </body>
