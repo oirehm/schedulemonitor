@@ -1,3 +1,26 @@
+## Version 2.2.0
+
+### Main Changes
+
+- Replaced all native browser alerts/confirms with custom styled modals and toast notifications
+- Added ability to clear all browser storage via the Clear All Data button
+- New user experience with version tracking system
+  - First-time users get welcome modal offering to load default calendar
+  - Returning users see "What's New" notifications on version upgrades
+- Calendar Improvements
+  - New users automatically prompted to load school calendar
+  - "Load Default Calendar" and "Clear All Data" buttons for easy management
+
+### Bug Fixes
+
+- Fixed AutoSchedule button state on blank calendars
+- Visual of the odd/even toggle now properly updates when changing days
+- Fixed automatic day transitions when using time adjustment
+
+### Improvements
+
+- AutoSchedule automatically runs when default calendar is loaded
+
 ## Version 2.1.1
 
 - Small patch to address needing to hard refresh to fix calendar functioning correctly for existing users

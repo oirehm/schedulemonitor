@@ -6,11 +6,9 @@
 * Countdown sometimes stops at `01` instead of `00`
 * Custom schedule IDs cannot be renamed
 * Color scheme setting no longer functions
-* Visual of the odd/even toggle does not update
 
 ## Tasks / Improvements
 
-* Replace native alerts with custom UI alerts (modular, themed)
 * Drag-and-drop to reorder schedules
 * Sync timer with displayed countdown; fix drag/backward input issues
 * Fix main countdown to properly display `00` instead of stopping at `01`

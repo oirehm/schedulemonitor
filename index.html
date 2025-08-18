@@ -10,7 +10,7 @@
 
   <title>Schedule Monitor</title>
   <link rel="icon" href="icon/monitor.png" />
-  <link rel="stylesheet" type="text/css" href="css/styles.css?v=211" />
+  <link rel="stylesheet" type="text/css" href="css/styles.css?v=220" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/9.4.4/math.min.js"></script>
   <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
   <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
@@ -83,6 +83,8 @@
         </select>
         <br /><br />
         <button id="closeEdit" class="button">Close</button>
+        <br /><br />
+        <button class="button" onclick="clearAllLocalStorage()" style="color: #ff6666;">Clear All Data</button>
       </div>
     </div>
     <button id="showTimerButton" class="bottom" onclick="showTimer()">Timer</button>
@@ -134,7 +136,7 @@
         <div id="scheduleManagerFooter">
           <button class="button" onclick="exportSchedules()">Export</button>
           <button class="button" onclick="importSchedules()">Import</button>
-          <button class="button" onclick="resetToDefaults()">Reset Defaults</button>
+          <button class="button" onclick="resetToDefaults()">Reset All Schedules</button>
         </div>
         <input type="file" id="importFileInput" accept=".json" style="display: none;" onchange="handleImportFile(event)">
       </div>
@@ -230,9 +232,12 @@
           </div>
         </div>
         <div id="calendarFooter">
+        <div id="calendarFooter">
+          <button class="button" onclick="clearAllCalendarData()">Clear Calendar</button>
+          <button class="button" onclick="resetToDefaultCalendar()">Load Default</button>
           <button class="button" onclick="exportCalendar()">Export Calendar</button>
-          <button class = "button" onclick="importCalendar()">Import Calendar</button>
-          <button class="button" onclick="clearAllCalendarData()">Clear All</button>
+          <button class="button" onclick="importCalendar()">Import Calendar</button>
+        </div>
         </div>
       </div>
     </div>
@@ -277,7 +282,23 @@
         </div>
       </div>
     </div>
-    <script src="script.js?v=211"></script>
+    <div id="notificationModal" class="hidden">
+      <div id="notificationContent">
+        <div id="notificationHeader">
+          <h2 id="notificationTitle"></h2>
+        </div>
+        <div id="notificationBody">
+          <p id="notificationMessage"></p>
+        </div>
+        <div id="notificationFooter">
+          <button class="button" id="notificationPrimaryButton" onclick="handleNotificationPrimary()">Load Bellflower Calendar</button>
+          <button class="button" id="notificationTertiaryButton" onclick="handleNotificationTertiary()" style="display: none;">View Changelog</button>
+          <button class="button" id="notificationSecondaryButton" onclick="handleNotificationSecondary()">Start with Empty Calendar</button>
+        </div>
+      </div>
+    </div>
+    <div id="toastContainer"></div>
+    <script src="script.js?v=220"></script>
   </div>
 </body>
 </html>

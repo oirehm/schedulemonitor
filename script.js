@@ -1,3 +1,4 @@
+let version = '2.2.0'
 let starts = [];
 let names = [];
 let times = [];
@@ -96,7 +97,58 @@ const scheduleTemplates = {
     names: []
   }
 };
+const UserManager = {
+  ONBOARDING_KEY: 'scheduleMonitor_onboarding',
+  VERSION_KEY: 'scheduleMonitor_userVersion',
+  CURRENT_VERSION: version,
+  
+  getUserStatus() {
+    const onboardingStatus = localStorage.getItem(this.ONBOARDING_KEY);
+    const storedVersion = localStorage.getItem(this.VERSION_KEY);
+    
+    const status = {
+      type: 'returning-same',
+      showWelcome: false,
+      showWhatsNew: false
+    };
+    
+    if (!onboardingStatus) {
+      status.type = 'first-time';
+      status.showWelcome = true;
+      console.log("New")
+    }
+    
+    if (storedVersion !== this.CURRENT_VERSION) {
+      status.showWhatsNew = true;
+      status.previousVersion = storedVersion;
+      status.currentVersion = this.CURRENT_VERSION;
+      console.log("Updating")
+      if (status.type !== 'first-time') {
+        status.type = 'returning-upgrade';
+      }
+    }
+    return status;
+  },
+  
+  completeOnboarding() {
+    localStorage.setItem(this.ONBOARDING_KEY, 'completed');
+    localStorage.setItem(this.VERSION_KEY, this.CURRENT_VERSION);
+  },
+  
+  updateVersion() {
+    localStorage.setItem(this.VERSION_KEY, this.CURRENT_VERSION);
+  },
 
+  resetOnboarding() {
+    localStorage.removeItem(this.ONBOARDING_KEY);
+    localStorage.removeItem(this.VERSION_KEY);
+  },
+  
+  simulateUpgrade(fromVersion) {
+    localStorage.setItem(this.ONBOARDING_KEY, 'completed');
+    localStorage.setItem(this.VERSION_KEY, fromVersion);
+  }
+};
 const StorageManager = {
   STORAGE_KEY: 'scheduleMonitorData',
   VERSION: '2.0',
@@ -133,7 +185,7 @@ const StorageManager = {
       return true;
     } catch (error) {
       if (error.name === 'QuotaExceededError') {
-        alert('Storage limit reached! Please delete some custom schedules.');
+        NotificationManager.showAlert('Storage Full', 'Storage limit reached! Please delete some custom schedules.', 'error');
         return false;
       }
       console.error('Error saving to localStorage:', error);
@@ -317,6 +369,20 @@ const StorageManager = {
 
 const CalendarManager = {
   STORAGE_KEY: 'calendarConfigData',
+    async loadDefaultCalendar() {
+    try {
+      const response = await fetch('./default-calendar.json');
+      if (response.ok) {
+        const defaultData = await response.json();
+        defaultData.isDefaultCalendar = true;
+        defaultData.defaultCalendarVersion = "2025-2026";
+        return defaultData;
+      }
+    } catch (error) {
+      console.warn('Could not load default calendar:', error);
+    }
+    return null;
+  },
   
   getConfig() {
     try {
@@ -327,9 +393,34 @@ const CalendarManager = {
     } catch (error) {
       console.error('Error loading calendar config:', error);
     }
-    return this.getDefaultConfig();
+    const defaultConfig = this.getDefaultConfig();
+    this.saveConfig(defaultConfig);
+    return defaultConfig;
   },
 
+  async getConfigWithDefault() {
+    const stored = this.getConfig();
+    
+    if (!stored) {
+      const defaultCalendar = await this.loadDefaultCalendar();
+      if (defaultCalendar) {
+        this.saveConfig(defaultCalendar);
+        return defaultCalendar;
+      }
+      return this.getDefaultConfig();
+    }
+    
+    if (stored.isDefaultCalendar && !stored.hasUserModifications) {
+      const defaultCalendar = await this.loadDefaultCalendar();
+      if (defaultCalendar && defaultCalendar.defaultCalendarVersion !== stored.defaultCalendarVersion) {r
+        defaultCalendar.hasUserModifications = false;
+        this.saveConfig(defaultCalendar);
+        return defaultCalendar;
+      }
+    }
+    
+    return stored;
+  },
   getDefaultConfig() {
     const currentYear = new Date().getFullYear();
     const nextYear = currentYear + 1;
@@ -337,10 +428,11 @@ const CalendarManager = {
       schoolYear: `${currentYear}-${nextYear}`,
       startDate: `${currentYear}-08-01`,
       endDate: `${nextYear}-06-30`,
-      dates: {}
+      dates: {},
+      isDefaultCalendar: false,
+      hasUserModifications: false
     };
   },
-
   saveConfig(config) {
     try {
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(config));
@@ -362,6 +454,9 @@ const CalendarManager = {
       schedule: scheduleId,
       isEven: isEven
     };
+    if (config.isDefaultCalendar) {
+      config.hasUserModifications = true;
+    }
     return this.saveConfig(config);
   },
 
@@ -373,7 +468,20 @@ const CalendarManager = {
         isEven: isEven
       };
     });
+    if (config.isDefaultCalendar) {
+      config.hasUserModifications = true;
+    }
     return this.saveConfig(config);
+  },
+
+  isFirstTimeUser() {
+    return !localStorage.getItem(this.STORAGE_KEY);
+  },
+
+  markUserAsReturning() {
+    const config = this.getConfig();
+    config.hasSeenWelcome = true;
+    this.saveConfig(config);
   }
 };
 
@@ -386,13 +494,13 @@ const CalendarUI = {
   lastClickedDate: null,
   hoveredDate: null,
   isDragging: false,
-  
-open() {
-  document.getElementById('calendarModal').classList.remove('hidden');
-  this.render();
-  document.addEventListener('mouseup', this.handleGlobalMouseUp);
-  document.addEventListener('keydown', this.handleKeyboard);
-},
+
+  open() {
+    document.getElementById('calendarModal').classList.remove('hidden');
+    this.render();
+    document.addEventListener('mouseup', this.handleGlobalMouseUp);
+    document.addEventListener('keydown', this.handleKeyboard);
+  },
 
   close() {
     document.getElementById('calendarModal').classList.add('hidden');
@@ -408,7 +516,7 @@ open() {
     document.removeEventListener('keydown', this.handleKeyboard);
     const daysContainer = document.querySelector('.calendar-days');
     if (daysContainer) {
-      const newContainer = daysContainer.cloneNode(false); // Clone without children or listeners
+      const newContainer = daysContainer.cloneNode(false);
       daysContainer.parentNode.replaceChild(newContainer, daysContainer);
     }
   },
@@ -854,21 +962,46 @@ open() {
     this.render();
   }
 };
-function clearAllCalendarData() {
-  if (confirm('Are you sure you want to clear ALL calendar data? This cannot be undone.')) {
-    const config = CalendarManager.getConfig();
-    config.dates = {};
-    CalendarManager.saveConfig(config);
-    
-    if (CalendarUI.isYearView) {
-      CalendarUI.renderYearView();
-    } else {
-      CalendarUI.render();
+async function resetToDefaultCalendar() {
+  NotificationManager.showConfirm(
+    'Load Default Calendar',
+    'Load the Bellflower High School default calendar? This will replace all your current calendar data.',
+    'Load Default',
+    'Cancel',
+    async function() {
+      const defaultCalendar = await CalendarManager.loadDefaultCalendar();
+      if (defaultCalendar) {
+        CalendarManager.saveConfig(defaultCalendar);
+        CalendarUI.render();
+        NotificationManager.showAlert('', 'Default Bellflower calendar loaded!', 'success');
+      } else {
+        NotificationManager.showAlert('', 'Could not load default calendar. Please check your internet connection.', 'error');
+      }
     }
-    
-    alert('Calendar data cleared!');
-  }
+  );
 }
+function clearAllCalendarData() {
+  NotificationManager.showConfirm(
+    'Clear All Calendar Data',
+    'Are you sure you want to clear ALL calendar data? This will remove all schedules and return to a completely empty calendar.',
+    'Clear All',
+    'Cancel',
+    function() {
+
+      const emptyConfig = CalendarManager.getDefaultConfig();
+      CalendarManager.saveConfig(emptyConfig);
+      CalendarUI.initializeWeekends()
+      if (CalendarUI.isYearView) {
+        CalendarUI.renderYearView();
+      } else {
+        CalendarUI.render();
+      }
+      
+      NotificationManager.showAlert('','Calendar data cleared!', 'success');
+    }
+  );
+}
+
 function populateScheduleMenus() {
   const allSchedules = StorageManager.getAllSchedules();
   const specialMenu = document.getElementById('specialSchedulesMenu');
@@ -975,9 +1108,9 @@ function importCalendar() {
         const config = JSON.parse(event.target.result);
         CalendarManager.saveConfig(config);
         CalendarUI.render();
-        alert('Calendar imported successfully!');
+        NotificationManager.showAlert('', 'Calendar imported successfully!', 'success');
       } catch (error) {
-        alert('Error importing calendar file');
+        NotificationManager.showAlert('Import Error', 'Error importing calendar file', 'error');
       }
     };
     reader.readAsText(file);
@@ -1281,7 +1414,12 @@ const ScheduleManagerUI = {
 };
 
 function resetScheduleToDefault(scheduleId) {
-  if (confirm('Reset this schedule to its default settings?')) {
+  NotificationManager.showConfirm(
+  'Reset Schedule',
+  'Reset this schedule to its default settings?',
+  'Reset',
+  'Cancel',
+  function() {
     const data = StorageManager.getData();
     if (data.scheduleOverrides && data.scheduleOverrides[scheduleId]) {
       delete data.scheduleOverrides[scheduleId];
@@ -1293,11 +1431,13 @@ function resetScheduleToDefault(scheduleId) {
       if (currentScheduleId === scheduleId) {
         loadSchedule(scheduleId);
       }
-      
-      alert('Schedule reset to default!');
     }
+    NotificationManager.showAlert('', 'Schedule reset to default!', 'success');
   }
-}
+);
+
+
+  }
 function editSchedule(scheduleId) {
   const allSchedules = StorageManager.getAllSchedules();
   const schedule = allSchedules[scheduleId];
@@ -1382,19 +1522,18 @@ function moveSchedule(scheduleId, direction, isSpecial) {
 }
 
 function deleteCustomSchedule(scheduleId) {
-  if (confirm(`Are you sure you want to delete this custom schedule?`)) {
-    StorageManager.deleteCustomSchedule(scheduleId);
-    ScheduleManagerUI.render();
-    regenerateScheduleButtons();
-  }
-}
+  NotificationManager.showConfirm(
+    'Delete Schedule',
+    'Are you sure you want to delete this custom schedule?',
+    'Delete',
+    'Cancel',
+    function() {
 
-function editCustomSchedule(scheduleId) {
-  alert('Schedule editor coming in Phase 4!');
-}
-
-function createNewSchedule() {
-  alert('Schedule creator coming in Phase 4!');
+      StorageManager.deleteCustomSchedule(scheduleId);
+      ScheduleManagerUI.render();
+      regenerateScheduleButtons();
+    }
+  );
 }
 
 function exportSchedules() {
@@ -1424,11 +1563,9 @@ function handleImportFile(event) {
   reader.onload = function(e) {
     const success = StorageManager.importData(e.target.result);
     if (success) {
-      alert('Schedules imported successfully!');
-      ScheduleManagerUI.render();
-      regenerateScheduleButtons();
+      NotificationManager.showAlert('', 'Schedules imported successfully!', 'success');
     } else {
-      alert('Failed to import schedules. Please check the file format.');
+      NotificationManager.showAlert('Error', 'Failed to import schedules. Please check the file format.', 'error');
     }
     event.target.value = '';
   };
@@ -1784,7 +1921,7 @@ const ScheduleEditor = {
   validate() {
     const name = document.getElementById('scheduleName').value.trim();
     if (!name) {
-      alert('Please enter a schedule name');
+      NotificationManager.showAlert('Error Saving Schedule', 'Please enter a schedule name', 'error');
       return false;
     }
 
@@ -1795,31 +1932,27 @@ const ScheduleEditor = {
     });
 
     if (nameExists) {
-      alert('A schedule with this name already exists');
+      NotificationManager.showAlert('Error Saving Schedule', 'A schedule with this name already exists', 'error');
       return false;
     }
 
     if (this.scheduleData.canToggleOddEven) {
       if (this.scheduleData.odd.times.length === 0 || this.scheduleData.even.times.length === 0) {
-        alert('Please add at least one period to both Odd and Even days');
+        NotificationManager.showAlert('Error Saving Schedule', 'Please add at least one period to both Odd and Even days', 'error');
         return false;
       }
       const oddEmpty = this.scheduleData.odd.names.some(name => !name.trim());
       const evenEmpty = this.scheduleData.even.names.some(name => !name.trim());
       if (oddEmpty || evenEmpty) {
-        if (!confirm('Some periods have no names. Continue anyway?')) {
-          return false;
-        }
+        NotificationManager.showAlert('Error Saving Schedule', 'Some periods have no names', 'error');
       }
     } else {
       const hasEmpty = this.scheduleData.names.some(name => !name.trim());
       if (hasEmpty) {
-        if (!confirm('Some periods have no names. Continue anyway?')) {
-          return false;
-        }
+        NotificationManager.showAlert('Error Saving Schedule', 'Some periods have no names', 'error');
       }
-      if (this.scheduleData.times.length === 0) {
-        alert('Please add at least one period');
+      if (this.scheduleData.times.length = 0) {
+        NotificationManager.showAlert('Error Saving Schedule', 'Please add at least one period', 'error');
         return false;
       }
     }
@@ -1834,13 +1967,13 @@ const ScheduleEditor = {
       const currMinutes = curr[0] * 60 + curr[1];
       
       if (currMinutes <= prevMinutes) {
-        alert('Period times must be in chronological order');
+        NotificationManager.showAlert('Error Saving Schedule', 'Period times must be in chronological order', 'error');
         return false;
       }
     }
     const invalidTimes = document.querySelectorAll('.period-time.invalid');
     if (invalidTimes.length > 0) {
-      alert('Please fix invalid time formats (HH:MM)');
+      NotificationManager.showAlert('Error Saving Schedule', 'Period times are not formatted properly (HH:mm)', 'error');
       return false;
     }
 
@@ -1889,7 +2022,7 @@ const ScheduleEditor = {
       
       StorageManager.save(data);
       
-      alert(`Schedule "${name}" updated successfully!`);
+      NotificationManager.showAlert('', `Schedule "${name}" updated successfully!`, 'success');
     } else {
       let scheduleId = this.currentScheduleId;
       if (!this.isEditing) {
@@ -1934,7 +2067,7 @@ const ScheduleEditor = {
       
       StorageManager.save(data);
       
-      alert(`Schedule "${name}" ${this.isEditing ? 'updated' : 'created'} successfully!`);
+      NotificationManager.showAlert('', `Schedule "${name}" ${this.isEditing ? 'updated' : 'created'} successfully!`, 'success');
     }
 
     regenerateScheduleButtons();
@@ -2047,7 +2180,7 @@ function testSchedule() {
     }
   }, 5000);
 
-  alert('Preview loaded! It will revert to your previous schedule in 5 seconds.');
+  NotificationManager.showAlert('Preview Mode', 'Preview loaded! It will revert to your previous schedule in 5 seconds.', 'info');
 }
 
 function saveSchedule() {
@@ -2063,12 +2196,18 @@ function editCustomSchedule(scheduleId) {
 }
 
 function resetToDefaults() {
-  if (confirm('This will reset all schedules to defaults and remove custom schedules. Continue?')) {
-    StorageManager.resetToDefaults();
-    ScheduleManagerUI.render();
-    regenerateScheduleButtons();
-    alert('Reset to defaults complete!');
-  }
+  NotificationManager.showConfirm(
+    'Reset All Schedules',
+    'This will reset all schedules to defaults and remove custom schedules. Continue?',
+    'Reset All',
+    'Cancel',
+    () => {
+      StorageManager.resetToDefaults();
+      ScheduleManagerUI.render();
+      regenerateScheduleButtons();
+      NotificationManager.showAlert('', 'All schedules cleared!', 'success');
+    }
+  );
 }
 
 function regenerateScheduleButtons() {
@@ -2765,6 +2904,7 @@ function updateMainDisplay() {
   const dayChanged = lastDisplayState.lastDayOfMonth !== currentDayOfMonth;
   if (dayChanged) {
     lastDisplayState.lastDayOfMonth = currentDayOfMonth;
+    AutoSchedule()
   }
 
   const scheduleChanged = lastDisplayState.lastScheduleId !== currentScheduleId || 
@@ -2880,10 +3020,6 @@ function updateMainDisplay() {
       lastDisplayState.scheduleHTML = newHTML;
     }
   }
-
-  if (dayChanged && adjustseconds === 0) {
-    AutoSchedule();
-  }
 }
 
 function formatDisplayTimer(totalSeconds) {
@@ -2900,12 +3036,15 @@ function formatDisplayTimer(totalSeconds) {
   return padZero(seconds);
 }
 
-function AutoSchedule() {
+async function AutoSchedule() {
+  document.querySelector("#auto-schedule").classList.remove("selected-state");
   const currentDate = getAdjustedDate();
   const dateString = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(currentDate.getDate()).padStart(2, '0')}`;
   const scheduleConfig = CalendarManager.getScheduleForDate(dateString);
   StorageManager.savePreference('lastUsedSchedule', 'auto');
+  let foundScheduleData = false;
   if (scheduleConfig) {
+    foundScheduleData = true;
     if (scheduleConfig.isEven !== null && scheduleConfig.isEven !== isEven) {
       isEven = scheduleConfig.isEven;
       updateOddEvenToggleButton();
@@ -2914,6 +3053,7 @@ function AutoSchedule() {
   } else {
     NormalSchedule();
   }
+  
   const tomorrowDate = getTomorrow();
   const tomorrowString = `${tomorrowDate.getFullYear()}-${String(tomorrowDate.getMonth() + 1).padStart(2, '0')}-${String(tomorrowDate.getDate()).padStart(2, '0')}`;
   const tomorrowConfig = CalendarManager.getScheduleForDate(tomorrowString);
@@ -2938,8 +3078,9 @@ function AutoSchedule() {
     document.getElementById("tomorrowScheduleTitle").classList.add("hidden");
     document.getElementById("tomorrowScheduleDisplay").classList.add("hidden");
   }
-  document.querySelector("#auto-schedule").classList.add("selected-state");
-  document.querySelector("#auto-schedule").classList.add("selected-state");
+  if (foundScheduleData) {
+    document.querySelector("#auto-schedule").classList.add("selected-state");
+  }
 }
 
 function removeElementById(id) {
@@ -3088,6 +3229,14 @@ function HandleSpecialScheduleChange() {
 function updateOddEvenToggleButton() {
   var oddEvenButton = document.getElementById("odd-even-toggle");
   oddEvenButton.disabled = !(currentScheduleData && currentScheduleData.canToggleOddEven);
+
+  if (isEven) {
+    oddEvenButton.classList.remove("normal-state");
+    oddEvenButton.classList.add("toggled-state");
+  } else {
+    oddEvenButton.classList.remove("toggled-state");
+    oddEvenButton.classList.add("normal-state");
+  }
 }
 
 function clearSelectedStateButtons() {
@@ -3101,11 +3250,55 @@ function ClearSubtitle() {
   document.getElementById("subtitle").innerHTML = "";
 }
 
-window.onload = function () {
+window.onload = async function () {
   StorageManager.init();
   regenerateScheduleButtons();
   loadPreferences();
-  CalendarUI.initializeWeekends()
+
+  const userStatus = UserManager.getUserStatus();
+    
+  if (userStatus.showWelcome) {
+    NotificationManager.showWelcome(
+      async function() {
+        const defaultCalendar = await CalendarManager.loadDefaultCalendar();
+        if (defaultCalendar) {
+          CalendarManager.saveConfig(defaultCalendar);
+          CalendarUI.render();
+          AutoSchedule();
+        }
+        UserManager.completeOnboarding();
+        
+        if (userStatus.showWhatsNew) {
+          setTimeout(() => {
+            NotificationManager.showWhatsNew(userStatus.currentVersion, () => {
+              UserManager.updateVersion();
+            });
+          }, 800);
+        }
+      },
+      function() {
+        CalendarUI.initializeWeekends();
+        UserManager.completeOnboarding();
+        
+        if (userStatus.showWhatsNew) {
+          setTimeout(() => {
+            NotificationManager.showWhatsNew(userStatus.currentVersion, () => {
+              UserManager.updateVersion();
+            });
+          }, 300);
+        }
+      }
+    );
+  } else if (userStatus.showWhatsNew) {
+    NotificationManager.showWhatsNew(
+      userStatus.currentVersion,
+      function() {
+        UserManager.updateVersion();
+      }
+    );
+  }
+
+  
   const lastUsedSchedule = StorageManager.getPreference('lastUsedSchedule');
   if (lastUsedSchedule && lastUsedSchedule !== 'auto') {
     const allSchedules = StorageManager.getAllSchedules();
@@ -3131,3 +3324,175 @@ window.onload = function () {
     link.title = `If schedule isn't posted yet, try: ${urls.fallback}`;
   }
 };
+
+function clearAllLocalStorage() {
+  NotificationManager.showConfirm(
+    'Clear All Data',
+    'This will permanently delete ALL stored data including schedules, settings, and calendar data. This cannot be undone!\n\nAre you absolutely sure you want to continue?',
+    'Yes, Continue',
+    'Cancel',
+    function() {
+      setTimeout(() => {
+        NotificationManager.showConfirm(
+          'Final Warning',
+          'Last chance! This will delete everything and reload the page.\n\nClick "Delete Everything" to proceed.',
+          'Delete Everything',
+          'Cancel',
+          function() {
+            try {
+              localStorage.clear();
+              NotificationManager.showAlert('', 'All localStorage data has been cleared. The page will now reload in 3 seconds.', 'success');
+              setTimeout(() => {
+                window.location.reload();
+              }, 3000);
+            } catch (error) {
+              console.error('Error clearing localStorage:', error);
+              NotificationManager.showAlert('Error clearing localStorage. Please try again.', 'error');
+            }
+          }
+        );
+      }, 50);
+    }
+  );
+}
+const NotificationManager = {
+  showAlert(title, message, type = 'info', duration = 5000) {
+    if (arguments.length === 3 && ['success', 'error', 'warning', 'info'].includes(message)) {
+      this.showToast(null, title, message, duration);
+    } else {
+      this.showToast(title, message, type, duration);
+    }
+  },
+
+  showConfirm(title, message, confirmText, cancelText, confirmCallback, cancelCallback = null) {
+    this.show(
+      title,
+      message,
+      confirmText,
+      cancelText,
+      confirmCallback,
+      cancelCallback || function() {}
+    );
+  },
+  showToast(title, message, type = 'info', duration = 5000) {
+    const toastId = ++this.toastId;
+    const container = document.getElementById('toastContainer');
+    
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.id = `toast-${toastId}`;
+    
+    let toastContent = `<button class="toast-close" onclick="NotificationManager.removeToast(${toastId})">&times;</button>`;
+    
+    if (title) {
+      toastContent += `<div class="toast-title">${title}</div>`;
+      toastContent += `<div class="toast-message">${message}</div>`;
+    } else {
+      toastContent += `<div class="toast-message-only">${message}</div>`;
+    }
+    
+    toast.innerHTML = toastContent;
+    
+    container.appendChild(toast);
+    
+    setTimeout(() => {
+      toast.classList.add('show');
+    }, 10);
+    
+    setTimeout(() => {
+      this.removeToast(toastId);
+    }, duration);
+  },
+
+  removeToast(toastId) {
+    const toast = document.getElementById(`toast-${toastId}`);
+    if (toast) {
+      toast.classList.remove('show');
+      setTimeout(() => {
+        if (toast.parentNode) {
+          toast.parentNode.removeChild(toast);
+        }
+      }, 300);
+    }
+  },
+  showWelcome(primaryCallback, secondaryCallback) {
+    this.show(
+      'Welcome to Schedule Monitor',
+      'Would you like to load the Bellflower High School calendar with the school schedules pre-configured?',
+      'Load Bellflower Calendar',
+      'Start with Empty Calendar',
+      primaryCallback,
+      secondaryCallback
+    );
+  },
+  
+  showWhatsNew(version, primaryCallback) {
+    const features = this.getVersionFeatures(version);
+    
+    document.getElementById('notificationTitle').textContent = `Welcome back! Updated to v${version}`;
+    document.getElementById('notificationMessage').innerHTML = `New features in this version:<br><br>${features.replace(/\n/g, '<br>')}`;
+    document.getElementById('notificationPrimaryButton').textContent = 'Got it!';
+    
+    const secondaryButton = document.getElementById('notificationSecondaryButton');
+    secondaryButton.textContent = 'View Full Changelog';
+    secondaryButton.style.display = 'block';
+    
+    window.currentNotificationPrimary = primaryCallback;
+    window.currentNotificationSecondary = function() {
+
+      window.open('https://github.com/oirehm/schedulemonitor/blob/main/Changelog.md', '_blank');
+      primaryCallback();
+    };
+    
+    document.getElementById('notificationModal').classList.remove('hidden');
+  },
+  
+  getVersionFeatures(version) {
+    const versionFeatures = {
+      '2.2.0': '• New notification system with toast alerts and styled modals\n• Enhanced user onboarding with welcome prompts\n• Improved timer interface with seamless editing\n• Default Bellflower calendar integration\n• Better AutoSchedule state management',
+      '2.1.0': '• Full Calendar interface with drag & drop\n• Import/Export calendars\n• Right-click context menus\n• Keyboard shortcuts for quick editing',
+      '2.0.0': '• Custom Schedule Creator & Manager\n• Import/Export functionality\n• Persistent storage system',
+    };
+    
+    return versionFeatures[version] || 'Various improvements and bug fixes.';
+  },
+  
+  show(title, message, primaryText, secondaryText, primaryCallback, secondaryCallback) {
+    document.getElementById('notificationTitle').textContent = title;
+    document.getElementById('notificationMessage').innerHTML = message.replace(/\n/g, '<br>');
+    document.getElementById('notificationPrimaryButton').textContent = primaryText;
+    
+    const secondaryButton = document.getElementById('notificationSecondaryButton');
+    if (secondaryText) {
+      secondaryButton.textContent = secondaryText;
+      secondaryButton.style.display = 'block';
+    } else {
+      secondaryButton.style.display = 'none';
+    }
+    
+    window.currentNotificationPrimary = primaryCallback;
+    window.currentNotificationSecondary = secondaryCallback;
+    
+    document.getElementById('notificationModal').classList.remove('hidden');
+  },
+  
+  hide() {
+    document.getElementById('notificationModal').classList.add('hidden');
+    window.currentNotificationPrimary = null;
+    window.currentNotificationSecondary = null;
+  }
+};
+
+function handleNotificationPrimary() {
+  if (window.currentNotificationPrimary) {
+    window.currentNotificationPrimary();
+  }
+  NotificationManager.hide();
+}
+
+function handleNotificationSecondary() {
+  if (window.currentNotificationSecondary) {
+    window.currentNotificationSecondary();
+  }
+  NotificationManager.hide();
+}

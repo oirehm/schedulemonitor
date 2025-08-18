@@ -1,0 +1,1531 @@
+{
+  "schoolYear": "2025-2026",
+  "startDate": "2025-08-01",
+  "endDate": "2026-06-30",
+  "dates": {
+    "2025-08-02": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-08-03": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-08-09": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-08-10": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-08-16": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-08-17": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-08-23": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-08-24": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-08-30": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-08-31": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-08-19": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2025-08-18": {
+      "schedule": "late",
+      "isEven": false
+    },
+    "2025-08-21": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2025-08-22": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2025-08-25": {
+      "schedule": "late",
+      "isEven": true
+    },
+    "2025-08-26": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2025-08-27": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2025-08-28": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2025-08-29": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2025-09-06": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-09-07": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-09-13": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-09-14": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-09-20": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-09-21": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-09-27": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-09-28": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-09-02": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2025-09-03": {
+      "schedule": "",
+      "isEven": null
+    },
+    "2025-09-04": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2025-09-05": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2025-09-08": {
+      "schedule": "late",
+      "isEven": false
+    },
+    "2025-09-09": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2025-09-10": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2025-09-11": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2025-09-12": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2025-09-15": {
+      "schedule": "late",
+      "isEven": true
+    },
+    "2025-09-16": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2025-09-17": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2025-09-18": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2025-09-19": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2025-09-22": {
+      "schedule": "late",
+      "isEven": false
+    },
+    "2025-09-23": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2025-09-24": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2025-09-25": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2025-09-26": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2025-09-29": {
+      "schedule": "late",
+      "isEven": true
+    },
+    "2025-09-30": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2025-10-04": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-10-05": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-10-11": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-10-12": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-10-18": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-10-19": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-10-25": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-10-26": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-10-10": {
+      "schedule": "minimum",
+      "isEven": false
+    },
+    "2025-11-01": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-11-02": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-11-08": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-11-09": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-11-15": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-11-16": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-11-22": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-11-23": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-11-29": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-11-30": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-10-01": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2025-10-02": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2025-10-03": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2025-10-06": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2025-10-07": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2025-10-08": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2025-10-09": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2025-10-13": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2025-10-14": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2025-10-15": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2025-10-16": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2025-10-17": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2025-10-20": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2025-10-21": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2025-10-22": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2025-10-23": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2025-10-24": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2025-10-27": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2025-10-28": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2025-10-29": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2025-10-30": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2025-10-31": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2025-09-01": {
+      "schedule": "holiday",
+      "isEven": null
+    },
+    "2025-08-20": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2025-11-03": {
+      "schedule": "late",
+      "isEven": false
+    },
+    "2025-11-04": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2025-11-05": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2025-11-06": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2025-11-07": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2025-11-12": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2025-11-13": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2025-11-14": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2025-11-17": {
+      "schedule": "late",
+      "isEven": false
+    },
+    "2025-11-18": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2025-11-19": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2025-11-20": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2025-11-21": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2025-11-10": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-11-11": {
+      "schedule": "holiday",
+      "isEven": null
+    },
+    "2025-11-24": {
+      "schedule": "holiday",
+      "isEven": null
+    },
+    "2025-11-25": {
+      "schedule": "holiday",
+      "isEven": null
+    },
+    "2025-11-26": {
+      "schedule": "holiday",
+      "isEven": null
+    },
+    "2025-11-27": {
+      "schedule": "holiday",
+      "isEven": null
+    },
+    "2025-11-28": {
+      "schedule": "holiday",
+      "isEven": null
+    },
+    "2025-08-13": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-08-05": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-08-15": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-08-06": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-07-04": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-07-05": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-07-11": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-07-12": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-07-18": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-07-19": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-07-25": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-07-26": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-12-06": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-12-07": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-12-13": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-12-14": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-12-20": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-12-21": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-12-27": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-12-28": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-12-22": {
+      "schedule": "holiday",
+      "isEven": null
+    },
+    "2025-12-23": {
+      "schedule": "holiday",
+      "isEven": null
+    },
+    "2025-12-24": {
+      "schedule": "holiday",
+      "isEven": null
+    },
+    "2025-12-25": {
+      "schedule": "holiday",
+      "isEven": null
+    },
+    "2025-12-26": {
+      "schedule": "holiday",
+      "isEven": null
+    },
+    "2025-12-29": {
+      "schedule": "holiday",
+      "isEven": null
+    },
+    "2025-12-30": {
+      "schedule": "holiday",
+      "isEven": null
+    },
+    "2025-12-31": {
+      "schedule": "holiday",
+      "isEven": null
+    },
+    "2025-12-01": {
+      "schedule": "late",
+      "isEven": true
+    },
+    "2025-12-02": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2025-12-03": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2025-12-04": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2025-12-05": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2025-12-08": {
+      "schedule": "late",
+      "isEven": false
+    },
+    "2025-12-09": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2025-12-10": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2025-12-11": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2025-12-12": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2025-12-15": {
+      "schedule": "late",
+      "isEven": true
+    },
+    "2025-12-19": {
+      "schedule": "anchor",
+      "isEven": null
+    },
+    "2025-12-16": {
+      "schedule": "minimum",
+      "isEven": false
+    },
+    "2025-12-17": {
+      "schedule": "minimum",
+      "isEven": true
+    },
+    "2025-12-18": {
+      "schedule": "minimum",
+      "isEven": false
+    },
+    "2026-01-03": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-01-04": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-01-10": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-01-11": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-01-17": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-01-18": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-01-24": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-01-25": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-01-31": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-01-01": {
+      "schedule": "holiday",
+      "isEven": null
+    },
+    "2026-01-02": {
+      "schedule": "holiday",
+      "isEven": null
+    },
+    "2026-01-05": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-01-06": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2026-01-07": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2026-01-08": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2026-01-09": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2026-01-12": {
+      "schedule": "late",
+      "isEven": false
+    },
+    "2026-01-13": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2026-01-14": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2026-01-15": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2026-01-16": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2026-01-19": {
+      "schedule": "holiday",
+      "isEven": null
+    },
+    "2026-01-20": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2026-01-21": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2026-01-22": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2026-01-23": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2026-01-26": {
+      "schedule": "late",
+      "isEven": true
+    },
+    "2026-01-27": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2026-01-28": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2026-01-29": {
+      "schedule": "minimum",
+      "isEven": false
+    },
+    "2026-01-30": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2026-02-01": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-02-07": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-02-08": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-02-14": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-02-15": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-02-21": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-02-22": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-02-28": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-03-01": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-03-07": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-03-08": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-03-14": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-03-15": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-03-21": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-03-22": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-03-28": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-03-29": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-04-04": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-04-05": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-04-11": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-04-12": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-04-18": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-04-19": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-04-25": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-04-26": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-02-02": {
+      "schedule": "late",
+      "isEven": false
+    },
+    "2026-02-03": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2026-02-04": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2026-02-05": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2026-02-06": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2026-02-09": {
+      "schedule": "late",
+      "isEven": true
+    },
+    "2026-02-10": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2026-02-11": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2026-02-12": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2026-02-13": {
+      "schedule": "holiday",
+      "isEven": null
+    },
+    "2026-02-16": {
+      "schedule": "holiday",
+      "isEven": null
+    },
+    "2026-02-17": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2026-02-18": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2026-02-19": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2026-02-20": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2026-02-23": {
+      "schedule": "late",
+      "isEven": true
+    },
+    "2026-02-24": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2026-02-25": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2026-02-26": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2026-02-27": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2026-03-02": {
+      "schedule": "late",
+      "isEven": false
+    },
+    "2026-03-03": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2026-03-04": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2026-03-05": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2026-03-06": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2026-03-09": {
+      "schedule": "late",
+      "isEven": true
+    },
+    "2026-03-10": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2026-03-11": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2026-03-12": {
+      "schedule": "minimum",
+      "isEven": false
+    },
+    "2026-03-16": {
+      "schedule": "late",
+      "isEven": true
+    },
+    "2026-03-17": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2026-03-18": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2026-03-19": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2026-03-20": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2026-03-23": {
+      "schedule": "late",
+      "isEven": false
+    },
+    "2026-03-24": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2026-03-25": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2026-03-26": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2026-03-27": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2026-03-30": {
+      "schedule": "late",
+      "isEven": true
+    },
+    "2026-03-31": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2026-03-13": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-04-06": {
+      "schedule": "holiday",
+      "isEven": null
+    },
+    "2026-04-07": {
+      "schedule": "holiday",
+      "isEven": null
+    },
+    "2026-04-08": {
+      "schedule": "holiday",
+      "isEven": null
+    },
+    "2026-04-09": {
+      "schedule": "holiday",
+      "isEven": null
+    },
+    "2026-04-10": {
+      "schedule": "holiday",
+      "isEven": null
+    },
+    "2026-04-01": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2026-04-02": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2026-04-03": {
+      "schedule": "minimum",
+      "isEven": true
+    },
+    "2026-04-13": {
+      "schedule": "late",
+      "isEven": false
+    },
+    "2026-04-14": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2026-04-15": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2026-04-16": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2026-04-17": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2026-04-20": {
+      "schedule": "late",
+      "isEven": true
+    },
+    "2026-04-21": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2026-04-22": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2026-04-23": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2026-04-24": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2026-04-27": {
+      "schedule": "late",
+      "isEven": false
+    },
+    "2026-04-28": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2026-04-29": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2026-04-30": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2026-05-02": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-05-03": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-05-09": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-05-10": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-05-16": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-05-17": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-05-23": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-05-24": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-05-30": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-05-31": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-05-01": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2026-05-04": {
+      "schedule": "late",
+      "isEven": true
+    },
+    "2026-05-05": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2026-05-06": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2026-05-07": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2026-05-08": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2026-05-11": {
+      "schedule": "late",
+      "isEven": false
+    },
+    "2026-05-12": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2026-05-13": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2026-05-14": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2026-05-15": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2026-05-18": {
+      "schedule": "late",
+      "isEven": true
+    },
+    "2026-05-19": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2026-05-20": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2026-05-21": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2026-05-22": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2026-05-26": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2026-05-27": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2026-05-28": {
+      "schedule": "normal",
+      "isEven": false
+    },
+    "2026-05-29": {
+      "schedule": "normal",
+      "isEven": true
+    },
+    "2026-06-06": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-06-07": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-06-13": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-06-14": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-06-20": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-06-21": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-06-27": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-06-28": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-06-01": {
+      "schedule": "late",
+      "isEven": false
+    },
+    "2026-06-04": {
+      "schedule": "anchor",
+      "isEven": null
+    },
+    "2026-06-05": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-06-08": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-06-09": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-06-10": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-06-11": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-06-12": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-06-15": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-06-16": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-06-17": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-06-18": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-06-19": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-06-22": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-06-23": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-06-24": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-06-25": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-06-26": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-06-29": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-06-30": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-07-05": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-07-06": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-07-12": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-07-13": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-07-19": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-07-20": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-07-26": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-07-27": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-06-01": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-06-07": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-06-08": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-06-14": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-06-15": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-06-21": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-06-22": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-06-28": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-06-29": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-08-12": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-08-01": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-08-04": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-08-07": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-08-08": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-08-11": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-08-14": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-07-01": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-07-02": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-07-03": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-07-04": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-07-07": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-07-08": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-07-09": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-07-10": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-07-11": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-07-14": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-07-15": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-07-16": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-07-17": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-07-18": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-07-21": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-07-22": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-07-23": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-07-24": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-07-25": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-07-28": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-07-29": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-07-30": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2025-07-31": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-06-02": {
+      "schedule": "minimum",
+      "isEven": false
+    },
+    "2026-06-03": {
+      "schedule": "minimum",
+      "isEven": true
+    }
+  }
+}
