@@ -1,6 +1,11 @@
+## Version 2.1.1
+
+- Small patch to address needing to hard refresh to fix calendar functioning correctly for existing users
+
 ## Version 2.1.0 – Full Calendar Release
 
 ### Main Changes
+
 - Introduced **completely new Calendar interface**, returning the auto scheduling feature
   - Ability to add standard and custom schedules
   - Ability to import and export calendars
@@ -8,6 +13,7 @@
   - Keyboard shortcuts to quickly add schedules
 
 ### Technical Improvements
+
 - Improved performance of display updates
 - Small optimizations
 

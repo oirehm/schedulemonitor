@@ -284,6 +284,14 @@ body {
 
 #modifyContainier select,
 #settingsModal select {
+  background-color: var(--panel-bg);
+  color: #ccc;
+  border: 1px solid var(--panel-border);
+  padding: 4px;
+  margin-top: 8px;
+}
+
+#timerPanel {
   position: fixed;
   bottom: 20px;
   left: 50%;
