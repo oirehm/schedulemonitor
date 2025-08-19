@@ -1,3 +1,9 @@
+## Version 2.2.1
+
+- Fixed some bugs where the display wouldn't render correctly at times
+- Clamped maximum values for the time adjustment input field to 100k years
+- Default calendar changed to remove holidays, an experimental feature
+
 ## Version 2.2.0
 
 ### Main Changes

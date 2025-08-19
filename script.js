@@ -1,4 +1,4 @@
-let version = '2.2.0'
+let version = '2.2.1'
 let starts = [];
 let names = [];
 let times = [];
@@ -482,6 +482,27 @@ const CalendarManager = {
     const config = this.getConfig();
     config.hasSeenWelcome = true;
     this.saveConfig(config);
+  },
+
+  async handleVersionUpdate(version) {
+    if (version === '2.2.1') {
+      const currentConfig = this.getConfig();
+      if (currentConfig && currentConfig.isDefaultCalendar && !currentConfig.hasUserModifications) {
+        try {
+          const defaultCalendar = await this.loadDefaultCalendar();
+          if (defaultCalendar) {
+            this.saveConfig(defaultCalendar);
+            localStorage.setItem('autoUpdateAttempted_2.2.1', 'true');
+            NotificationManager.showAlert('', 'Default Bellflower calendar automatically updated for v2.2.1!', 'success');
+          } else {
+            NotificationManager.showAlert('', 'Could not update default calendar. Please check your internet connection.', 'error');
+          }
+        } catch (error) {
+          console.warn('Auto-load default calendar failed:', error);
+          NotificationManager.showAlert('', 'Could not auto-load default calendar. ' + error, 'error');
+        }
+      }
+    }
   }
 };
 
@@ -1204,18 +1225,14 @@ const YearOverviewUI = {
         dayElement.classList.add('mini-day-today');
       }
       
-      if (dayConfig) {
-        if (dayConfig.schedule === 'noSchool' || dayConfig.schedule === 'holiday') {
-          dayElement.classList.add('mini-day-noSchool');
-        } else if (dayConfig.isEven === true) {
-          dayElement.classList.add('mini-day-even');
-        } else if (dayConfig.isEven === false) {
-          dayElement.classList.add('mini-day-odd');
-        } else if( dayConfig.schedule === '') {
-          // Nothing
-        } else  {
-          dayElement.classList.add('mini-day-scheduled');
-        }
+      if (dayConfig && dayConfig.schedule !== '') {
+        const cls =
+          dayConfig.schedule === 'noSchool' || dayConfig.schedule === 'holiday' ? 'mini-day-noSchool' :
+          dayConfig.isEven === true ? 'mini-day-even' :
+          dayConfig.isEven === false ? 'mini-day-odd' :
+          'mini-day-scheduled';
+
+        dayElement.classList.add(cls);
       } else {
         const dayOfWeek = new Date(year, month, day).getDay();
         if (dayOfWeek === 0 || dayOfWeek === 6) {
@@ -2666,7 +2683,14 @@ function timeadj() {
   if (isNaN(newAdjustSeconds)) {
     ErrorTimeAdj();
   } else {
-    adjustseconds = newAdjustSeconds;
+    const maxSeconds = 100000 * 365 * 24 * 3600;
+    adjustseconds = Math.max(-maxSeconds, Math.min(maxSeconds, newAdjustSeconds));
+    
+    if (Math.abs(newAdjustSeconds) > maxSeconds) {
+      document.getElementById("timeadj").value = adjustseconds;
+      NotificationManager.showAlert('', 'Time adjustment clamped to ±100,000 years maximum', 'warning');
+    }
+    
     ValidTimeAdj();
   }
 
@@ -2731,6 +2755,14 @@ function evaluateMath() {
     return;
   }
 
+  const MAX_ALLOWED = 1e12;
+  if (Math.abs(result) > MAX_ALLOWED) {
+    adjustseconds = oldAdjustSeconds;
+    ErrorTimeAdj();
+    formatMath(false);
+    return;
+  }
+
   const isIntegerInput = /^[0-9]+$/.test(input);
 
   if (!isNaN(result)) {
@@ -2788,7 +2820,7 @@ function getTextWidth(text) {
 
 function formatTime(seconds) {
   let neg = seconds < 0;
-  seconds = Math.abs(seconds) | 0;
+  seconds = Math.floor(Math.abs(seconds));
 
   const units = [
     { label: "c", value: 3600 * 24 * 365 * 100 },
@@ -2800,17 +2832,15 @@ function formatTime(seconds) {
   ];
 
   let str = neg ? "-" : "";
-  for (let i = 0; i < units.length; i++) {
-    const unit = units[i];
+  for (const unit of units) {
     if (seconds >= unit.value) {
-      const amt = (seconds / unit.value) | 0;
+      const amt = Math.floor(seconds / unit.value);
       str += amt + unit.label + " ";
       seconds -= amt * unit.value;
     }
   }
 
   if (str === "" || str === "-") str += "0s";
-
   return str.trim();
 }
 
@@ -2960,12 +2990,18 @@ function updateMainDisplay() {
     updateElement("endofschedulesubtitle", "", "endOfScheduleSubtitle");
     updateElement("currentduration", formatDisplayTimer(Math.abs(currentSeconds - starts[0])), "currentDuration");
     updateElement("currentlengthofperiod", "", "currentLength");
+    updateElement("nextperiodsubtitle", "", "nextPeriodSubtitle");
+    updateElement("nextschedule", "", "nextSchedule");
+    updateElement("nextduration", "", "nextDuration");
   } else if (currentSeconds > starts[periodIndex]) {
     updateElement("currentperiodsubtitle", "", "currentPeriodSubtitle");
     updateElement("currentschedule", names[periodIndex], "currentSchedule");
-    updateElement("currentlengthofperiod", "", "currentLength");
     updateElement("endofschedulesubtitle", "Time elapsed since end of schedule", "endOfScheduleSubtitle");
     updateElement("currentduration", formatDisplayTimer(currentSeconds - starts[periodIndex]), "currentDuration");
+    updateElement("nextperiodsubtitle", "", "nextPeriodSubtitle");
+    updateElement("nextschedule", "", "nextSchedule");
+    updateElement("nextduration", "", "nextDuration");
+    updateElement("currentlengthofperiod", "", "currentLength");
   } else {
     for (let x = 0; x < periodIndex; x++) {
       if (starts[x] < currentSeconds && starts[x + 1] > currentSeconds) {
@@ -2982,7 +3018,6 @@ function updateMainDisplay() {
         updateElement("currentduration", "", "currentDuration");
         updateElement("nextschedule", `<strong>${names[x + 1]}</strong> starts in:`, "nextSchedule");
         updateElement("nextduration", formatDisplayTimer(Math.abs(currentSeconds - starts[x + 1])), "nextDuration");
-        updateElement("currentlengthofperiod", "", "currentLength");
         break;
       }
     }
@@ -3007,13 +3042,17 @@ function updateMainDisplay() {
 
         if (x === currentPeriod) {
           lines.push(`<strong>${periodLine}</strong>`);
-          const lengthEl = document.getElementById("currentlengthofperiod");
-          if (lengthEl) lengthEl.innerHTML = `${startLabel} - ${endLabel}`;
+          updateElement("currentlengthofperiod", `${startLabel} - ${endLabel}`, "currentLength");
         } else {
           lines.push(periodLine);
         }
       });
-
+      /* will make this a displayable option later
+      if (times.length > 0) {
+        const endTime = formatScheduleTime(times[periodIndex]);
+        lines.push(`${endTime} ${names[periodIndex]}<br />`);
+      }
+      */
       lines.push("</div></div>");
       const newHTML = lines.join("");
       scheduleEl.innerHTML = newHTML;
@@ -3256,6 +3295,8 @@ window.onload = async function () {
   loadPreferences();
 
   const userStatus = UserManager.getUserStatus();
+  
+  await CalendarManager.handleVersionUpdate(userStatus.currentVersion);
     
   if (userStatus.showWelcome) {
     NotificationManager.showWelcome(
@@ -3270,9 +3311,12 @@ window.onload = async function () {
         
         if (userStatus.showWhatsNew) {
           setTimeout(() => {
-            NotificationManager.showWhatsNew(userStatus.currentVersion, () => {
-              UserManager.updateVersion();
-            });
+            NotificationManager.showWhatsNew(
+              userStatus.currentVersion,
+              function() {
+                UserManager.updateVersion();
+              }
+            );
           }, 800);
         }
       },
@@ -3282,9 +3326,12 @@ window.onload = async function () {
         
         if (userStatus.showWhatsNew) {
           setTimeout(() => {
-            NotificationManager.showWhatsNew(userStatus.currentVersion, () => {
-              UserManager.updateVersion();
-            });
+            NotificationManager.showWhatsNew(
+              userStatus.currentVersion,
+              function() {
+                UserManager.updateVersion();
+              }
+            );
           }, 300);
         }
       }
@@ -3298,7 +3345,6 @@ window.onload = async function () {
     );
   }
 
-  
   const lastUsedSchedule = StorageManager.getPreference('lastUsedSchedule');
   if (lastUsedSchedule && lastUsedSchedule !== 'auto') {
     const allSchedules = StorageManager.getAllSchedules();
@@ -3312,13 +3358,11 @@ window.onload = async function () {
   }
 
   updateAndCallAgain();
-  
 
   if (!lastUsedSchedule || lastUsedSchedule === 'auto') AutoSchedule();
   
   const link = document.getElementById("schoolSchedule");
   const urls = getSchoolScheduleLink();
-
   link.href = urls.main;
   if (urls.fallback) {
     link.title = `If schedule isn't posted yet, try: ${urls.fallback}`;
@@ -3428,6 +3472,7 @@ const NotificationManager = {
   
   showWhatsNew(version, primaryCallback) {
     const features = this.getVersionFeatures(version);
+    const tertiaryConfig = this.getTertiaryButtonConfig(version);
     
     document.getElementById('notificationTitle').textContent = `Welcome back! Updated to v${version}`;
     document.getElementById('notificationMessage').innerHTML = `New features in this version:<br><br>${features.replace(/\n/g, '<br>')}`;
@@ -3436,25 +3481,61 @@ const NotificationManager = {
     const secondaryButton = document.getElementById('notificationSecondaryButton');
     secondaryButton.textContent = 'View Full Changelog';
     secondaryButton.style.display = 'block';
+
+    // hard coded for now
+    const autoUpdateAttempted = localStorage.getItem('autoUpdateAttempted_2.2.1') === 'true';
+    const tertiaryButton = document.getElementById('notificationTertiaryButton');
+    if (tertiaryConfig && !(version === '2.2.1' && autoUpdateAttempted)) {
+      tertiaryButton.textContent = tertiaryConfig.text;
+      tertiaryButton.style.display = 'block';
+      window.currentNotificationTertiary = function() {
+        tertiaryConfig.callback();
+        primaryCallback();
+      };
+    } else {
+      tertiaryButton.style.display = 'none';
+      window.currentNotificationTertiary = null;
+    }
     
     window.currentNotificationPrimary = primaryCallback;
     window.currentNotificationSecondary = function() {
-
       window.open('https://github.com/oirehm/schedulemonitor/blob/main/Changelog.md', '_blank');
       primaryCallback();
     };
     
     document.getElementById('notificationModal').classList.remove('hidden');
   },
+
   
   getVersionFeatures(version) {
     const versionFeatures = {
+      '2.2.1': '• Updated default calendar. Click the button below to Fixed some display bugs and clamped the time adjustment to prevent lag',
       '2.2.0': '• New notification system with toast alerts and styled modals\n• Enhanced user onboarding with welcome prompts\n• Improved timer interface with seamless editing\n• Default Bellflower calendar integration\n• Better AutoSchedule state management',
       '2.1.0': '• Full Calendar interface with drag & drop\n• Import/Export calendars\n• Right-click context menus\n• Keyboard shortcuts for quick editing',
       '2.0.0': '• Custom Schedule Creator & Manager\n• Import/Export functionality\n• Persistent storage system',
     };
     
-    return versionFeatures[version] || 'Various improvements and bug fixes.';
+    return versionFeatures[version] || 'Error: Unidentified Version';
+  },
+  
+  getTertiaryButtonConfig(version) {
+    const tertiaryConfigs = {
+      '2.2.1': {
+        text: 'Load Default Calendar',
+        callback: async function() {
+          const defaultCalendar = await CalendarManager.loadDefaultCalendar();
+          if (defaultCalendar) {
+            CalendarManager.saveConfig(defaultCalendar);
+            CalendarUI.render();
+            NotificationManager.showAlert('', 'Default Bellflower calendar loaded!', 'success');
+          } else {
+            NotificationManager.showAlert('', 'Could not load default calendar. Please check your internet connection.', 'error');
+          }
+        }
+      },
+    };
+    
+    return tertiaryConfigs[version] || null;
   },
   
   show(title, message, primaryText, secondaryText, primaryCallback, secondaryCallback) {
@@ -3493,6 +3574,13 @@ function handleNotificationPrimary() {
 function handleNotificationSecondary() {
   if (window.currentNotificationSecondary) {
     window.currentNotificationSecondary();
+  }
+  NotificationManager.hide();
+}
+
+function handleNotificationTertiary() {
+  if (window.currentNotificationTertiary) {
+    window.currentNotificationTertiary();
   }
   NotificationManager.hide();
 }
