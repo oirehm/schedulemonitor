@@ -8,6 +8,11 @@ Changelog Header Order:
 6. Deprecations
 -->
 
+## Version 2.4.1
+
+### Bug Fixes
+- Fixed elapsed time display not updating properly during periods - now updates every second as intended
+
 ## Version 2.4.0
 
 ### New Features

@@ -2947,6 +2947,13 @@ function updateMainDisplay() {
     updateText(Els["currentduration"], formatDisplayTimer(currentSeconds - starts[periodIndex]), "currentDuration");
   }
 
+  if (currentPeriod >= 0 && currentPeriod < periodIndex) {
+    const elapsed = currentSeconds - starts[currentPeriod];
+    let elapsedStr = formatDisplayTimer(elapsed);
+    if (elapsed < 60) elapsedStr += " seconds";
+    updateText(Els["currentperiodsubtitle"], `We are now ${elapsedStr} into:`, "currentPeriodSubtitle");
+  }
+
   const lastPeriod = lastDisplayState.currentPeriod;
   if (lastPeriod !== currentPeriod || scheduleChanged || dayChanged) {
     lastDisplayState.currentPeriod = currentPeriod;
@@ -2968,11 +2975,6 @@ function updateMainDisplay() {
       updateText(Els["nextduration"], "", "nextDuration");
 
     } else {
-      const elapsed = currentSeconds - starts[currentPeriod];
-      let elapsedStr = formatDisplayTimer(elapsed);
-      if (elapsed < 60) elapsedStr += " seconds";
-
-      updateText(Els["currentperiodsubtitle"], `We are now ${elapsedStr} into:`, "currentPeriodSubtitle");
       updateText(Els["currentschedule"], names[currentPeriod], "currentSchedule");
       updateText(Els["endofschedulesubtitle"], "", "endOfScheduleSubtitle");
       updateText(Els["currentduration"], "", "currentDuration");
@@ -4162,7 +4164,6 @@ const UpdateChecker = {
       const latestVersion = (await response.text()).trim()
       const currentVersion = version;
       const versionComparison = compareVersions(currentVersion, latestVersion);
-      console.log(latestVersion)
       if (versionComparison < 0) {
         NotificationManager.showPersist(
           'Update Available!',
@@ -4491,8 +4492,6 @@ async function loadVersion() {
       const fetchedVersion = (await response.text()).trim();
       if (fetchedVersion) {
         version = fetchedVersion;
-        console.log('Loaded version:', version);
-
         const versionSpan = document.getElementById('versionSpan');
         if (versionSpan) {
           versionSpan.textContent = 'v' + version;
