@@ -1,4 +1,4 @@
-const version = '2.3.1'
+let version = ''
 let starts = [];
 let names = [];
 let times = [];
@@ -11,7 +11,7 @@ let adjustseconds = 0;
 let currentScheduleId = 'normal';
 let currentScheduleData = null;
 let sharedAudioContext = null;
-let updateFrequency = 100;
+let displayUpdateFrequency = 100;
 let lastDisplayState = {
   displayedDate: '',
   currentPeriodSubtitle: '',
@@ -157,7 +157,11 @@ const predefinedColorSchemes = {
 const UserManager = {
   ONBOARDING_KEY: 'scheduleMonitor_onboarding',
   VERSION_KEY: 'scheduleMonitor_userVersion',
-  CURRENT_VERSION: version,
+  CURRENT_VERSION: '',
+
+  init(loadedVersion) {
+    this.CURRENT_VERSION = loadedVersion;
+  },
 
   getUserStatus() {
     const onboardingStatus = localStorage.getItem(this.ONBOARDING_KEY);
@@ -1361,7 +1365,7 @@ function loadPreferences() {
   const updateFrequencyPref = StorageManager.getPreference('updateFrequency');
   if (updateFrequencyPref) {
     document.getElementById('displayupdatefrequency').value = updateFrequencyPref;
-    updateFrequency = Math.max(16, parseInt(updateFrequencyPref));
+    displayUpdateFrequency = Math.max(16, parseInt(updateFrequencyPref));
   }
 
   let autoUpdate = StorageManager.getPreference('autoUpdateEnabled');
@@ -2441,7 +2445,7 @@ infoElements.forEach(function(infoElement) {
 
 function updateAndCallAgain() {
   updateMainDisplay();
-  setTimeout(updateAndCallAgain, updateFrequency);
+  setTimeout(updateAndCallAgain, displayUpdateFrequency);
 }
 
 function getSchoolScheduleLink() {
@@ -2470,7 +2474,7 @@ function getSchoolScheduleLink() {
 
 document.getElementById("displayupdatefrequency").addEventListener("change", function() {
   updateMainDisplay();
-  updateFrequency = Math.max(16, parseInt(this.value));
+  displayUpdateFrequency = Math.max(16, parseInt(this.value));
   StorageManager.savePreference('updateFrequency', this.value);
 });
 
@@ -2914,7 +2918,7 @@ function updateMainDisplay() {
   const currentSeconds = timeComponents.currentSeconds;
   const periodIndex = starts.length - 1;
   let currentPeriod = -1;
-
+  const periodChanged = lastDisplayState.currentPeriod !== currentPeriod;
   if (currentSeconds < starts[0]) {
     currentPeriod = -1;
   } else if (currentSeconds >= starts[periodIndex]) {
@@ -2983,7 +2987,7 @@ function updateMainDisplay() {
       updateText(Els["currentlengthofperiod"], "", "currentLength");
     }
 
-    if (scheduleChanged) {
+    if (scheduleChanged || periodChanged) {
       const scheduleEl = Els["scheduledisplay"] || document.getElementById("scheduledisplay");
       if (scheduleEl) {
         const lines = [];
@@ -3121,12 +3125,15 @@ function clearSelectedStateButtons() {
 }
 
 window.onload = async function() {
+  await loadVersion();
+  UserManager.init(version);
   StorageManager.init();
   DateFormatter.init();
   initializeSettingsHandlers();
   regenerateScheduleButtons();
   loadPreferences();
   detectStorageLimitAsync();
+  await NotificationManager.loadChangelogData();
   Els = {
     currentdate: document.getElementById('currentdate'),
     timer_type: document.getElementById('timer_type'),
@@ -3214,6 +3221,7 @@ window.onload = async function() {
 
   setTimeout(() => {
     UpdateChecker.checkForUpdate(false, true);
+    UpdateChecker.startAutoCheck();
   }, 100);
 };
 
@@ -3250,6 +3258,8 @@ function clearAllLocalStorage() {
   );
 }
 const NotificationManager = {
+  notificationQueue: [],
+  isShowingNotification: false,
   showAlert(title, message, type = 'info', duration = 5000) {
     if (arguments.length === 3 && ['success', 'error', 'warning', 'info'].includes(message)) {
       this.showToast(null, title, message, duration);
@@ -3369,15 +3379,89 @@ const NotificationManager = {
   },
 
   getVersionFeatures(version) {
-    const versionFeatures = {
-      '2.3.1': '2.3.1 Changes:\n• Auto update modal no longer appears every time on startup\n• Reverted icon change\n\n2.3.0 Changes:\n• Updated schedule config UI\n• Settings UI updated to match visual theme\n• Added an option to quick offset by the hour\n• Optimized main display and other backend functions\n• Fixed some bugs with schedule rendering & updates\n• Less intrusive What\'s new modal\n• Temporarily removed timer function to be improved later',
-      '2.3.0': '• Updated schedule config UI\n• Settings UI updated to match visual theme\n• Added an option to quick offset by the hour\n• Optimized main display and other backend functions\n• Fixed some bugs with schedule rendering & updates\n• Less intrusive What\'s new modal\n• Temporarily removed timer function to be improved later',
-      '2.2.1': '• Updated default calendar. Click the button below to Fixed some display bugs and clamped the time adjustment to prevent lag',
-      '2.2.0': '• New notification system with toast alerts and styled modals\n• Enhanced user onboarding with welcome prompts\n• Improved timer interface with seamless editing\n• Default Bellflower calendar integration\n• Better AutoSchedule state management',
-      '2.1.0': '• Full Calendar interface with drag & drop\n• Import/Export calendars\n• Right-click context menus\n• Keyboard shortcuts for quick editing',
-      '2.0.0': '• Custom Schedule Creator & Manager\n• Import/Export functionality\n• Persistent storage system',
-    };
-    return versionFeatures[version] || 'Error: Unidentified Version';
+    if (!this.changelogData) {
+      return 'Loading version information...';
+    }
+
+    const userStatus = UserManager.getUserStatus();
+    const previousVersion = userStatus.previousVersion;
+
+    if (!previousVersion) {
+      const changes = this.changelogData[version] || ['Error: Version not found'];
+      return changes.join('');
+    }
+
+    const allVersions = Object.keys(this.changelogData).sort((a, b) => compareVersions(b, a));
+    const currentIndex = allVersions.indexOf(version);
+    const previousIndex = allVersions.indexOf(previousVersion);
+
+    if (currentIndex === -1 || previousIndex === -1 || currentIndex >= previousIndex) {
+      const changes = this.changelogData[version] || ['Error: Version not found'];
+      return changes.join('');
+    }
+
+    const missedVersions = allVersions.slice(currentIndex, previousIndex);
+
+    if (missedVersions.length === 1) {
+      const changes = this.changelogData[missedVersions[0]] || [];
+      return changes.join('');
+    }
+
+    let allChanges = '';
+    missedVersions.forEach(ver => {
+      const changes = this.changelogData[ver] || [];
+      if (changes.length > 0) {
+        allChanges += `<div class="version-header">v${ver} Changes:</div>${changes.join('')}\n`;
+      }
+    });
+
+    return allChanges.trim();
+  },
+
+  async loadChangelogData() {
+    try {
+      const response = await fetch('./Changelog.md');
+      const text = await response.text();
+      this.changelogData = this.parseChangelog(text);
+    } catch (error) {
+      console.error('Failed to load changelog:', error);
+    }
+  },
+
+  parseChangelog(text) {
+    const versions = {};
+    const lines = text.split('\n');
+    let currentVersion = null;
+    let currentChanges = [];
+
+    for (const line of lines) {
+      const versionMatch = line.match(/^##\s+Version\s+([\d.]+)(?:\s+-\s+(.+))?/);
+
+      if (versionMatch) {
+        if (currentVersion && currentChanges.length > 0) {
+          versions[currentVersion] = currentChanges;
+        }
+
+        currentVersion = versionMatch[1];
+        currentChanges = [];
+
+        if (versionMatch[2]) {
+          currentChanges.push(`<div class="version-subtitle">${versionMatch[2]}</div>`);
+        }
+      }
+      else if (line.match(/^-\s+/) && currentVersion) {
+        const change = line
+          .replace(/^-\s+/, '• ')
+          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        currentChanges.push(`<div class="bullet-item">${change}</div>`);
+      }
+    }
+
+    if (currentVersion && currentChanges.length > 0) {
+      versions[currentVersion] = currentChanges;
+    }
+
+    return versions;
   },
 
   getTertiaryButtonConfig(version) {
@@ -3415,9 +3499,40 @@ const NotificationManager = {
   },
 
   show(title, message, primaryText, secondaryText, primaryCallback, secondaryCallback, isBlocking = true, textAlign = '', tertiaryText = null, tertiaryCallback = null) {
+    const notification = {
+      title,
+      message,
+      primaryText,
+      secondaryText,
+      primaryCallback,
+      secondaryCallback,
+      isBlocking,
+      textAlign,
+      tertiaryText,
+      tertiaryCallback
+    };
+
+    this.notificationQueue.push(notification);
+    this.processQueue();
+  },
+
+  processQueue() {
+    if (this.isShowingNotification || this.notificationQueue.length === 0) {
+      return;
+    }
+
+    const notification = this.notificationQueue.shift();
+    this.isShowingNotification = true;
+    this.displayNotification(notification);
+  },
+
+  displayNotification(notification) {
+    const { title, message, primaryText, secondaryText, primaryCallback, secondaryCallback, isBlocking, textAlign, tertiaryText, tertiaryCallback } = notification;
+
     document.getElementById('notificationTitle').textContent = title;
     document.getElementById('notificationMessage').innerHTML = message.replace(/\n/g, '<br>');
     document.getElementById('notificationPrimaryButton').textContent = primaryText;
+
     const modal = document.getElementById('notificationModal');
     const messageElement = document.getElementById('notificationMessage');
 
@@ -3426,6 +3541,7 @@ const NotificationManager = {
     } else {
       messageElement.style.textAlign = 'center';
     }
+
     if (!isBlocking) {
       modal.style.backgroundColor = 'transparent';
       modal.style.top = '80px';
@@ -3439,6 +3555,7 @@ const NotificationManager = {
       modal.style.left = '0';
       modal.style.bottom = '0';
     }
+
     const secondaryButton = document.getElementById('notificationSecondaryButton');
     if (secondaryText) {
       secondaryButton.textContent = secondaryText;
@@ -3446,6 +3563,7 @@ const NotificationManager = {
     } else {
       secondaryButton.style.display = 'none';
     }
+
     const tertiaryButton = document.getElementById('notificationTertiaryButton');
     if (tertiaryText && tertiaryCallback) {
       tertiaryButton.textContent = tertiaryText;
@@ -3455,9 +3573,32 @@ const NotificationManager = {
       tertiaryButton.style.display = 'none';
       window.currentNotificationTertiary = null;
     }
-    window.currentNotificationPrimary = primaryCallback;
-    window.currentNotificationSecondary = secondaryCallback;
+
+    window.currentNotificationPrimary = () => {
+      if (primaryCallback) primaryCallback();
+      this.onNotificationClosed();
+    };
+
+    window.currentNotificationSecondary = () => {
+      if (secondaryCallback) secondaryCallback();
+      this.onNotificationClosed();
+    };
+
+    if (tertiaryCallback) {
+      window.currentNotificationTertiary = () => {
+        tertiaryCallback();
+        this.onNotificationClosed();
+      };
+    }
+
     document.getElementById('notificationModal').classList.remove('hidden');
+  },
+
+  onNotificationClosed() {
+    this.isShowingNotification = false;
+    setTimeout(() => {
+      this.processQueue();
+    }, 100);
   },
 
   hide() {
@@ -3465,6 +3606,7 @@ const NotificationManager = {
     window.currentNotificationPrimary = null;
     window.currentNotificationSecondary = null;
     window.currentNotificationTertiary = null;
+    this.onNotificationClosed();
   }
 };
 
@@ -3993,29 +4135,34 @@ function formatDisplayedDate(date) {
 }
 
 const UpdateChecker = {
-  VERSION_URL: 'https://api.github.com/repos/oirehm/schedulemonitor/contents/version.txt',
+  VERSION_URL: 'https://oirehm.github.io/schedulemonitor/version.txt',
   CHECK_INTERVAL: 1000 * 60 * 60,
   STORAGE_KEY: 'lastUpdateCheck',
+  intervalId: null,
 
   async checkForUpdate(isManual = false, isStartup = false) {
     const autoEnabled = localStorage.getItem('autoUpdateEnabled') === '1';
     const lastCheck = localStorage.getItem(this.STORAGE_KEY);
     const now = Date.now();
-
-    if (!(isManual || isStartup) && (!autoEnabled || (lastCheck && (now - parseInt(lastCheck)) < this.CHECK_INTERVAL))) {
+    const interval = this.TEST_MODE ? 5000 : this.CHECK_INTERVAL;
+    if (!(isManual || isStartup) && (!autoEnabled || (lastCheck && (now - parseInt(lastCheck)) < interval))) {
         return;
     }
     const lastCheckEl = document.querySelector('.last-check');
-    lastCheckEl.textContent = `Last checked: ${new Date(parseInt(lastCheck)).toLocaleString()}`;
+    if (lastCheckEl && lastCheck) {
+      lastCheckEl.textContent = `Last checked: ${new Date(parseInt(lastCheck)).toLocaleString()}`;
+    }
 
     try {
-      const response = await fetch(this.VERSION_URL);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const response = await fetch(this.VERSION_URL + '?t=' + Date.now());
       if (!response.ok) return;
-      const data = await response.json();
-      const latestVersion = atob(data.content).trim();
+
+      const latestVersion = (await response.text()).trim()
       const currentVersion = version;
       const versionComparison = compareVersions(currentVersion, latestVersion);
-
+      console.log(latestVersion)
       if (versionComparison < 0) {
         NotificationManager.showPersist(
           'Update Available!',
@@ -4034,8 +4181,34 @@ const UpdateChecker = {
 
       localStorage.setItem(this.STORAGE_KEY, now.toString());
     } catch (error) {
+      if (error.name === 'AbortError') {
+        console.log('Update check timed out');
+      } else {
+        console.log('Update check failed:', error);
+      }
+    }
+  },
 
-      console.log('Update check failed:', error);
+  startAutoCheck() {
+    const autoEnabled = localStorage.getItem('autoUpdateEnabled') === '1';
+    if (!autoEnabled) {
+      return;
+    }
+    if (this.intervalId) {
+      clearInterval(this.intervalId);
+    }
+
+    const interval = this.TEST_MODE ? 5000 : this.CHECK_INTERVAL;
+    this.intervalId = setInterval(() => {
+      this.checkForUpdate(false, false);
+    }, interval);
+
+  },
+
+  stopAutoCheck() {
+    if (this.intervalId) {
+      clearInterval(this.intervalId);
+      this.intervalId = null;
     }
   }
 };
@@ -4078,7 +4251,14 @@ function initializeSettingsHandlers() {
 
   if (autoToggle) {
     addSettingsEventListener(autoToggle, 'change', () => {
-      StorageManager.savePreference('autoUpdateEnabled', autoToggle.checked ? '1' : '0');
+      const enabled = autoToggle.checked;
+      StorageManager.savePreference('autoUpdateEnabled', enabled ? '1' : '0');
+
+      if (enabled) {
+        UpdateChecker.startAutoCheck();
+      } else {
+        UpdateChecker.stopAutoCheck();
+      }
     });
   }
 
@@ -4288,5 +4468,39 @@ function evaluateMathExpression(expression) {
       (functions, Math, ...Object.values(functions));
   } catch (error) {
     throw new Error(`Invalid expression: ${error.message}`);
+  }
+}
+
+function showRecentChanges(event) {
+  event.preventDefault();
+
+  if (NotificationManager.isShowingNotification) {
+    return;
+  }
+
+  NotificationManager.showWhatsNew(
+    version,
+    function() {}
+  );
+}
+
+async function loadVersion() {
+  try {
+    const response = await fetch('./version.txt?t=' + Date.now());
+    if (response.ok) {
+      const fetchedVersion = (await response.text()).trim();
+      if (fetchedVersion) {
+        version = fetchedVersion;
+        console.log('Loaded version:', version);
+        
+        // Update the version display
+        const versionSpan = document.getElementById('versionSpan');
+        if (versionSpan) {
+          versionSpan.textContent = 'v' + version;
+        }
+      }
+    }
+  } catch (error) {
+    console.log('Failed to load version, using fallback:', version);
   }
 }

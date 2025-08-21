@@ -2088,6 +2088,33 @@ footer {
   flex: 0;
 }
 
+.bullet-item {
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+
+.bullet-item:last-child {
+  margin-bottom: 0;
+}
+
+.version-header {
+  color: var(--accent);
+  font-weight: bold;
+  margin-bottom: 8px;
+  margin-top: 16px;
+}
+
+.version-header:first-child {
+  margin-top: 0;
+}
+
+.version-subtitle {
+  font-style: italic;
+  color: var(--muted);
+  margin-bottom: 8px;
+  font-size: 0.95em;
+}
+
 @media (max-width: 600px) {
   body {
     padding-top: auto;

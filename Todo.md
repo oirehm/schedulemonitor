@@ -3,23 +3,17 @@
 - GUI does not scale correctly on different resolutions
 - Mobile UI not working as intended
 - Top panel alignment can block text display in certain screen sizes
-- Timer input is reversed
-- Countdown sometimes stops at `01` instead of `00`
 - Custom schedule IDs cannot be renamed
 - Color scheme setting does not apply to all elements
 - Default schedules do not reset when moved from normal to special panel and vice versa
+- Quick feedback button
 
 ## Tasks / Improvements
 
 - Drag-and-drop to reorder schedules
 - Sync timer with displayed countdown
-- Reduce DOM updates in `showClock` to optimize performance
 - Improve button panel behavior (auto-hide, hover to show)
 - Enhance main UI layout (make current time more visible, reorganize controls)
-- Add more settings:
-  - Date formatting type & customization
-  - Timer countdown display modes (MM:ss, HH:mm:ss)
-  - LocalStorage usage visual/limit indicator
 - Add ability to preview schedules with automatic return to menu
 - Preserve exact calculations in time adjustment (increment/decrement rather than replace with raw number)
 - Add help overlay

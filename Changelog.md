@@ -1,3 +1,29 @@
+<!--
+Changelog Header Order:
+1. Breaking Changes
+2. New Features
+3. Improvements
+4. Bug Fixes
+5. Technical Changes
+6. Deprecations
+-->
+
+## Version 2.4.0
+
+### New Features
+- Notification modals now buffer instead of override each other when trying to show simultaneously
+- Clicking on the version number in the footer now reshows the "What's New" notification
+- Added a Feedback button to the footer that links directly to GitHub issues
+
+### Improvements
+- Updating across multiple versions now displays the missed version's changes
+- Auto update checker is now more accurate, checking actual deployment rather than repository
+- "What's New" notification now directly pulls from the changelog for consistency
+
+### Bug Fixes
+- Fixed issue with current period not switching properly on the schedule display
+- Fixed Auto Check For Updates not working
+
 ## Version 2.3.1
 
 - Auto update modal no longer appears every time on startup
