@@ -1,4 +1,4 @@
-const version = '2.3.0'
+const version = '2.3.1'
 let starts = [];
 let names = [];
 let times = [];
@@ -3213,7 +3213,7 @@ window.onload = async function() {
   if (urls.fallback) link.title = `If schedule isn't posted yet, try: ${urls.fallback}`;
 
   setTimeout(() => {
-    UpdateChecker.checkForUpdate(true);
+    UpdateChecker.checkForUpdate(false, true);
   }, 100);
 };
 
@@ -3370,6 +3370,7 @@ const NotificationManager = {
 
   getVersionFeatures(version) {
     const versionFeatures = {
+      '2.3.1': '2.3.1 Changes:\n• Auto update modal no longer appears every time on startup\n• Reverted icon change\n\n2.3.0 Changes:\n• Updated schedule config UI\n• Settings UI updated to match visual theme\n• Added an option to quick offset by the hour\n• Optimized main display and other backend functions\n• Fixed some bugs with schedule rendering & updates\n• Less intrusive What\'s new modal\n• Temporarily removed timer function to be improved later',
       '2.3.0': '• Updated schedule config UI\n• Settings UI updated to match visual theme\n• Added an option to quick offset by the hour\n• Optimized main display and other backend functions\n• Fixed some bugs with schedule rendering & updates\n• Less intrusive What\'s new modal\n• Temporarily removed timer function to be improved later',
       '2.2.1': '• Updated default calendar. Click the button below to Fixed some display bugs and clamped the time adjustment to prevent lag',
       '2.2.0': '• New notification system with toast alerts and styled modals\n• Enhanced user onboarding with welcome prompts\n• Improved timer interface with seamless editing\n• Default Bellflower calendar integration\n• Better AutoSchedule state management',
@@ -3996,13 +3997,13 @@ const UpdateChecker = {
   CHECK_INTERVAL: 1000 * 60 * 60,
   STORAGE_KEY: 'lastUpdateCheck',
 
-  async checkForUpdate(isManual = false) {
+  async checkForUpdate(isManual = false, isStartup = false) {
     const autoEnabled = localStorage.getItem('autoUpdateEnabled') === '1';
     const lastCheck = localStorage.getItem(this.STORAGE_KEY);
     const now = Date.now();
 
-    if (!isManual && (!autoEnabled || (lastCheck && (now - parseInt(lastCheck)) < this.CHECK_INTERVAL))) {
-      return;
+    if (!(isManual || isStartup) && (!autoEnabled || (lastCheck && (now - parseInt(lastCheck)) < this.CHECK_INTERVAL))) {
+        return;
     }
     const lastCheckEl = document.querySelector('.last-check');
     lastCheckEl.textContent = `Last checked: ${new Date(parseInt(lastCheck)).toLocaleString()}`;

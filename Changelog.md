@@ -1,3 +1,8 @@
+## Version 2.3.1
+
+- Auto update modal no longer appears every time on startup
+- Reverted icon change
+
 ## Version 2.3.0 - Optimization Update
 
 ### UI Improvements
