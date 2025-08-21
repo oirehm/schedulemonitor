@@ -1,247 +1,398 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Modified Rewordify.com School Clock shows you what period you're in, every second of the day." />
-  <meta http-equiv="cache-control" content="no-cache" />
-  <meta http-equiv="Pragma" content="no-cache" />
-  <meta http-equiv="Expires" content="-1" />
-
-  <title>Schedule Monitor</title>
-  <link rel="icon" href="icon/monitor.png" />
-  <link rel="stylesheet" type="text/css" href="css/styles.css?v=220" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/9.4.4/math.min.js"></script>
-  <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
-  <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
-</head>
-<body id="body">
-  <div class="button-panel info">
-    <button id="odd-even-toggle" onclick="ToggleScheduleOddEven()" class="normal-state schedule-button button">Odd/Even Toggle</button>
-    <div id="mainScheduleButtons"></div>
-    <select id="special-schedule" class="schedule-button" onchange="HandleSpecialScheduleChange()">
-      <option value="Nothing">Special Schedules</option>
-    </select>
-    <button id="auto-schedule" onclick="AutoSchedule()" class="schedule-button button">Auto</button>
-  </div>
-
-  <div id="container">
-    <div id="timer_type" style="font-size: 4em">Loading...</div>
-    <div id="subtitle">Please wait</div>
-    <div id="currentdate"></div>
-    <div id="currentperiodsubtitle"></div>
-    <div id="currentschedule"></div>
-    <div id="currentlengthofperiod"></div>
-    <div id="endofschedulesubtitle"></div>
-    <div id="currentduration"></div>
-    <div id="nextperiodsubtitle"></div>
-    <div id="nextschedule"></div>
-    <div id="nextduration" style="font-size: 5em; margin-top: 8px; color: orange"></div>
-    <div id="scheduledisplay"></div>
-    <div id="tomorrowScheduleTitle" class="hidden">Tomorrow's Schedule:</div>
-    <div id="tomorrowScheduleDisplay" class="hidden">Unknown</div>
-
-    <div id="settingsModal" class="hidden draggable">
-      Color Scheme: 
-      <select style="margin-top: 12px" id="colorscheme" onchange="colorBackground()">
-        <option value="gb" selected>Gray on black</option>
-        <option value="wb">White on black</option>
-        <option value="bw">Black on white</option>
-        <option value="dk">Dark room</option>
-        <option value="bg">Blue on green</option>
-        <option value="py">Purple on yellow</option>
-        <option value="sr">Random by minute</option>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Modified Rewordify.com School Clock shows you what period you're in, every second of the day." />
+    <meta http-equiv="cache-control" content="no-cache" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="-1" />
+    <title>Schedule Monitor</title>
+    <link rel="icon" href="icon/monitor.png" />
+    <link rel="apple-touch-icon" href="icon/monitor.png" />
+    <link rel="stylesheet" type="text/css" href="css/styles.css?v=230" />
+  </head>
+  <body id="body">
+    <div class="button-panel">
+      <button id="odd-even-toggle" onclick="ToggleScheduleOddEven()" class="normal-state schedule-button button">Odd/Even Toggle</button>
+      <div id="mainScheduleButtons"></div>
+      <select id="special-schedule" class="schedule-button" onchange="HandleSpecialScheduleChange()">
+        <option value="Nothing">Special Schedules</option>
       </select>
-      <br />
-      Time adjustment in seconds: 
-      <input type="text" style="margin-top: 12px; width: 30px" id="timeadj" value="0"
-             onfocus="if(this.value=='0'){this.value='';}" 
-             oninput="if(this.value==''){inputTimeAdj('');} else { timeadj(); adjustInputWidth(this.value); }" 
-             onblur="if(this.value==''){this.value='0'; timeadj();}" />
-      <div id="resultDisplay"></div>
-      <div id="secondsDisplay"></div>
-
-      <br />
-      <div id="fastForward">
-        <button onclick="previousDay()" id="previousDay" class="button"><<</button>
-        Day selector
-        <button onclick="nextDay()" id="nextDay" class="button">>></button>
-      </div>
-
-      <br />
-      <div id="frequencySelection">
-        Updates per ms:
-        <select name="updateTime" id="updateFrequencies" class="centered-dropdown">
-          <option value="2000">2000</option>
-          <option value="1000" selected>1000</option>
-          <option value="250">250</option>
-          <option value="200">200</option>
-          <option value="100">100</option>
-          <option value="50">50</option>
-          <option value="16">Real Time</option>
-        </select>
-        <br /><br />
-        <button id="closeEdit" class="button">Close</button>
-        <br /><br />
-        <button class="button" onclick="clearAllLocalStorage()" style="color: #ff6666;">Clear All Data</button>
-      </div>
+      <button id="auto-schedule" onclick="AutoSchedule()" class="schedule-button button">Auto</button>
     </div>
-    <button id="showTimerButton" class="bottom" onclick="showTimer()">Timer</button>
-    <button id="manageSchedulesButton" class="bottom" onclick="openScheduleManager()">Schedules</button>
-    <button id="calendarButton" class="bottom" onclick="openCalendar()">Calendar</button>
-    <button id="toggleButton" class="bottom">Settings</button>
-    <footer>
-      <div class="info">
-        <a href="https://github.com/oirehm/schedulemonitor/blob/main/Changelog.md" target="_blank">Changelog</a>
-        <a href="https://github.com/oirehm/schedulemonitor" target="_blank">GitHub</a>
-        <a id="schoolSchedule" href="#" target="_blank">Bellflower Calendar</a>
-      </div>
-    </footer>
-
-    <div id="timerPanel" class="hidden timerPanel draggable resizable">
-      <div id="timerDisplay">
-        <span id="hourTimer" contenteditable="true">00</span>:
-        <span id="minuteTimer" contenteditable="true">00</span>:
-        <span id="secondTimer" contenteditable="true">00</span>
-      </div>
-      <br />
-      <div id="hintTimer" class="hidden">Click anywhere to stop alarm</div>
-      <button id="startButton" class="timerButton button" onclick="startTimer()">Start</button>
-      <button id="pauseButton" class="hidden timerButton button" onclick="pauseTimer()">Pause</button>
-      <button id="stopAlarmButton" class="hidden timerButton button" onclick="stopTimerAlarm()">Stop</button>
-    </div>
-
-    <div id="scheduleManagerModal" class="hidden">
-      <div id="scheduleManagerContent">
-        <div id="scheduleManagerHeader">
-          <h2>Schedule Configuration <span id="liveIndicator" style="font-size: 0.6em; color: #666; margin-left: 10px;">(Changes apply immediately)</span></h2>
-          <button class="button" onclick="closeScheduleManager()">×</button>
-        </div>
-        <div id="scheduleManagerBody">
-          <div class="schedule-section">
-            <h3>Main Schedules</h3>
-            <div id="mainSchedulesList" class="schedule-list"></div>
-          </div>
-          <div class="schedule-section">
-            <h3>Special Schedules</h3>
-            <div id="specialSchedulesList" class="schedule-list"></div>
-          </div>
-          <div class="schedule-section">
-            <h3>Custom Schedules</h3>
-            <div id="customSchedulesList" class="schedule-list"></div>
-            <button class="button action-button" onclick="createNewSchedule()">+ Add Custom Schedule</button>
+    <div id="container">
+      <div id="timer_type" style="font-size: 4em">Loading...</div>
+      <div id="subtitle">Please wait</div>
+      <div id="currentdate"></div>
+      <div id="currentperiodsubtitle"></div>
+      <div id="currentschedule"></div>
+      <div id="currentlengthofperiod"></div>
+      <div id="endofschedulesubtitle"></div>
+      <div id="currentduration"></div>
+      <div id="nextperiodsubtitle"></div>
+      <div id="nextschedule"></div>
+      <div id="nextduration" style="font-size: 5em; margin-top: 8px; color: orange"></div>
+      <div id="scheduledisplay"></div>
+      <div id="tomorrowScheduleTitle" class="hidden">Tomorrow's Schedule:</div>
+      <div id="tomorrowScheduleDisplay" class="hidden">Unknown</div>
+      <div id="settingsPanel" class="settings-panel position-right">
+        <div class="settings-panel-header">
+          <h2>Settings</h2>
+          <div class="settings-panel-controls">
+            <button class="panel-control-btn" onclick="minimizeSettings()" title="Minimize">━</button>
+            <button class="panel-control-btn" onclick="closeSettings()" title="Close">×</button>
           </div>
         </div>
-        <div id="scheduleManagerFooter">
-          <button class="button" onclick="exportSchedules()">Export</button>
-          <button class="button" onclick="importSchedules()">Import</button>
-          <button class="button" onclick="resetToDefaults()">Reset All Schedules</button>
-        </div>
-        <input type="file" id="importFileInput" accept=".json" style="display: none;" onchange="handleImportFile(event)">
-      </div>
-    </div>
-
-    <div id="scheduleEditorModal" class="hidden">
-      <div id="scheduleEditorContent">
-        <div id="scheduleEditorHeader">
-          <h2 id="editorTitle">Create New Schedule</h2>
-          <button class="button" onclick="closeScheduleEditor()">×</button>
-        </div>
-        <div id="scheduleEditorBody">
-          <div class="editor-section">
-            <h3>Basic Information</h3>
-            <div class="editor-field">
-              <label for="scheduleName">Schedule Name</label>
-              <input type="text" id="scheduleName" placeholder="e.g., Modified Block" maxlength="30">
-            </div>
-            <div class="editor-field">
-              <label for="scheduleType">Schedule Type</label>
-              <select id="scheduleType" onchange="handleScheduleTypeChange()">
-                <option value="single">Single Schedule</option>
-                <option value="oddeven">Odd/Even Schedule</option>
-              </select>
-            </div>
-            <div class="editor-field">
-              <label for="buttonLocation">Button Location</label>
-              <select id="buttonLocation">
-                <option value="main">Main Buttons</option>
-                <option value="special">Special Schedules Dropdown</option>
-              </select>
+        <div class="settings-panel-body">
+          <div id="settingsTabs">
+            <button class="tab-button active" onclick="switchSettingsTab('general', event)">General</button>
+            <button class="tab-button" onclick="switchSettingsTab('display', event)">Display</button>
+            <button class="tab-button" onclick="switchSettingsTab('advanced', event)">Advanced</button>
+          </div>
+          <div id="generalTab" class="settings-tab-content active">
+            <div class="settings-section">
+              <h3>Time Control</h3>
+              <div class="settings-field">
+                <label for="timeadj">Time Adjustment (seconds)</label>
+                <input type="text" id="timeadj" value="0" onfocus="if(this.value=='0'){this.value='';}" oninput="if(this.value==''){inputTimeAdj('');} else { timeadj(); adjustTimeAdjustmentWidth(this.value); }" onblur="if(this.value==''){this.value='0'; timeadj();}">
+                <div id="resultDisplay"></div>
+                <div id="secondsDisplay"></div>
+              </div>
+              <div class="settings-field">
+                <label>Quick Offset</label>
+                <div id="fastForwardDay">
+                  <button onclick="quickAdjust('day', false)" id="previousDay" class="button">◀</button>
+                  <span>Day</span>
+                  <button onclick="quickAdjust('day', true)" id="nextDay" class="button">▶</button>
+                </div>
+                <div id="fastForwardHour">
+                  <button onclick="quickAdjust('hour', false)" id="previousHour" class="button">◀</button>
+                  <span>Hour</span>
+                  <button onclick="quickAdjust('hour', true)" id="nextHour" class="button">▶</button>
+                </div>
+              </div>
             </div>
           </div>
-
-          <div class="editor-section">
-            <h3>Start From Template (Optional)</h3>
-            <div class="editor-field">
-              <select id="cloneFrom" onchange="handleCloneSelection()">
-                <option value="">Start from scratch</option>
-                <option value="normal">Clone from Normal Schedule</option>
-                <option value="late">Clone from Late Start</option>
-                <option value="minimum">Clone from Minimum Day</option>
-                <option value="anchor">Clone from Anchor Day</option>
-                <option value="rally">Clone from Rally Day</option>
-                <option value="testing">Clone from Testing Schedule</option>
-              </select>
+          <div id="displayTab" class="settings-tab-content">
+            <div class="settings-section">
+              <div class="settings-field">
+                <label>Date & Time Format</label>
+                <select id="datePreset" onchange="applyDatePreset()">
+                  <option value="default">Default</option>
+                  <option value="custom">Custom</option>
+                  <option value="us-standard">US Standard (8/20/2025 5:56:01 PM)</option>
+                  <option value="international">International (20/08/2025 17:56:01)</option>
+                  <option value="iso">ISO 8601 (2025-08-20T17:56:01)</option>
+                </select>
+                <div id="dateFormatOptions" class="date-format-options">
+                  <div class="format-group">
+                    <h4>Component Style</h4>
+                    <div class="format-row">
+                      <label>Weekday</label>
+                      <select id="weekdayStyle" onchange="updateDateFormat()">
+                        <option value="long">Full Name (Wednesday)</option>
+                        <option value="short">Short Name (Wed)</option>
+                        <option value="none">Don't Show</option>
+                      </select>
+                    </div>
+                    <div class="format-row">
+                      <label>Day</label>
+                      <select id="dayStyle" onchange="updateDateFormat()">
+                        <option value="numeric">Numeric (2)</option>
+                        <option value="padded">Padded (02)</option>
+                        <option value="ordinal">Ordinal (2nd)</option>
+                      </select>
+                    </div>
+                    <div class="format-row">
+                      <label>Month</label>
+                      <select id="monthStyle" onchange="updateDateFormat()">
+                        <option value="long">Full Name (January)</option>
+                        <option value="short">Short Name (Jan)</option>
+                        <option value="numeric">Numeric (1)</option>
+                        <option value="padded">Padded (01)</option>
+                      </select>
+                    </div>
+                    <div class="format-row">
+                      <label>Year</label>
+                      <select id="yearStyle" onchange="updateDateFormat()">
+                        <option value="full">Full (2025)</option>
+                        <option value="short">Short (25)</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="format-group">
+                    <h4>Time Style</h4>
+                    <div class="format-row">
+                      <label>Hour Format</label>
+                      <select id="hourFormat" onchange="updateDateFormat()">
+                        <option value="12">12-hour (5:56)</option>
+                        <option value="24">24-hour (17:56)</option>
+                      </select>
+                    </div>
+                    <div class="format-row">
+                      <label>Show Seconds</label>
+                      <input type="checkbox" id="showSeconds" checked onchange="updateDateFormat()">
+                    </div>
+                    <div class="format-row">
+                      <label>AM/PM Style</label>
+                      <select id="ampmStyle" onchange="updateDateFormat()">
+                        <option value="upper">Uppercase (PM)</option>
+                        <option value="lower">Lowercase (pm)</option>
+                        <!-- <option value="periods">Periods (P.M.)</option> -->
+                      </select>
+                    </div>
+                  </div>
+                  <div class="format-group">
+                    <h4>Order & Separators</h4>
+                    <div class="format-row">
+                      <label>Date Order</label>
+                      <select id="dateOrder" onchange="updateDateFormat()">
+                        <option value="mdy">Month Day Year</option>
+                        <option value="dmy">Day Month Year</option>
+                        <option value="ymd">Year Month Day</option>
+                        <option value="ydm">Year Day Month</option>
+                      </select>
+                    </div>
+                    <div class="format-row">
+                      <label>Date Separator</label>
+                      <select id="dateSeparator" onchange="updateDateFormat()">
+                        <option value="/">/</option>
+                        <option value="-">-</option>
+                        <option value=".">.</option>
+                        <option value=" ">Space</option>
+                      </select>
+                    </div>
+                    <div class="format-row">
+                      <label>Time Separator</label>
+                      <select id="timeSeparator" onchange="updateDateFormat()">
+                        <option value=":">:</option>
+                        <option value=".">.</option>
+                        <option value="h">h/m/s</option>
+                      </select>
+                    </div>
+                    <div class="format-row">
+                      <label>Date-Time Separator</label>
+                      <select id="dateTimeSeparator" onchange="updateDateFormat()">
+                        <option value=" ">Space</option>
+                        <option value=" @ ">@</option>
+                        <option value="T">T (ISO)</option>
+                        <option value=", ">, (comma)</option>
+                        <option value=" - ">- (dash)</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <h3>Appearance</h3>
+              <div class="settings-field">
+                <label for="colorscheme">Color Scheme</label>
+                <select id="colorscheme" onchange="colorBackground()">
+                  <option value="gb" selected>Gray on black</option>
+                  <option value="wb">White on black</option>
+                  <option value="bw">Black on white</option>
+                  <option value="dk">Dark room</option>
+                  <option value="bg">Blue on green</option>
+                  <option value="py">Purple on yellow</option>
+                  <option value="sr">Random by minute</option>
+                </select>
+              </div>
+              <div class="settings-field">
+                <label for="displayupdatefrequency">Display Update Frequency</label>
+                <select name="updateTime" id="displayupdatefrequency">
+                  <option value="2000">2000ms (Slow)</option>
+                  <option value="1000" selected>1000ms (Normal)</option>
+                  <option value="250">250ms (Fast)</option>
+                  <option value="200">200ms (Faster)</option>
+                  <option value="100">100ms (Very Fast)</option>
+                  <option value="50">50ms (Extreme)</option>
+                  <option value="16">16ms (Real Time)</option>
+                </select>
+                <p id="settingFooter"> Higher values align the display to your system clock better, but can stress low-end CPUs!! </p>
+              </div>
             </div>
           </div>
-
-          <div id="scheduleTabs" class="hidden">
-            <button class="tab-button active" onclick="switchTab('odd')">Odd Days</button>
-            <button class="tab-button" onclick="switchTab('even')">Even Days</button>
-          </div>
-
-          <div class="editor-section">
-            <h3>Periods <span id="currentTabLabel"></span></h3>
-            <div id="periodsContainer"></div>
-            <button class="button action-button" onclick="addPeriod()">+ Add Period</button>
+          <div id="advancedTab" class="settings-tab-content">
+            <div class="settings-section">
+              <div class="settings-field">
+                <h3>Updates</h3>
+                <label>Auto Check For Updates</label>
+                <input type="checkbox" id="autoUpdateToggle" checked>
+                <label for="updateFrequencies">Display Update Frequency</label>
+                <select name="" id="updateFrequencies">
+                  <option value="86400">Every Day</option>
+                  <option value="3600" selected>Every Hour</option>
+                  <option value="1800">Every 30 minutes</option>
+                </select>
+                <button class="button action-button" onclick="UpdateChecker.checkForUpdate(true)">Check for Updates</button>
+                <p id="settingFooter" class="last-check">Last checked: N/A</p>
+              </div>
+            </div>
+            <div class="settings-section">
+              <h3>Data Management</h3>
+              <div class="settings-field">
+                <label>Storage Usage</label>
+                <div class="storage-usage-container">
+                  <div class="storage-usage-bar-container">
+                    <div id="storageUsageBar" class="storage-usage-bar"></div>
+                  </div>
+                  <div id="storageUsageDisplay" class="storage-usage-text">Calculating...</div>
+                </div>
+              </div>
+              <div class="advanced-field">
+                <button class="button action-button danger-button" onclick="resetToDefaults()">Reset All Schedules</button>
+                <button class="button action-button danger-button" onclick="clearAllCalendarData()">Clear Calendar</button>
+                <button class="button action-button" onclick="clearAllLocalStorage()" style="color: #ff2e2e !important; font-weight: bold;"> Clear All Data </button>
+                <p id="settingFooter"> Permanently delete all stored data including schedules and settings </p>
+              </div>
+            </div>
           </div>
         </div>
-
-        <div id="scheduleEditorFooter">
-          <button class="button" onclick="testSchedule()">Preview</button>
-          <button class="button" onclick="saveSchedule()">Save Schedule</button>
-          <button class="button" onclick="closeScheduleEditor()">Cancel</button>
+      </div>
+      <button id="manageSchedulesButton" class="bottom" onclick="ScheduleManagerUI.open()">Schedules</button>
+      <button id="calendarButton" class="bottom" onclick="openCalendar()">Calendar</button>
+      <button id="toggleButton" class="bottom">Settings</button>
+      <footer>
+        <div class="info">
+          <a href="https://github.com/oirehm/schedulemonitor/blob/main/Changelog.md" target="_blank">Changelog</a>
+          <a href="https://github.com/oirehm/schedulemonitor" target="_blank">GitHub</a>
+          <a id="schoolSchedule" href="#" target="_blank">Bellflower Calendar</a>
+          <span id="versionSpan"></span>
+        </div>
+      </footer>
+      <div id="scheduleManagerModal" class="hidden">
+        <div id="scheduleManagerContent">
+          <div id="scheduleManagerHeader">
+            <h2>Schedule Configuration <span id="liveIndicator" style="font-size: 0.6em; color: #666; margin-left: 10px;">(Changes apply immediately)</span>
+            </h2>
+            <button class="button" onclick="ScheduleManagerUI.close()">×</button>
+          </div>
+          <div id="scheduleManagerBody">
+            <div class="schedule-section">
+              <h3>Main Schedules</h3>
+              <div id="mainSchedulesList" class="schedule-list"></div>
+            </div>
+            <div class="schedule-section">
+              <h3>Special Schedules</h3>
+              <div id="specialSchedulesList" class="schedule-list"></div>
+            </div>
+            <div class="schedule-section">
+              <h3>Custom Schedules</h3>
+              <div id="customSchedulesList" class="schedule-list"></div>
+              <button class="button action-button" onclick="ScheduleEditor.open()">+ Add Custom Schedule</button>
+            </div>
+          </div>
+          <div id="scheduleManagerFooter">
+            <button class="button danger-button" onclick="resetToDefaults()">Reset All Schedules</button>
+            <button class="button" onclick="exportSchedules()">Export</button>
+            <button class="button" onclick="importSchedules()">Import</button>
+          </div>
+          <input type="file" id="importFileInput" accept=".json" style="display: none;" onchange="handleImportFile(event)">
+        </div>
+      </div>
+      <div id="scheduleEditorModal" class="hidden">
+        <div id="scheduleEditorContent">
+          <div id="scheduleEditorHeader">
+            <h2 id="editorTitle">Create New Schedule</h2>
+            <button class="button" onclick="ScheduleEditor.close()">×</button>
+          </div>
+          <div id="scheduleEditorBody">
+            <div class="editor-section">
+              <h3>Basic Information</h3>
+              <div class="editor-field">
+                <label for="scheduleName">Schedule Name</label>
+                <input type="text" id="scheduleName" onblur="validateScheduleName(this)" placeholder="e.g., Modified Block" maxlength="30">
+              </div>
+              <div class="editor-field">
+                <label for="scheduleType">Schedule Type</label>
+                <select id="scheduleType" onchange="ScheduleEditor.handleTypeChange()">
+                  <option value="single">Single Schedule</option>
+                  <option value="oddeven">Odd/Even Schedule</option>
+                </select>
+              </div>
+              <div class="editor-field">
+                <label for="buttonLocation">Button Location</label>
+                <select id="buttonLocation">
+                  <option value="main">Main Buttons</option>
+                  <option value="special">Special Schedules Dropdown</option>
+                </select>
+              </div>
+            </div>
+            <div class="editor-section">
+              <h3>Start From Template (Optional)</h3>
+              <div class="editor-field">
+                <select id="cloneFrom" onchange="handleCloneSelection()">
+                  <option value="">Start from scratch</option>
+                  <option value="normal">Clone from Normal Schedule</option>
+                  <option value="late">Clone from Late Start</option>
+                  <option value="minimum">Clone from Minimum Day</option>
+                  <option value="anchor">Clone from Anchor Day</option>
+                  <option value="rally">Clone from Rally Day</option>
+                  <option value="testing">Clone from Testing Schedule</option>
+                </select>
+              </div>
+            </div>
+            <div id="scheduleTabs" class="hidden">
+              <button class="tab-button active" onclick="ScheduleEditor.switchTab('odd', event)">Odd Days</button>
+              <button class="tab-button" onclick="ScheduleEditor.switchTab('even', event)">Even Days</button>
+            </div>
+            <div class="editor-section">
+              <h3>Periods <span id="currentTabLabel"></span>
+              </h3>
+              <div class="editor-field">
+                <div style="color: #888; font-size: 0.85em; margin-bottom: 10px; padding: 8px; background-color: var(--dark-2); border-radius: 3px;">
+                  <strong>Note:</strong> The last period represents the end time and won't appear in the main schedule display until after all other periods have elapsed.
+                </div>
+              </div>
+              <div id="periodsContainer"></div>
+              <button class="button action-button" onclick="ScheduleEditor.addPeriod()">+ Add Period</button>
+            </div>
+          </div>
+          <div id="scheduleEditorFooter">
+            <button class="button" onclick="testSchedule()">Preview</button>
+            <button class="button" onclick="ScheduleEditor.save()">Save Schedule</button>
+            <button class="button" onclick="ScheduleEditor.close()">Cancel</button>
+          </div>
+        </div>
+      </div>
+      <div id="calendarModal" class="hidden">
+        <div id="calendarContent">
+          <div id="calendarHeader">
+            <h2>Calendar Configuration <span id="liveIndicator" style="font-size: 0.6em; color: #666; margin-left: 10px;">(Changes apply immediately)</span>
+            </h2>
+            <button class="button" onclick="closeCalendar()">×</button>
+          </div>
+          <div id="calendarBody">
+            <div id="calendarControls">
+              <button class="button" onclick="openYearOverview()">Year Overview</button>
+              <button class="button" onclick="previousMonth()">◀</button>
+              <span id="currentMonthYear"></span>
+              <button class="button" onclick="nextMonth()">▶</button>
+              <button class="button" onclick="goToToday()" style="margin-left: 20px;">Today</button>
+            </div>
+            <div id="calendarGrid">
+              <div class="calendar-weekdays"></div>
+              <div class="calendar-days"></div>
+            </div>
+            <div id="calendarLegend">
+              <span class="legend-item">
+                <span class="legend-color day-odd"></span> Odd </span>
+              <span class="legend-item">
+                <span class="legend-color day-even"></span> Even </span>
+              <span class="legend-item">
+                <span class="legend-color day-noSchool"></span> No School </span>
+              <span class="legend-item">◆ Special Schedule</span>
+            </div>
+          </div>
+          <div id="calendarFooter">
+            <button class="button danger-button" onclick="clearAllCalendarData()">Clear Calendar</button>
+            <button class="button danger-button" onclick="resetToDefaultCalendar()">Load Bellflower</button>
+            <button class="button" onclick="exportCalendar()">Export Calendar</button>
+            <button class="button" onclick="importCalendar()">Import Calendar</button>
+          </div>
         </div>
       </div>
     </div>
-    <!-- Calendar Configuration Modal -->
-    <div id="calendarModal" class="hidden">
-      <div id="calendarContent">
-        <div id="calendarHeader">
-          <h2>Calendar Configuration<span id="liveIndicator" style="font-size: 0.6em; color: #666; margin-left: 10px;">(Changes apply immediately)</span></h2>
-          <button class="button" onclick="closeCalendar()">×</button>
-        </div>
-        <div id="calendarBody">
-          <div id="calendarControls">
-            <button class="button" onclick="openYearOverview()">Year Overview</button>
-            <button class="button" onclick="previousMonth()">◀</button>
-            <span id="currentMonthYear"></span>
-            <button class="button" onclick="nextMonth()">▶</button>
-            <button class="button" onclick="goToToday()" style="margin-left: 20px;">Today</button>
-          </div>
-          <div id="calendarGrid">
-            <div class="calendar-weekdays"></div>
-            <div class="calendar-days"></div>
-          </div>
-          <div id="calendarLegend">
-            <span class="legend-item"><span class="legend-color day-odd"></span> Odd</span>
-            <span class="legend-item"><span class="legend-color day-even"></span> Even</span>
-            <span class="legend-item"><span class="legend-color day-noSchool"></span> No School</span>
-            <span class="legend-item">◆ Special Schedule</span>
-          </div>
-        </div>
-        <div id="calendarFooter">
-        <div id="calendarFooter">
-          <button class="button" onclick="clearAllCalendarData()">Clear Calendar</button>
-          <button class="button" onclick="resetToDefaultCalendar()">Load Default</button>
-          <button class="button" onclick="exportCalendar()">Export Calendar</button>
-          <button class="button" onclick="importCalendar()">Import Calendar</button>
-        </div>
-        </div>
-      </div>
-    </div>
-    <!-- Enhanced context menu -->
     <div id="calendarContextMenu" class="hidden">
       <div class="context-menu-header">Regular Schedules</div>
       <div class="context-menu-item" onclick="setSelectedSchedule('normal')">Normal</div>
@@ -254,16 +405,16 @@
       <div class="context-menu-header">Custom Schedules</div>
       <div id="customSchedulesMenu"></div>
       <div class="context-menu-separator"></div>
-<!--  <div class="context-menu-item" onclick="CalendarUI.promptHolidayName()"> Set Holiday...</div> -->
+      <!--  <div class="context-menu-item" onclick="CalendarUI.promptHolidayName()"> Set Holiday...</div> -->
       <div class="context-menu-item" onclick="setSelectedSchedule('noSchool')">No School</div>
       <div class="context-menu-separator"></div>
       <div class="context-menu-item" onclick="clearSelectedDates()">Clear</div>
     </div>
-    <!-- Year Overview Modal -->
     <div id="yearOverviewModal" class="hidden">
       <div id="yearOverviewContent">
         <div id="yearOverviewHeader">
-          <h2>Year Overview - <span id="yearOverviewTitle"></span></h2>
+          <h2>Year Overview - <span id="yearOverviewTitle"></span>
+          </h2>
           <button class="button" onclick="closeYearOverview()">×</button>
         </div>
         <div id="yearOverviewBody">
@@ -274,10 +425,14 @@
           </div>
           <div id="yearOverviewGrid"></div>
           <div id="yearOverviewLegend">
-            <span class="legend-item"><span class="legend-color day-odd"></span> Odd Day</span>
-            <span class="legend-item"><span class="legend-color day-even"></span> Even Day</span>
-            <span class="legend-item"><span class="legend-color day-scheduled"></span> Scheduled (No Odd/Even)</span>
-            <span class="legend-item"><span class="legend-color day-noSchool"></span> No School</span>
+            <span class="legend-item">
+              <span class="legend-color day-odd"></span> Odd Day </span>
+            <span class="legend-item">
+              <span class="legend-color day-even"></span> Even Day </span>
+            <span class="legend-item">
+              <span class="legend-color day-scheduled"></span> Scheduled (No Odd/Even) </span>
+            <span class="legend-item">
+              <span class="legend-color day-noSchool"></span> No School </span>
           </div>
         </div>
       </div>
@@ -298,7 +453,7 @@
       </div>
     </div>
     <div id="toastContainer"></div>
-    <script src="script.js?v=221"></script>
-  </div>
-</body>
+    <script src="script.js?v=230"></script>
+    </div>
+  </body>
 </html>

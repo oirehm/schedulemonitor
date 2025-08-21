@@ -1,15 +1,17 @@
-let version = '2.2.1'
+const version = '2.3.0'
 let starts = [];
 let names = [];
 let times = [];
+let Els = {};
 let isEven = false;
-let schedule = -1;
+let settingsPanelPosition = 'right';
 let randomChange = false;
 let random = false;
 let adjustseconds = 0;
 let currentScheduleId = 'normal';
 let currentScheduleData = null;
 let sharedAudioContext = null;
+let updateFrequency = 100;
 let lastDisplayState = {
   displayedDate: '',
   currentPeriodSubtitle: '',
@@ -26,8 +28,22 @@ let lastDisplayState = {
   lastDayOfMonth: null,
   lastScheduleTimes: null
 };
-const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+let cachedStorageLimit = null;
+let isCalculatingLimit = false;
+let pendingDOMUpdates = {};
+let hasScheduledDOMUpdate = false;
+let settingsPanelOpen = false;
+let settingsPanelMinimized = false;
+let currentSettingsTab = 'general';
+const DAY_NAMES = {
+  long: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+  short: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+};
+const MONTH_NAMES = {
+  long: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
+  short: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+};
+
 const scheduleTemplates = {
   normal: {
     displayName: "Normal Schedule",
@@ -97,44 +113,83 @@ const scheduleTemplates = {
     names: []
   }
 };
+
+const predefinedColorSchemes = {
+  gb: {
+    text: "grey",
+    background: "black",
+    optionText: "black",
+    optionBackground: "white"
+  },
+  wb: {
+    text: "white",
+    background: "black",
+    optionText: "black",
+    optionBackground: "white"
+  },
+  bw: {
+    text: "black",
+    background: "white",
+    optionText: "black",
+    optionBackground: "white"
+  },
+  dk: {
+    text: "crimson",
+    background: "black",
+    optionText: "crimson",
+    optionBackground: "black"
+  },
+  bg: {
+    text: "#5077BE",
+    background: "#D9FFB2",
+    optionText: "#5077BE",
+    optionBackground: "#D9FFB2"
+  },
+  py: {
+    text: "#B44DE0",
+    background: "#FFFF99",
+    optionText: "#B44DE0",
+    optionBackground: "#FFFF99"
+  },
+  sr: "random"
+};
+
 const UserManager = {
   ONBOARDING_KEY: 'scheduleMonitor_onboarding',
   VERSION_KEY: 'scheduleMonitor_userVersion',
   CURRENT_VERSION: version,
-  
+
   getUserStatus() {
     const onboardingStatus = localStorage.getItem(this.ONBOARDING_KEY);
     const storedVersion = localStorage.getItem(this.VERSION_KEY);
-    
+
     const status = {
       type: 'returning-same',
       showWelcome: false,
       showWhatsNew: false
     };
-    
+
     if (!onboardingStatus) {
       status.type = 'first-time';
       status.showWelcome = true;
-      console.log("New")
     }
-    
+
     if (storedVersion !== this.CURRENT_VERSION) {
       status.showWhatsNew = true;
       status.previousVersion = storedVersion;
       status.currentVersion = this.CURRENT_VERSION;
-      console.log("Updating")
       if (status.type !== 'first-time') {
         status.type = 'returning-upgrade';
       }
     }
     return status;
   },
-  
+
   completeOnboarding() {
     localStorage.setItem(this.ONBOARDING_KEY, 'completed');
     localStorage.setItem(this.VERSION_KEY, this.CURRENT_VERSION);
   },
-  
+
   updateVersion() {
     localStorage.setItem(this.VERSION_KEY, this.CURRENT_VERSION);
   },
@@ -143,12 +198,13 @@ const UserManager = {
     localStorage.removeItem(this.ONBOARDING_KEY);
     localStorage.removeItem(this.VERSION_KEY);
   },
-  
+
   simulateUpgrade(fromVersion) {
     localStorage.setItem(this.ONBOARDING_KEY, 'completed');
     localStorage.setItem(this.VERSION_KEY, fromVersion);
   }
 };
+
 const StorageManager = {
   STORAGE_KEY: 'scheduleMonitorData',
   VERSION: '2.0',
@@ -369,7 +425,7 @@ const StorageManager = {
 
 const CalendarManager = {
   STORAGE_KEY: 'calendarConfigData',
-    async loadDefaultCalendar() {
+  async loadDefaultCalendar() {
     try {
       const response = await fetch('./default-calendar.json');
       if (response.ok) {
@@ -383,7 +439,7 @@ const CalendarManager = {
     }
     return null;
   },
-  
+
   getConfig() {
     try {
       const stored = localStorage.getItem(this.STORAGE_KEY);
@@ -400,7 +456,7 @@ const CalendarManager = {
 
   async getConfigWithDefault() {
     const stored = this.getConfig();
-    
+
     if (!stored) {
       const defaultCalendar = await this.loadDefaultCalendar();
       if (defaultCalendar) {
@@ -409,18 +465,19 @@ const CalendarManager = {
       }
       return this.getDefaultConfig();
     }
-    
+
     if (stored.isDefaultCalendar && !stored.hasUserModifications) {
       const defaultCalendar = await this.loadDefaultCalendar();
-      if (defaultCalendar && defaultCalendar.defaultCalendarVersion !== stored.defaultCalendarVersion) {r
+      if (defaultCalendar && defaultCalendar.defaultCalendarVersion !== stored.defaultCalendarVersion) {
         defaultCalendar.hasUserModifications = false;
         this.saveConfig(defaultCalendar);
         return defaultCalendar;
       }
     }
-    
+
     return stored;
   },
+
   getDefaultConfig() {
     const currentYear = new Date().getFullYear();
     const nextYear = currentYear + 1;
@@ -433,6 +490,7 @@ const CalendarManager = {
       hasUserModifications: false
     };
   },
+
   saveConfig(config) {
     try {
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(config));
@@ -515,23 +573,45 @@ const CalendarUI = {
   lastClickedDate: null,
   hoveredDate: null,
   isDragging: false,
+  eventListeners: [],
+
+  addEventListener(element, event, handler, options) {
+    element.addEventListener(event, handler, options);
+    this.eventListeners.push({
+      element,
+      event,
+      handler,
+      options
+    });
+  },
+
+  cleanupAllEventListeners() {
+    this.eventListeners.forEach(({
+      element,
+      event,
+      handler,
+      options
+    }) => {
+      element.removeEventListener(event, handler, options);
+    });
+    this.eventListeners = [];
+  },
 
   open() {
     document.getElementById('calendarModal').classList.remove('hidden');
     this.render();
-    document.addEventListener('mouseup', this.handleGlobalMouseUp);
-    document.addEventListener('keydown', this.handleKeyboard);
+    this.addEventListener(document, 'mouseup', this.handleGlobalMouseUp);
+    this.addEventListener(document, 'keydown', this.handleKeyboard);
   },
 
   close() {
+    this.cleanupAllEventListeners();
     document.getElementById('calendarModal').classList.add('hidden');
     this.selectedDates.clear();
-    this.isDragging = false; 
+    this.isDragging = false;
     this.cleanupCalendar();
-    this.cleanup();
-    document.removeEventListener('mouseup', this.handleGlobalMouseUp);
-    document.removeEventListener('keydown', this.handleKeyboard);
   },
+
   cleanup() {
     document.removeEventListener('mouseup', this.handleGlobalMouseUp);
     document.removeEventListener('keydown', this.handleKeyboard);
@@ -548,7 +628,7 @@ const CalendarUI = {
 
     const hasSelection = CalendarUI.selectedDates.size > 0;
 
-    switch(e.key) {
+    switch (e.key) {
       case 'ArrowLeft':
         e.preventDefault();
         CalendarUI.previousMonth();
@@ -587,11 +667,6 @@ const CalendarUI = {
         e.preventDefault();
         CalendarUI.toggleSelectedOddEven(e.shiftKey);
         break;
-      case 'h':
-        if (!hasSelection) return;
-        e.preventDefault();
-        CalendarUI.promptHolidayName();
-        break;
       case 'Escape':
         e.preventDefault();
         CalendarUI.selectedDates.clear();
@@ -618,7 +693,7 @@ const CalendarUI = {
 
   render() {
     const monthYearElement = document.getElementById('currentMonthYear');
-    monthYearElement.textContent = `${months[this.currentMonth]} ${this.currentYear}`;
+    monthYearElement.textContent = `${MONTH_NAMES.short[this.currentMonth]} ${this.currentYear}`;
     this.renderWeekdays();
     this.renderDays();
     this.updateLegend();
@@ -654,16 +729,25 @@ const CalendarUI = {
       }
     }
   },
+
   cleanupCalendar() {
     const daysContainer = document.querySelector('.calendar-days');
     if (daysContainer) {
-      while (daysContainer.firstChild) {
-        daysContainer.removeChild(daysContainer.firstChild);
-      }
+      const dayElements = daysContainer.querySelectorAll('.calendar-day');
+      dayElements.forEach(dayElement => {
+        const cleanElement = dayElement.cloneNode(true);
+        dayElement.parentNode.replaceChild(cleanElement, dayElement);
+      });
+
+      daysContainer.innerHTML = '';
     }
+
+    this.hoveredDate = null;
+    this.selectionStart = null;
   },
 
   renderDays() {
+    this.cleanupCalendar();
     const daysContainer = document.querySelector('.calendar-days');
     daysContainer.innerHTML = '';
     const firstDay = new Date(this.currentYear, this.currentMonth, 1).getDay();
@@ -703,14 +787,14 @@ const CalendarUI = {
 
       const dayElement = document.createElement('div');
       dayElement.className = 'calendar-day';
-      
+
       const dateString = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       const dayConfig = config.dates[dateString];
 
       if (dateString === todayString) {
         dayElement.classList.add('day-today');
       }
-      
+
       const dayNumber = document.createElement('div');
       dayNumber.className = 'day-number';
       dayNumber.textContent = day;
@@ -728,15 +812,12 @@ const CalendarUI = {
 
         if (dayConfig.schedule === 'noSchool') {
           dayElement.classList.add('day-noSchool');
-        } else if(dayConfig.schedule === 'holiday') {
-          dayElement.classList.add('day-holiday')
-        }
-        else if (dayConfig.isEven !== null) {
+        } else if (dayConfig.isEven !== null) {
           dayElement.classList.add(dayConfig.isEven ? 'day-even' : 'day-odd');
         }
 
         if (dayConfig && dayConfig.schedule) {
-          const regularSchedules = ['normal', 'late', 'minimum', 'noSchool', 'holiday'];
+          const regularSchedules = ['normal', 'late', 'minimum', 'noSchool'];
           if (!regularSchedules.includes(dayConfig.schedule)) {
             dayElement.classList.add('day-special');
           }
@@ -745,7 +826,7 @@ const CalendarUI = {
 
       if (currentDate.getDay() === 0 || currentDate.getDay() === 6) {
         dayElement.classList.add('day-weekend');
-        
+
         if (!dayConfig) {
           CalendarManager.setScheduleForDate(dateString, 'noSchool', null);
         }
@@ -756,12 +837,6 @@ const CalendarUI = {
       dayElement.addEventListener('mouseenter', (e) => this.handleMouseEnter(e, dateString));
       dayElement.addEventListener('mouseup', () => this.handleMouseUp());
       dayElement.addEventListener('contextmenu', (e) => this.handleRightClick(e, dateString));
-      dayElement.addEventListener('mouseenter', (e) => {
-        this.hoveredDate = dateString;
-        if (this.isSelecting && this.selectionStart) {
-          this.selectRange(this.selectionStart, dateString);
-        }
-      });
 
 
       if (this.selectedDates.has(dateString)) {
@@ -770,27 +845,17 @@ const CalendarUI = {
 
       daysContainer.appendChild(dayElement);
     }
-
-
   },
-
 
   getWeekNumber(date) {
     const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
     const pastDaysOfYear = (date - firstDayOfYear) / 86400000;
     return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
   },
-  setHolidayForSelected(name) {
-    const dates = Array.from(this.selectedDates);
-    dates.forEach(dateString => {
-      CalendarManager.setScheduleForDate(dateString, 'holiday', null, name);
-    });
-    this.render();
-  },
+
   handleMouseDown(e, dateString) {
     if (e.button === 0) {
       e.preventDefault();
-      
       if (e.shiftKey && this.lastClickedDate) {
         this.selectRange(this.lastClickedDate, dateString);
       } else if (e.ctrlKey || e.metaKey) {
@@ -805,11 +870,12 @@ const CalendarUI = {
         this.selectedDates.clear();
         this.selectedDates.add(dateString);
       }
-      
+
       this.lastClickedDate = dateString;
       this.render();
     }
   },
+
   handleGlobalMouseUp: function(e) {
     if (CalendarUI.isDragging) {
       CalendarUI.isDragging = false;
@@ -828,7 +894,6 @@ const CalendarUI = {
     }
   },
 
-
   handleRightClick(e, dateString) {
     e.preventDefault();
     if (!this.selectedDates.has(dateString)) {
@@ -838,12 +903,13 @@ const CalendarUI = {
     }
     this.showQuickEditMenu(e.pageX, e.pageY);
   },
-
+  activeContextMenuCleanup: null,
   showQuickEditMenu(mouseX, mouseY) {
-    const menu = document.getElementById('calendarContextMenu');
-    if (this.contextMenuHandler) {
-      document.removeEventListener('click', this.contextMenuHandler);
+    if (this.activeContextMenuCleanup) {
+      document.removeEventListener('click', this.activeContextMenuCleanup);
+      this.activeContextMenuCleanup = null;
     }
+    const menu = document.getElementById('calendarContextMenu');
     menu.classList.remove('hidden');
     const offset = 8;
     const menuRect = menu.getBoundingClientRect();
@@ -853,13 +919,8 @@ const CalendarUI = {
     let left = mouseX + offset;
     let top = mouseY + offset;
 
-    if (left + menuRect.width > viewportWidth) {
-      left = mouseX - menuRect.width - offset;
-    }
-
-    if (top + menuRect.height > viewportHeight) {
-      top = mouseY - menuRect.height - offset;
-    }
+    if (left + menuRect.width > viewportWidth) left = mouseX - menuRect.width - offset;
+    if (top + menuRect.height > viewportHeight) top = mouseY - menuRect.height - offset;
 
     menu.style.left = `${left}px`;
     menu.style.top = `${top}px`;
@@ -868,9 +929,11 @@ const CalendarUI = {
       if (!menu.contains(e.target)) {
         menu.classList.add('hidden');
         document.removeEventListener('click', handleClickOutside);
+        this.activeContextMenuCleanup = null;
       }
     };
 
+    this.activeContextMenuCleanup = handleClickOutside;
     document.addEventListener('click', handleClickOutside);
   },
 
@@ -883,7 +946,7 @@ const CalendarUI = {
     const end = new Date(endYear, endMonth - 1, endDay);
     const minDate = start < end ? start : end;
     const maxDate = start < end ? end : start;
-    
+
     for (let d = new Date(minDate); d <= maxDate; d.setDate(d.getDate() + 1)) {
       const dayOfWeek = d.getDay();
       if (dayOfWeek === 0 || dayOfWeek === 6) continue;
@@ -891,7 +954,7 @@ const CalendarUI = {
       const dateString = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       this.selectedDates.add(dateString);
     }
-    
+
     this.render();
   },
 
@@ -899,7 +962,7 @@ const CalendarUI = {
     const dates = Array.from(this.selectedDates);
     const allSchedules = StorageManager.getAllSchedules();
     const schedule = allSchedules[scheduleId];
-    
+
     dates.forEach(dateString => {
       if (scheduleId === 'noSchool') {
         CalendarManager.setScheduleForDate(dateString, scheduleId, null);
@@ -911,26 +974,26 @@ const CalendarUI = {
         CalendarManager.setScheduleForDate(dateString, scheduleId, null);
       }
     });
-    
+
     this.render();
   },
 
   toggleSelectedOddEven() {
     const dates = Array.from(this.selectedDates);
-    
+
     dates.forEach(dateString => {
       const existing = CalendarManager.getScheduleForDate(dateString);
       if (existing && existing.schedule !== 'noSchool') {
         const allSchedules = StorageManager.getAllSchedules();
         const schedule = allSchedules[existing.schedule];
-        
+
         if (schedule && schedule.canToggleOddEven) {
           const newIsEven = existing.isEven === null ? false : !existing.isEven;
           CalendarManager.setScheduleForDate(dateString, existing.schedule, newIsEven);
         }
       }
     });
-    
+
     this.render();
   },
 
@@ -942,7 +1005,7 @@ const CalendarUI = {
       <span class="legend-item"><span class="legend-color day-noSchool"></span> No School</span>
       <span class="legend-item">◆ Special/Custom</span>
       <span class="legend-shortcuts">
-        <strong>Schedule Shortcuts:</strong> 
+        <strong>Schedule Shortcuts:</strong>
         (N) Normal, (L) Late, (M) Minimum, (X) No School, (O) Toggle Odd/Even, (DEL) Clear
       </span>
     `;
@@ -1001,6 +1064,7 @@ async function resetToDefaultCalendar() {
     }
   );
 }
+
 function clearAllCalendarData() {
   NotificationManager.showConfirm(
     'Clear All Calendar Data',
@@ -1011,14 +1075,14 @@ function clearAllCalendarData() {
 
       const emptyConfig = CalendarManager.getDefaultConfig();
       CalendarManager.saveConfig(emptyConfig);
-      CalendarUI.initializeWeekends()
+      CalendarUI.initializeWeekends();
       if (CalendarUI.isYearView) {
         CalendarUI.renderYearView();
       } else {
         CalendarUI.render();
       }
-      
-      NotificationManager.showAlert('','Calendar data cleared!', 'success');
+
+      NotificationManager.showAlert('', 'Calendar data cleared!', 'success');
     }
   );
 }
@@ -1027,19 +1091,19 @@ function populateScheduleMenus() {
   const allSchedules = StorageManager.getAllSchedules();
   const specialMenu = document.getElementById('specialSchedulesMenu');
   const customMenu = document.getElementById('customSchedulesMenu');
-  
+
   specialMenu.innerHTML = '';
   customMenu.innerHTML = '';
-  
+
   Object.keys(allSchedules).forEach(id => {
     const schedule = allSchedules[id];
     if (['normal', 'late', 'minimum', 'noSchool'].includes(id)) return;
-    
+
     const menuItem = document.createElement('div');
     menuItem.className = 'context-menu-item';
     menuItem.textContent = schedule.displayName;
     menuItem.onclick = () => setSelectedSchedule(id);
-    
+
     if (schedule.isCustom) {
       customMenu.appendChild(menuItem);
     } else {
@@ -1078,7 +1142,7 @@ function setSelectedSchedule(scheduleId) {
 
 function toggleSelectedOddEven() {
   const dates = Array.from(CalendarUI.selectedDates);
-  
+
   dates.forEach(dateString => {
     const existing = CalendarManager.getScheduleForDate(dateString);
     if (existing && existing.schedule !== 'noSchool') {
@@ -1086,26 +1150,28 @@ function toggleSelectedOddEven() {
       CalendarManager.setScheduleForDate(dateString, existing.schedule, newIsEven);
     }
   });
-  
+
   CalendarUI.render();
-  
+
 }
 
 function clearSelectedDates() {
   const dates = Array.from(CalendarUI.selectedDates);
   const config = CalendarManager.getConfig();
-  
+
   dates.forEach(dateString => {
     delete config.dates[dateString];
   });
-  
+
   CalendarManager.saveConfig(config);
   CalendarUI.render();
 }
 
 function exportCalendar() {
   const config = CalendarManager.getConfig();
-  const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
+  const blob = new Blob([JSON.stringify(config, null, 2)], {
+    type: 'application/json'
+  });
   const url = URL.createObjectURL(blob);
   const [startYear, endYear] = config.schoolYear.split('-');
   const shortYear = `${startYear.slice(-2)}-${endYear.slice(-2)}`;
@@ -1141,53 +1207,53 @@ function importCalendar() {
 
 const YearOverviewUI = {
   currentYear: new Date().getFullYear(),
-  
+
   open() {
     document.getElementById('yearOverviewModal').classList.remove('hidden');
     this.render();
   },
-  
+
   close() {
     document.getElementById('yearOverviewModal').classList.add('hidden');
   },
-  
+
   render() {
     const config = CalendarManager.getConfig();
-    document.getElementById('overviewYearDisplay').textContent = 
+    document.getElementById('overviewYearDisplay').textContent =
       `${this.currentYear} - ${this.currentYear + 1} School Year`;
-    document.getElementById('yearOverviewTitle').textContent = 
+    document.getElementById('yearOverviewTitle').textContent =
       `${this.currentYear} - ${this.currentYear + 1}`;
-    
+
     const gridContainer = document.getElementById('yearOverviewGrid');
     gridContainer.innerHTML = '';
     const startMonth = 7;
-    
+
     for (let i = 0; i < 12; i++) {
       const monthIndex = (startMonth + i) % 12;
       const yearForMonth = i < 5 ? this.currentYear : this.currentYear + 1;
-      
+
       const monthContainer = document.createElement('div');
       monthContainer.className = 'year-month-container';
-      
+
       const monthHeader = document.createElement('div');
       monthHeader.className = 'year-month-header';
-      monthHeader.textContent = `${months[monthIndex]} ${yearForMonth}`;
+      monthHeader.textContent = `${MONTH_NAMES.short[monthIndex]} ${yearForMonth}`;
       monthContainer.appendChild(monthHeader);
-      
+
       const miniCalendar = this.renderMiniMonth(yearForMonth, monthIndex, config);
       monthContainer.appendChild(miniCalendar);
-      
+
       monthContainer.addEventListener('click', () => {
         this.close();
         CalendarUI.currentMonth = monthIndex;
         CalendarUI.currentYear = yearForMonth;
         CalendarUI.render();
       });
-      
+
       gridContainer.appendChild(monthContainer);
     }
   },
-  
+
   renderMiniMonth(year, month, config) {
     const container = document.createElement('div');
     container.className = 'mini-calendar';
@@ -1202,32 +1268,32 @@ const YearOverviewUI = {
     container.appendChild(weekdaysContainer);
     const daysContainer = document.createElement('div');
     daysContainer.className = 'mini-days';
-    
+
     const firstDay = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const today = new Date();
     const todayString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-    
+
     for (let i = 0; i < firstDay; i++) {
       const emptyDay = document.createElement('div');
       emptyDay.className = 'mini-day-empty';
       daysContainer.appendChild(emptyDay);
     }
-    
+
     for (let day = 1; day <= daysInMonth; day++) {
       const dayElement = document.createElement('div');
       dayElement.className = 'mini-day';
-      
+
       const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       const dayConfig = config.dates[dateString];
-      
+
       if (dateString === todayString) {
         dayElement.classList.add('mini-day-today');
       }
-      
+
       if (dayConfig && dayConfig.schedule !== '') {
         const cls =
-          dayConfig.schedule === 'noSchool' || dayConfig.schedule === 'holiday' ? 'mini-day-noSchool' :
+          dayConfig.schedule === 'noSchool' ? 'mini-day-noSchool' :
           dayConfig.isEven === true ? 'mini-day-even' :
           dayConfig.isEven === false ? 'mini-day-odd' :
           'mini-day-scheduled';
@@ -1239,22 +1305,21 @@ const YearOverviewUI = {
           dayElement.classList.add('mini-day-noSchool');
         }
       }
-      
+
       dayElement.textContent = day;
       dayElement.title = dateString;
-      
       daysContainer.appendChild(dayElement);
     }
-    
+
     container.appendChild(daysContainer);
     return container;
   },
-  
+
   previousYear() {
     this.currentYear--;
     this.render();
   },
-  
+
   nextYear() {
     this.currentYear++;
     this.render();
@@ -1276,11 +1341,13 @@ function previousYear() {
 function nextYear() {
   YearOverviewUI.nextYear();
 }
+
 function loadPreferences() {
+  loadSettingsPanelPosition();
   const colorScheme = StorageManager.getPreference('colorScheme');
   if (colorScheme) {
     document.getElementById('colorscheme').value = colorScheme;
-    colorBackground(); 
+    colorBackground();
   }
 
   const timeAdjustment = StorageManager.getPreference('timeAdjustment');
@@ -1288,16 +1355,22 @@ function loadPreferences() {
     document.getElementById('timeadj').value = timeAdjustment;
     adjustseconds = timeAdjustment;
     evaluateMath();
+    adjustTimeAdjustmentWidth();
   }
 
-  const updateFrequency = StorageManager.getPreference('updateFrequency');
-  if (updateFrequency) {
-    document.getElementById('updateFrequencies').value = updateFrequency;
+  const updateFrequencyPref = StorageManager.getPreference('updateFrequency');
+  if (updateFrequencyPref) {
+    document.getElementById('displayupdatefrequency').value = updateFrequencyPref;
+    updateFrequency = Math.max(16, parseInt(updateFrequencyPref));
   }
-}
 
-function savePreferenceToStorage(key, value) {
-  StorageManager.savePreference(key, value);
+  let autoUpdate = StorageManager.getPreference('autoUpdateEnabled');
+  if (autoUpdate === null || autoUpdate === undefined) {
+    autoUpdate = '1';
+    StorageManager.savePreference('autoUpdateEnabled', autoUpdate);
+  }
+  const autoToggle = document.getElementById('autoUpdateToggle');
+  autoToggle.checked = autoUpdate === '1';
 }
 
 const ScheduleManagerUI = {
@@ -1319,36 +1392,110 @@ const ScheduleManagerUI = {
   render() {
     const data = StorageManager.getData();
     const allSchedules = StorageManager.getAllSchedules();
-
-    const mainSchedules = [];
-    const specialSchedules = [];
-    const customSchedules = [];
+    const allScheduleItems = [];
 
     Object.keys(allSchedules).forEach(id => {
+      if (id === 'noSchool') return;
+
       const schedule = allSchedules[id];
       const item = {
         id: id,
         name: schedule.displayName,
         schedule: schedule,
         isHidden: data.hiddenSchedules.includes(id),
-        isCustom: schedule.isCustom
+        isCustom: schedule.isCustom,
+        isSpecial: !data.scheduleOrder.includes(id),
+        hasOverride: !schedule.isCustom && data.scheduleOverrides && data.scheduleOverrides[id]
       };
+      allScheduleItems.push(item);
+    });
 
-      if (schedule.isCustom) {
-        customSchedules.push(item);
-      } else if (['normal', 'late', 'minimum', 'auto'].includes(id)) {
-        mainSchedules.push(item);
-      } else if (id !== 'noSchool') {
-        specialSchedules.push(item);
+    allScheduleItems.sort((a, b) => {
+      const aIsMain = data.scheduleOrder.includes(a.id);
+      const bIsMain = data.scheduleOrder.includes(b.id);
+
+      if (aIsMain && !bIsMain) return -1;
+      if (!aIsMain && bIsMain) return 1;
+
+      if (aIsMain && bIsMain) {
+        const aIndex = data.scheduleOrder.indexOf(a.id);
+        const bIndex = data.scheduleOrder.indexOf(b.id);
+        return aIndex - bIndex;
+      } else {
+        const aIndex = data.specialScheduleOrder.indexOf(a.id);
+        const bIndex = data.specialScheduleOrder.indexOf(b.id);
+        return aIndex - bIndex;
       }
     });
 
-    this.sortByOrder(mainSchedules, data.scheduleOrder);
-    this.sortByOrder(specialSchedules, data.specialScheduleOrder);
+    this.renderUnifiedScheduleList('scheduleManagerBody', allScheduleItems);
+  },
+  renderUnifiedScheduleList(containerId, schedules) {
+    const container = document.getElementById(containerId);
+    container.innerHTML = `
+      <div class="schedule-section">
+        <h3>All Schedules</h3>
+        <div class="schedule-list"></div>
+      </div>
+    `;
 
-    this.renderScheduleList('mainSchedulesList', mainSchedules, data.scheduleOrder, false);
-    this.renderScheduleList('specialSchedulesList', specialSchedules, data.specialScheduleOrder, true);
-    this.renderCustomScheduleList('customSchedulesList', customSchedules);
+    const listContainer = container.querySelector('.schedule-list');
+
+    schedules.forEach((item, index) => {
+      const div = document.createElement('div');
+      div.className = 'schedule-item' + (item.isHidden ? ' hidden-schedule' : '');
+      if (item.isCustom) div.classList.add('custom-schedule');
+
+      const data = StorageManager.getData();
+      const isMainCategory = data.scheduleOrder.includes(item.id);
+      const category = isMainCategory ? 'main' : 'special';
+
+      const tags = [];
+      if (item.schedule.canToggleOddEven) tags.push('<span class="schedule-tag odd-even-tag">Odd/Even</span>');
+      else tags.push('<span class="schedule-tag single-tag">Single</span>');
+      if (item.isCustom) tags.push('<span class="schedule-tag custom-tag">Custom</span>');
+      else if (item.isSpecial) tags.push('<span class="schedule-tag special-tag">Special</span>');
+
+      const canMoveUp = this.canMoveInCategory(schedules, index, -1, category);
+      const canMoveDown = this.canMoveInCategory(schedules, index, 1, category);
+      div.innerHTML = `
+        <div class="schedule-info">
+          <span class="schedule-name">${item.name}${item.hasOverride ? ' (Modified)' : ''}</span>
+          <div class="schedule-tags">${tags.join('')}</div>
+        </div>
+        <div class="schedule-actions">
+          <button class="visibility-toggle" onclick="toggleScheduleVisibility('${item.id}')" title="${item.isHidden ? 'Show' : 'Hide'}">
+            ${item.isHidden ? '○' : '●'}
+          </button>
+          <button onclick="editSchedule('${item.id}')">Edit</button>
+          ${item.hasOverride ? `<button onclick="resetScheduleToDefault('${item.id}')" style="color: #ff9933;">Reset</button>` : ''}
+          ${item.isCustom ? `<button class="delete-button" onclick="deleteCustomSchedule('${item.id}')">Delete</button>` : ''}
+          <div class="move-buttons">
+            ${canMoveUp ? `<button class="move-button" onclick="moveSchedule('${item.id}', -1, ${category === 'special'})">↑</button>` : '<div style="height: 20px;"></div>'}
+            ${canMoveDown ? `<button class="move-button" onclick="moveSchedule('${item.id}', 1, ${category === 'special'})">↓</button>` : '<div style="height: 20px;"></div>'}
+          </div>
+        </div>
+      `;
+      listContainer.appendChild(div);
+    });
+    const createButton = document.createElement('button');
+    createButton.className = 'button action-button';
+    createButton.textContent = '+ Add Custom Schedule';
+    createButton.onclick = () => ScheduleEditor.open();;
+    listContainer.appendChild(createButton);
+  },
+
+  canMoveInCategory(schedules, currentIndex, direction, category) {
+    const targetIndex = currentIndex + direction;
+    if (targetIndex < 0 || targetIndex >= schedules.length) return false;
+
+    const data = StorageManager.getData();
+    const currentItem = schedules[currentIndex];
+    const targetItem = schedules[targetIndex];
+    const currentIsMain = data.scheduleOrder.includes(currentItem.id);
+    const targetIsMain = data.scheduleOrder.includes(targetItem.id);
+
+    return currentIsMain === targetIsMain;
   },
 
   sortByOrder(schedules, order) {
@@ -1360,107 +1507,54 @@ const ScheduleManagerUI = {
       return indexA - indexB;
     });
   },
-
-  renderScheduleList(containerId, schedules, order, isSpecial) {
-    const container = document.getElementById(containerId);
-    container.innerHTML = '';
-    
-    schedules.forEach((item, index) => {
-      const div = document.createElement('div');
-      div.className = 'schedule-item' + (item.isHidden ? ' hidden-schedule' : '');
-      
-      const canToggleOddEven = item.schedule.canToggleOddEven ? 'Odd/Even' : 'Single';
-      
-      const data = StorageManager.getData();
-      const hasOverride = !item.isCustom && data.scheduleOverrides && data.scheduleOverrides[item.id];
-      
-      div.innerHTML = `
-        <div class="schedule-info">
-          <span class="schedule-name">${item.name}${hasOverride ? ' (Modified)' : ''}</span>
-          <span class="schedule-type">${canToggleOddEven}</span>
-        </div>
-        <div class="schedule-actions">
-          <button class="visibility-toggle" onclick="toggleScheduleVisibility('${item.id}')" title="${item.isHidden ? 'Show' : 'Hide'}">
-            ${item.isHidden ? '○' : '●'}
-          </button>
-          <button onclick="editSchedule('${item.id}')">Edit</button>
-          ${hasOverride ? `<button onclick="resetScheduleToDefault('${item.id}')" style="color: #ff9933;">Reset</button>` : ''}
-          <div class="move-buttons">
-            ${index > 0 ? `<button class="move-button" onclick="moveSchedule('${item.id}', -1, ${isSpecial})">↑</button>` : '<div style="height: 20px;"></div>'}
-            ${index < schedules.length - 1 ? `<button class="move-button" onclick="moveSchedule('${item.id}', 1, ${isSpecial})">↓</button>` : '<div style="height: 20px;"></div>'}
-          </div>
-        </div>
-      `;
-      
-      container.appendChild(div);
-    });
-  },
-
-  renderCustomScheduleList(containerId, schedules) {
-    const container = document.getElementById(containerId);
-    container.innerHTML = '';
-
-    if (schedules.length === 0) {
-      container.innerHTML = '<div style="color: #666; padding: 10px;">No custom schedules yet</div>';
-      return;
-    }
-
-    schedules.forEach(item => {
-      const div = document.createElement('div');
-      div.className = 'schedule-item custom-schedule' + (item.isHidden ? ' hidden-schedule' : '');
-
-      const canToggleOddEven = item.schedule.canToggleOddEven ? 'Odd/Even' : 'Single';
-
-      div.innerHTML = `
-                <div class="schedule-info">
-                  <span class="schedule-name">${item.name}</span>
-                  <span class="schedule-type">${canToggleOddEven}</span>
-                </div>
-                <div class="schedule-actions">
-                  <button class="visibility-toggle" onclick="toggleScheduleVisibility('${item.id}')" title="${item.isHidden ? 'Show' : 'Hide'}">
-                    ${item.isHidden ? '○' : '●'}
-                  </button>
-                  <button onclick="editCustomSchedule('${item.id}')">Edit</button>
-                  <button class="delete-button" onclick="deleteCustomSchedule('${item.id}')">Delete</button>
-                </div>
-              `;
-
-      container.appendChild(div);
-    });
-  }
 };
 
 function resetScheduleToDefault(scheduleId) {
   NotificationManager.showConfirm(
-  'Reset Schedule',
-  'Reset this schedule to its default settings?',
-  'Reset',
-  'Cancel',
-  function() {
-    const data = StorageManager.getData();
-    if (data.scheduleOverrides && data.scheduleOverrides[scheduleId]) {
-      delete data.scheduleOverrides[scheduleId];
-      StorageManager.save(data);
-      
-      regenerateScheduleButtons();
-      ScheduleManagerUI.render();
-      
-      if (currentScheduleId === scheduleId) {
-        loadSchedule(scheduleId);
+    'Reset Schedule',
+    'Reset this schedule to its default settings?',
+    'Reset',
+    'Cancel',
+    function() {
+      const data = StorageManager.getData();
+      if (data.scheduleOverrides && data.scheduleOverrides[scheduleId]) {
+        delete data.scheduleOverrides[scheduleId];
+        data.scheduleOrder = data.scheduleOrder.filter(id => id !== scheduleId);
+        data.specialScheduleOrder = data.specialScheduleOrder.filter(id => id !== scheduleId);
+
+        const defaultMainSchedules = ['normal', 'late', 'minimum'];
+        const defaultSpecialSchedules = ['anchor', 'rally', 'extendedSnack', 'testing'];
+
+        if (defaultMainSchedules.includes(scheduleId)) {
+          if (!data.scheduleOrder.includes(scheduleId)) {
+            data.scheduleOrder.push(scheduleId);
+          }
+        } else if (defaultSpecialSchedules.includes(scheduleId)) {
+          if (!data.specialScheduleOrder.includes(scheduleId)) {
+            data.specialScheduleOrder.push(scheduleId);
+          }
+        }
+
+        StorageManager.save(data);
+
+        regenerateScheduleButtons();
+        ScheduleManagerUI.render();
+
+        if (currentScheduleId === scheduleId) {
+          loadSchedule(scheduleId);
+        }
       }
+      NotificationManager.showAlert('', 'Schedule reset to default!', 'success');
     }
-    NotificationManager.showAlert('', 'Schedule reset to default!', 'success');
-  }
-);
+  );
+}
 
-
-  }
 function editSchedule(scheduleId) {
   const allSchedules = StorageManager.getAllSchedules();
   const schedule = allSchedules[scheduleId];
-  
+
   if (!schedule) return;
-  
+
   if (!schedule.isCustom) {
     const data = StorageManager.getData();
     if (data.scheduleOverrides && data.scheduleOverrides[scheduleId]) {
@@ -1478,40 +1572,23 @@ function generateMainScheduleButtons() {
   const allSchedules = StorageManager.getAllSchedules();
   const container = document.getElementById('mainScheduleButtons');
   container.innerHTML = '';
-  data.scheduleOrder.forEach(id => {
-    if (data.hiddenSchedules.includes(id) || !allSchedules[id]) {
-      return;
-    }
+
+  const handlers = {
+    normal: () => loadSchedule('normal'),
+    late: () => loadSchedule('late'),
+    minimum: () => loadSchedule('minimum'),
+    auto: AutoSchedule
+  };
+
+  for (const id of data.scheduleOrder) {
+    if (data.hiddenSchedules.includes(id) || !allSchedules[id]) continue;
     const button = document.createElement('button');
     button.id = `${id}-schedule`;
     button.className = 'schedule-button button';
     button.textContent = allSchedules[id].displayName;
-    switch(id) {
-      case 'normal':
-        button.onclick = NormalSchedule;
-        break;
-      case 'late':
-        button.onclick = LateSchedule;
-        break;
-      case 'minimum':
-        button.onclick = MinimumSchedule;
-        break;
-      case 'auto':
-        button.onclick = AutoSchedule;
-        break;
-      default:
-        button.onclick = () => loadSchedule(id);
-    }
+    button.onclick = handlers[id] || (() => loadSchedule(id));
     container.appendChild(button);
-  });
-}
-
-function openScheduleManager() {
-  ScheduleManagerUI.open();
-}
-
-function closeScheduleManager() {
-  ScheduleManagerUI.close();
+  }
 }
 
 function toggleScheduleVisibility(scheduleId) {
@@ -1533,8 +1610,10 @@ function moveSchedule(scheduleId, direction, isSpecial) {
   [orderArray[currentIndex], orderArray[newIndex]] = [orderArray[newIndex], orderArray[currentIndex]];
 
   StorageManager.updateScheduleOrder(orderArray, isSpecial);
-  ScheduleManagerUI.render();
 
+  if (ScheduleManagerUI.isOpen) {
+    ScheduleManagerUI.render();
+  }
   regenerateScheduleButtons();
 }
 
@@ -1588,6 +1667,7 @@ function handleImportFile(event) {
   };
   reader.readAsText(file);
 }
+
 const ScheduleEditor = {
   currentScheduleId: null,
   isEditing: false,
@@ -1613,9 +1693,8 @@ const ScheduleEditor = {
     this.isEditing = !!scheduleId;
     this.isOverride = false;
     this.currentTab = 'odd';
-    
+
     document.getElementById('scheduleEditorModal').classList.remove('hidden');
-    
     if (this.isEditing) {
       document.getElementById('editorTitle').textContent = 'Edit Custom Schedule';
       this.loadScheduleForEditing(scheduleId);
@@ -1624,32 +1703,25 @@ const ScheduleEditor = {
       this.resetEditor();
     }
   },
+
   openForOverride(scheduleId, scheduleData) {
     this.currentScheduleId = scheduleId;
     this.isEditing = true;
     this.isOverride = true;
     this.currentTab = 'odd';
-    
     document.getElementById('scheduleEditorModal').classList.remove('hidden');
     document.getElementById('editorTitle').textContent = `Edit ${scheduleData.displayName}`;
     document.getElementById('scheduleName').value = scheduleData.displayName;
     document.getElementById('scheduleType').value = scheduleData.canToggleOddEven ? 'oddeven' : 'single';
 
     const data = StorageManager.getData();
-    if (data.scheduleOrder.includes(scheduleId)) {
-      document.getElementById('buttonLocation').value = 'main';
-    } else {
-      document.getElementById('buttonLocation').value = 'special';
-    }
-
+    document.getElementById('buttonLocation').value =
+      data.scheduleOrder.includes(scheduleId) ? 'main' : 'special';
     this.scheduleData = JSON.parse(JSON.stringify(scheduleData));
-    
-    if (scheduleData.canToggleOddEven) {
-      document.getElementById('scheduleTabs').classList.remove('hidden');
-    }
-    
+    if (scheduleData.canToggleOddEven) document.getElementById('scheduleTabs').classList.remove('hidden');
     this.renderPeriods();
   },
+
   close() {
     document.getElementById('scheduleEditorModal').classList.add('hidden');
     this.currentScheduleId = null;
@@ -1736,16 +1808,13 @@ const ScheduleEditor = {
     this.renderPeriods();
   },
 
-  switchTab(tab) {
+  switchTab(tab, event) {
     this.currentTab = tab;
-
     document.querySelectorAll('.tab-button').forEach(btn => {
       btn.classList.remove('active');
     });
-    event.target.classList.add('active');
-
+    if (event) event.target.classList.add('active');
     document.getElementById('currentTabLabel').textContent = `(${tab === 'odd' ? 'Odd Days' : 'Even Days'})`;
-
     this.renderPeriods();
   },
 
@@ -1772,24 +1841,22 @@ const ScheduleEditor = {
       periodDiv.className = 'period-item';
       periodDiv.draggable = true;
       periodDiv.dataset.index = index;
-
       periodDiv.innerHTML = `
-                <span class="period-handle">≡</span>
-                <input type="text" class="period-time" value="${time}" 
-                      placeholder="HH:MM" maxlength="5" 
-                      onchange="updatePeriodTime(${index})" 
-                      onblur="validateTime(this)">
-                <input type="text" class="period-name" value="${periods.names[index]}" 
-                      placeholder="Period name" 
-                      onchange="updatePeriodName(${index})">
-                <button class="period-delete" onclick="deletePeriod(${index})">×</button>
-              `;
+        <span class="period-handle">≡</span>
+        <input type="text" class="period-time" value="${time}"
+          placeholder="HH:MM" maxlength="5"
+          onchange="updatePeriodTime(${index})"
+          onblur="validateTime(this)">
+        <input type="text" class="period-name" value="${periods.names[index]}"
+          placeholder="Period name"
+          onchange="updatePeriodName(${index})">
+        <button class="period-delete" onclick="deletePeriod(${index})">×</button>
+      `;
 
       periodDiv.addEventListener('dragstart', this.handleDragStart.bind(this));
       periodDiv.addEventListener('dragover', this.handleDragOver.bind(this));
       periodDiv.addEventListener('drop', this.handleDrop.bind(this));
       periodDiv.addEventListener('dragend', this.handleDragEnd.bind(this));
-
       container.appendChild(periodDiv);
     });
   },
@@ -1936,9 +2003,12 @@ const ScheduleEditor = {
   },
 
   validate() {
-    const name = document.getElementById('scheduleName').value.trim();
+    const scheduleInput = document.getElementById('scheduleName');
+    const name = scheduleInput.value.trim();
+
     if (!name) {
       NotificationManager.showAlert('Error Saving Schedule', 'Please enter a schedule name', 'error');
+      scheduleInput.classList.add('invalid');
       return false;
     }
 
@@ -1973,16 +2043,16 @@ const ScheduleEditor = {
         return false;
       }
     }
-    const times = this.scheduleData.canToggleOddEven ? 
-      this.scheduleData[this.currentTab].times : 
+    const times = this.scheduleData.canToggleOddEven ?
+      this.scheduleData[this.currentTab].times :
       this.scheduleData.times;
 
     for (let i = 1; i < times.length; i++) {
-      const prev = times[i-1].split(':').map(Number);
+      const prev = times[i - 1].split(':').map(Number);
       const curr = times[i].split(':').map(Number);
       const prevMinutes = prev[0] * 60 + prev[1];
       const currMinutes = curr[0] * 60 + curr[1];
-      
+
       if (currMinutes <= prevMinutes) {
         NotificationManager.showAlert('Error Saving Schedule', 'Period times must be in chronological order', 'error');
         return false;
@@ -1999,10 +2069,10 @@ const ScheduleEditor = {
 
   save() {
     if (!this.validate()) return;
-    
+
     const name = document.getElementById('scheduleName').value.trim();
     const location = document.getElementById('buttonLocation').value;
-    
+
     if (this.isOverride) {
       const data = StorageManager.getData();
       if (!data.scheduleOverrides) {
@@ -2013,7 +2083,7 @@ const ScheduleEditor = {
         displayName: name,
         canToggleOddEven: this.scheduleData.canToggleOddEven
       };
-      
+
       if (this.scheduleData.canToggleOddEven) {
         overrideData.odd = this.scheduleData.odd;
         overrideData.even = this.scheduleData.even;
@@ -2021,12 +2091,12 @@ const ScheduleEditor = {
         overrideData.times = this.scheduleData.times;
         overrideData.names = this.scheduleData.names;
       }
-      
+
       data.scheduleOverrides[this.currentScheduleId] = overrideData;
 
       data.scheduleOrder = data.scheduleOrder.filter(id => id !== this.currentScheduleId);
       data.specialScheduleOrder = data.specialScheduleOrder.filter(id => id !== this.currentScheduleId);
-      
+
       if (location === 'main') {
         if (!data.scheduleOrder.includes(this.currentScheduleId)) {
           data.scheduleOrder.push(this.currentScheduleId);
@@ -2036,9 +2106,9 @@ const ScheduleEditor = {
           data.specialScheduleOrder.push(this.currentScheduleId);
         }
       }
-      
+
       StorageManager.save(data);
-      
+
       NotificationManager.showAlert('', `Schedule "${name}" updated successfully!`, 'success');
     } else {
       let scheduleId = this.currentScheduleId;
@@ -2060,7 +2130,7 @@ const ScheduleEditor = {
         canToggleOddEven: this.scheduleData.canToggleOddEven,
         isCustom: true
       };
-      
+
       if (this.scheduleData.canToggleOddEven) {
         scheduleToSave.odd = this.scheduleData.odd;
         scheduleToSave.even = this.scheduleData.even;
@@ -2070,9 +2140,7 @@ const ScheduleEditor = {
       }
 
       StorageManager.saveCustomSchedule(scheduleId, scheduleToSave);
-
       const data = StorageManager.getData();
-
       data.scheduleOrder = data.scheduleOrder.filter(id => id !== scheduleId);
       data.specialScheduleOrder = data.specialScheduleOrder.filter(id => id !== scheduleId);
 
@@ -2081,26 +2149,16 @@ const ScheduleEditor = {
       } else {
         data.specialScheduleOrder.push(scheduleId);
       }
-      
+
       StorageManager.save(data);
-      
       NotificationManager.showAlert('', `Schedule "${name}" ${this.isEditing ? 'updated' : 'created'} successfully!`, 'success');
     }
 
     regenerateScheduleButtons();
     ScheduleManagerUI.render();
-    
     this.close();
   },
 };
-
-function closeScheduleEditor() {
-  ScheduleEditor.close();
-}
-
-function handleScheduleTypeChange() {
-  ScheduleEditor.handleTypeChange();
-}
 
 function handleCloneSelection() {
   const templateId = document.getElementById('cloneFrom').value;
@@ -2138,33 +2196,24 @@ function updatePeriodName(index) {
 }
 
 function deletePeriod(index) {
-  let periods;
-  if (ScheduleEditor.scheduleData.canToggleOddEven) {
-    periods = ScheduleEditor.scheduleData[ScheduleEditor.currentTab];
-  } else {
-    periods = ScheduleEditor.scheduleData;
-  }
+  const periods = ScheduleEditor.scheduleData.canToggleOddEven ?
+    ScheduleEditor.scheduleData[ScheduleEditor.currentTab] :
+    ScheduleEditor.scheduleData;
 
   periods.times.splice(index, 1);
   periods.names.splice(index, 1);
-
   ScheduleEditor.renderPeriods();
 }
 
-function addPeriod() {
-  ScheduleEditor.addPeriod();
+function validateTime(input) {
+  input.value = input.value.replace(/^(\d):(\d{2})$/, '0$1:$2');
+  const isValid = /^([01]?\d|2[0-3]):[0-5]\d$/.test(input.value);
+  input.classList.toggle('invalid', !isValid);
 }
 
-function validateTime(input) {
-  if (input.value.match(/^\d:\d{2}$/)) {
-    input.value = '0' + input.value;
-  }
-  const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
-  if (!timeRegex.test(input.value)) {
-    input.classList.add('invalid');
-  } else {
-    input.classList.remove('invalid');
-  }
+function validateScheduleName(input) {
+  const isValid = input.value.trim() !== '';
+  input.classList.toggle('invalid', !isValid);
 }
 
 function testSchedule() {
@@ -2200,22 +2249,10 @@ function testSchedule() {
   NotificationManager.showAlert('Preview Mode', 'Preview loaded! It will revert to your previous schedule in 5 seconds.', 'info');
 }
 
-function saveSchedule() {
-  ScheduleEditor.save();
-}
-
-function createNewSchedule() {
-  ScheduleEditor.open();
-}
-
-function editCustomSchedule(scheduleId) {
-  ScheduleEditor.open(scheduleId);
-}
-
 function resetToDefaults() {
   NotificationManager.showConfirm(
     'Reset All Schedules',
-    'This will reset all schedules to defaults and remove custom schedules. Continue?',
+    'This will reset all schedules to their default configuration and remove custom schedules. Continue?',
     'Reset All',
     'Cancel',
     () => {
@@ -2234,16 +2271,16 @@ function regenerateScheduleButtons() {
   buttonPanel.classList.add('button-updating');
 
   generateMainScheduleButtons();
-  
+
   const dropdown = document.getElementById('special-schedule');
   const currentValue = dropdown.value;
   dropdown.innerHTML = '<option value="Nothing">Special Schedules</option>';
-  
+
   data.specialScheduleOrder.forEach(id => {
     if (!data.hiddenSchedules.includes(id) && allSchedules[id]) {
       const option = document.createElement('option');
       if (!allSchedules[id].isCustom) {
-        switch(id) {
+        switch (id) {
           case 'anchor':
             option.value = 'anchorSchedule';
             break;
@@ -2262,7 +2299,7 @@ function regenerateScheduleButtons() {
       } else {
         option.value = id;
       }
-      
+
       option.textContent = allSchedules[id].displayName;
       dropdown.appendChild(option);
     }
@@ -2272,10 +2309,39 @@ function regenerateScheduleButtons() {
     dropdown.value = currentValue;
   }
 }
+const largeScheduleMap = {};
+largeScheduleMap.normal = {
+  schedule: 0,
+  baseTitle: "NORMAL BLOCK"
+};
+largeScheduleMap.late = {
+  schedule: 1,
+  baseTitle: "LATE BLOCK"
+};
+largeScheduleMap.minimum = {
+  schedule: 2,
+  baseTitle: "MINIMUM BLOCK"
+};
+largeScheduleMap.rally = {
+  schedule: 3,
+  baseTitle: "RALLY DAY"
+};
+largeScheduleMap.anchor = {
+  schedule: 4,
+  baseTitle: "ANCHOR DAY"
+};
+largeScheduleMap.extendedSnack = {
+  schedule: 5,
+  baseTitle: "MINIMUM DAY"
+};
+largeScheduleMap.testing = {
+  schedule: 7,
+  baseTitle: "TESTING SCHEDULE"
+};
 
 function loadSchedule(scheduleId, forceOddEven = null) {
   lastDisplayState.lastScheduleId = null;
-  lastDisplayState.currentPeriod = -999;
+  lastDisplayState.currentPeriod = -1;
   times.length = 0;
   starts.length = 0;
   names.length = 0;
@@ -2294,14 +2360,17 @@ function loadSchedule(scheduleId, forceOddEven = null) {
   currentScheduleData = template;
 
   if (scheduleId === 'noSchool') {
-    clearAll();
+    times.length = 0;
+    names.length = 0;
+    starts.length = 0;
     document.getElementById("timer_type").innerHTML = "No School";
+    lastDisplayState.scheduleHTML = "No school today!";
+    document.getElementById("scheduledisplay").innerHTML = "No school today!";
+    updateButtonStates(scheduleId);
     return;
   }
 
-
   let scheduleData;
-
   if (template.canToggleOddEven) {
     const useEven = forceOddEven !== null ? forceOddEven : isEven;
     scheduleData = useEven && template.even ? template.even : template.odd || template;
@@ -2312,56 +2381,20 @@ function loadSchedule(scheduleId, forceOddEven = null) {
   times.push(...(scheduleData.times || template.times));
   names.push(...(scheduleData.names || template.names));
 
-  updateStarts();
+  starts = times.map((time) => {
+    let [hours, minutes] = time.split(":").map(Number);
+    return hours * 3600 + minutes * 60;
+  });
 
-  let displayTitle = "";
-  if (template.canToggleOddEven) {
-    displayTitle = isEven ? "EVEN " : "ODD ";
-  }
+  const entry = largeScheduleMap[scheduleId];
+  displayTitle = entry ? entry.baseTitle : "UNKNOWN";
 
-  if (template.isCustom) {
-    displayTitle += template.displayName.toUpperCase();
-  } else {
-    switch (scheduleId) {
-      case 'normal':
-        schedule = 0;
-        displayTitle += "NORMAL BLOCK";
-        break;
-      case 'late':
-        schedule = 1;
-        displayTitle += "LATE BLOCK";
-        break;
-      case 'minimum':
-        schedule = 2;
-        displayTitle += "MINIMUM BLOCK";
-        break;
-      case 'rally':
-        schedule = 3;
-        displayTitle += "RALLY DAY";
-        break;
-      case 'anchor':
-        schedule = 4;
-        displayTitle = "ANCHOR DAY";
-        break;
-      case 'extendedSnack':
-        schedule = 5;
-        displayTitle = "MINIMUM DAY";
-        break;
-      case 'testing':
-        schedule = 7;
-        displayTitle += "TESTING SCHEDULE";
-        break;
-      default:
-        displayTitle += template.displayName.toUpperCase();
-    }
-  }
-
-  document.getElementById("timer_type").innerHTML = displayTitle;
+  document.getElementById("timer_type").textContent = displayTitle;
 
   if (template.subtitle) {
-    document.getElementById("subtitle").innerHTML = template.subtitle;
+    document.getElementById("subtitle").textContent = template.subtitle;
   } else {
-    ClearSubtitle();
+    document.getElementById("subtitle").textContent = '';
   }
 
   updateButtonStates(scheduleId);
@@ -2369,266 +2402,77 @@ function loadSchedule(scheduleId, forceOddEven = null) {
   StorageManager.savePreference('lastUsedSchedule', scheduleId);
 }
 
+const scheduleMapping = {
+  anchor: 'anchorSchedule',
+  rally: 'rallySchedule',
+  extendedSnack: 'ExtendedSnackSchedule',
+  testing: 'TestingSchedule'
+};
+
 function updateButtonStates(scheduleId) {
   clearSelectedStateButtons();
 
-  const button = document.getElementById(`${scheduleId}-schedule`);
-  if (button) {
-    button.classList.add("selected-state");
-  }
+  document.getElementById(`${scheduleId}-schedule`)?.classList.add("selected-state");
 
   const dropdown = document.getElementById("special-schedule");
-  switch (scheduleId) {
-    case 'anchor':
-      dropdown.selectedIndex = Array.from(dropdown.options).findIndex(opt => opt.value === 'anchorSchedule');
-      dropdown.classList.add("special-schedule-select");
+  const targetValue = scheduleMapping[scheduleId] || scheduleId;
+
+  let foundIndex = 0;
+  const options = dropdown.options;
+  for (let i = 0, len = options.length; i < len; i++) {
+    if (options[i].value === targetValue) {
+      foundIndex = i;
       break;
-    case 'rally':
-      dropdown.selectedIndex = Array.from(dropdown.options).findIndex(opt => opt.value === 'rallySchedule');
-      dropdown.classList.add("special-schedule-select");
-      break;
-    case 'extendedSnack':
-      dropdown.selectedIndex = Array.from(dropdown.options).findIndex(opt => opt.value === 'ExtendedSnackSchedule');
-      dropdown.classList.add("special-schedule-select");
-      break;
-    case 'testing':
-      dropdown.selectedIndex = Array.from(dropdown.options).findIndex(opt => opt.value === 'TestingSchedule');
-      dropdown.classList.add("special-schedule-select");
-      break;
-    default:
-      const customIndex = Array.from(dropdown.options).findIndex(opt => opt.value === scheduleId);
-      if (customIndex > 0) {
-        dropdown.selectedIndex = customIndex;
-        dropdown.classList.add("special-schedule-select");
-      } else {
-        dropdown.selectedIndex = 0;
-        dropdown.classList.remove("special-schedule-select");
-      }
+    }
   }
 
-  updateOddEvenToggleButton()
+  dropdown.selectedIndex = foundIndex;
+  dropdown.classList.toggle("special-schedule-select", foundIndex > 0);
+
+  updateOddEvenToggleButton();
 }
-var defaultDisplays = {};
-var infoElements = document.querySelectorAll(".info");
+
+let defaultDisplays = {};
+let infoElements = document.querySelectorAll(".info");
 infoElements.forEach(function(infoElement) {
   defaultDisplays[infoElement] = getComputedStyle(infoElement).display;
 });
 
-let timerInterval;
-let isPaused = true;
-let remainingTime = 0;
-let isFinished = false;
-let alarmStopped = false;
-
-interact(".draggable").draggable({
-  inertia: true,
-  modifiers: [
-    interact.modifiers.restrictRect({
-      endOnly: true,
-    }),
-  ],
-  autoScroll: true,
-  listeners: {
-    move: function(event) {
-      var target = event.target;
-      var x =
-        (parseFloat(target.getAttribute("data-x")) || 0) + event.dx;
-      var y =
-        (parseFloat(target.getAttribute("data-y")) || 0) + event.dy;
-      target.style.transform = "translate(" + x + "px, " + y + "px)";
-      target.setAttribute("data-x", x);
-      target.setAttribute("data-y", y);
-    },
-  },
-});
-
-function startTimer() {
-  if (isPaused) {
-    let hours = parseInt(document.getElementById("hourTimer").textContent);
-    let minutes = parseInt(document.getElementById("minuteTimer").textContent);
-    let seconds = parseInt(document.getElementById("secondTimer").textContent);
-    remainingTime = hours * 3600 + minutes * 60 + seconds;
-    if (remainingTime <= 0) {
-      document.getElementById("timerDisplay").classList.add("shake");
-      setTimeout(() => {
-        document.getElementById("timerDisplay").classList.remove("shake");
-      }, 400);
-      return;
-    }
-    updateTimerDisplay();
-    timerInterval = setInterval(updateTimer, 1000);
-    isPaused = false;
-    toggleTimerButton();
-  }
-  document.getElementById("hourTimer").removeAttribute("contenteditable");
-  document.getElementById("minuteTimer").removeAttribute("contenteditable");
-  document.getElementById("secondTimer").removeAttribute("contenteditable");
-}
-
-function pauseTimer() {
-  if (!isPaused) {
-    isPaused = true;
-    clearInterval(timerInterval);
-    toggleTimerButton();
-  }
-  document.getElementById("hourTimer").setAttribute("contenteditable", "true");
-  document.getElementById("minuteTimer").setAttribute("contenteditable", "true");
-  document.getElementById("secondTimer").setAttribute("contenteditable", "true");
-}
-
-function toggleTimerButton() {
-  document.getElementById("startButton").classList.toggle("hidden");
-  document.getElementById("pauseButton").classList.toggle("hidden");
-}
-
-function updateTimer() {
-  if (isPaused) return;
-  remainingTime--;
-  if (remainingTime < 0) {
-    clearInterval(timerInterval);
-    finishTimer();
-    return;
-  }
-  updateTimerDisplay();
-}
-
-function finishTimer() {
-  isFinished = true;
-  alarmStopped = false;
-  pauseTimer();
-  finishInterval = setInterval(flash, 250);
-  document.getElementById("startButton").classList.toggle("hidden");
-  document.getElementById("stopAlarmButton").classList.toggle("hidden");
-  document.getElementById("hintTimer").classList.toggle("hidden");
-}
-
-function flash() {
-  document.getElementById("timerDisplay").classList.toggle("timerFinishedColor");
-  document.getElementById("timerPanel").classList.toggle("timerFinishedBorder");
-  document.getElementById("body").classList.toggle("timerFinishedBody");
-  document.getElementById("timerPanel").classList.toggle("timerPanel");
-  if (!sharedAudioContext) {
-    sharedAudioContext = new (window.AudioContext || window.webkitAudioContext)();
-  }
-  const gainNode = sharedAudioContext.createGain();
-  gainNode.gain.value = 0.2;
-  const oscillator = audioContext.createOscillator();
-  oscillator.type = "sine";
-  oscillator.frequency.setValueAtTime(1000, audioContext.currentTime);
-  oscillator.connect(gainNode).connect(audioContext.destination);
-  oscillator.start();
-  oscillator.stop(audioContext.currentTime + 0.1);
-}
-
-function stopTimerAlarm() {
-  alarmStopped = true;
-  isFinished = false;
-  clearInterval(finishInterval);
-  const timerDisplay = document.getElementById("timerDisplay");
-  const timerPanel = document.getElementById("timerPanel");
-  const body = document.getElementById("body");
-  if (timerDisplay.classList.contains("timerFinishedColor")) {
-    timerDisplay.classList.remove("timerFinishedColor");
-    timerPanel.classList.remove("timerFinishedBorder");
-    body.classList.remove("timerFinishedBody");
-    timerPanel.classList.add("timerPanel");
-  }
-  document.getElementById("startButton").classList.toggle("hidden");
-}
-
-function updateTimerDisplay() {
-  let hours = Math.floor(remainingTime / 3600);
-  let minutes = Math.floor((remainingTime % 3600) / 60);
-  let seconds = remainingTime % 60;
-  document.getElementById("hourTimer").textContent = hours
-    .toString()
-    .padStart(2, "0");
-  document.getElementById("minuteTimer").textContent = minutes
-    .toString()
-    .padStart(2, "0");
-  document.getElementById("secondTimer").textContent = seconds
-    .toString()
-    .padStart(2, "0");
-}
-const timers = document.querySelectorAll("[contenteditable=true]");
-timers.forEach((timer) => {
-  timer.addEventListener("input", function() {
-    let value = this.textContent.trim();
-    if (!isNaN(value)) {
-      value = value.slice(0, 2);
-      this.textContent = value.padStart(2, "0");
-    } else {
-      this.textContent = "00";
-    }
-  });
-});
-document.addEventListener("click", function() {
-  if (isFinished) {
-    stopTimerAlarm();
-  }
-});
-
-document.getElementById("toggleButton").addEventListener("click", function() {
-  let panel = document.getElementById("settingsModal");
-  panel.classList.toggle("hidden");
-  let button = document.getElementById("toggleButton");
-  button.classList.toggle("selected-bottom");
-});
-document.getElementById("closeEdit").addEventListener("click", function() {
-  let panel = document.getElementById("settingsModal");
-  panel.classList.toggle("hidden");
-  let button = document.getElementById("toggleButton");
-  button.classList.remove("selected-bottom");
-});
-
-document.getElementById("showTimerButton").addEventListener("click", function() {
-  let panel = document.getElementById("timerPanel");
-  panel.classList.toggle("hidden");
-  let button = document.getElementById("showTimerButton");
-  button.classList.toggle("selected-bottom");
-});
 
 function updateAndCallAgain() {
-  var selectedValue = Math.max(16, parseInt(document.getElementById("updateFrequencies").value));
   updateMainDisplay();
-  setTimeout(updateAndCallAgain, selectedValue);
-  checkTimerType();
+  setTimeout(updateAndCallAgain, updateFrequency);
 }
 
 function getSchoolScheduleLink() {
-    const now = new Date();
-    let year = now.getFullYear() % 100;
-    let schoolYear;
+  const now = new Date();
+  const month = now.getMonth();
+  const day = now.getDate();
+  const year = now.getFullYear() % 100;
+  const prevYear = (year - 1).toString().padStart(2, '0');
+  const nextYear = (year + 1).toString().padStart(2, '0');
+  const currentYearStr = year.toString().padStart(2, '0');
 
-  if (now.getMonth() > 5 || (now.getMonth() === 5 && now.getDate() >= 15)) {
-    schoolYear = `${year}-${(year + 1).toString().padStart(2,'0')}`;
-  } else {
-    schoolYear = `${(year - 1).toString().padStart(2,'0')}-${year.toString().padStart(2,'0')}`;
-  }
+  const mainSchoolYear = (month > 5 || (month === 5 && day >= 15)) ?
+    `${currentYearStr}-${nextYear}` :
+    `${prevYear}-${currentYearStr}`;
 
-  const mainLink = `https://bellflowerhigh.org/${schoolYear}schedulescalendars`;
+  const mainLink = `https://bellflowerhigh.org/${mainSchoolYear}schedulescalendars`;
+  const fallbackLink = (month === 5 || month === 6) ?
+    `https://bellflowerhigh.org/${prevYear}-${currentYearStr}schedulescalendars` :
+    null;
 
-  let fallbackLink = null;
-  if (now.getMonth() === 5 || now.getMonth() === 6) {
-    const fallbackYear = `${(year - 1).toString().padStart(2,'0')}-${year.toString().padStart(2,'0')}`;
-    fallbackLink = `https://bellflowerhigh.org/${fallbackYear}schedulescalendars`;
-  }
-
-  return { main: mainLink, fallback: fallbackLink };
+  return {
+    main: mainLink,
+    fallback: fallbackLink
+  };
 }
 
-document.getElementById("updateFrequencies").addEventListener("change", function() {
-  var selectedValue = this.value;
-  updateAndCallAgain();
-  savePreferenceToStorage('updateFrequency', selectedValue);
+document.getElementById("displayupdatefrequency").addEventListener("change", function() {
+  updateMainDisplay();
+  updateFrequency = Math.max(16, parseInt(this.value));
+  StorageManager.savePreference('updateFrequency', this.value);
 });
-
-function checkTimerType() {
-  var timerType = document.getElementById("timer_type").textContent;
-  if (timerType === "Loading...") {
-    NormalSchedule();
-  }
-}
 
 let timeAdjInput = document.querySelector("#timeadj");
 timeAdjInput.addEventListener("wheel", function(event) {
@@ -2638,30 +2482,131 @@ timeAdjInput.addEventListener("wheel", function(event) {
   timeadj();
 });
 
-let fastForwardInput = document.querySelector("#fastForward");
-fastForwardInput.addEventListener("wheel", function(event) {
-  event.preventDefault();
-  if (event.deltaY > 0) {
-    previousDay();
-  } else {
-    nextDay();
-  }
-});
+function bindWheelAdjust(selector, unit) {
+  const el = document.querySelector(selector);
+  el.addEventListener("wheel", (event) => {
+    event.preventDefault();
+    quickAdjust(unit, event.deltaY < 0);
+  });
+}
 
-function previousDay() {
-  adjustseconds -= 86400;
-  var inputBox = document.getElementById("timeadj");
+function quickAdjust(type, forward = true) {
+  let inputBox = document.getElementById("timeadj");
+  switch (type) {
+    case 'day':
+      adjustseconds += forward ? 86400 : -86400;
+      break;
+    case 'hour':
+      adjustseconds += forward ? 3600 : -3600;
+      break;
+    case 'minute':
+      adjustseconds += forward ? 60 : -60;
+      break;
+  }
   inputBox.value = adjustseconds;
   AutoSchedule();
   timeadj();
 }
 
-function nextDay() {
-  adjustseconds += 86400;
-  var inputBox = document.getElementById("timeadj");
-  inputBox.value = adjustseconds;
-  AutoSchedule();
-  timeadj();
+function timeadj() {
+  const oldAdjustSeconds = adjustseconds;
+  const inputValue = document.getElementById("timeadj").value.trim();
+  const newAdjustSeconds = Number(inputValue);
+
+  if (isNaN(newAdjustSeconds)) {
+    ErrorTimeAdj();
+  } else {
+    const maxSeconds = 100000 * 365 * 24 * 3600;
+    adjustseconds = Math.max(-maxSeconds, Math.min(maxSeconds, newAdjustSeconds));
+    if (Math.abs(newAdjustSeconds) > maxSeconds) {
+      document.getElementById("timeadj").value = adjustseconds;
+      NotificationManager.showAlert('', 'Time adjustment clamped to 100,000 years maximum', 'warning');
+    }
+    ValidTimeAdj();
+  }
+
+  evaluateMath();
+  updateMainDisplay();
+
+  const currentTime = Date.now();
+  const newDate = new Date(currentTime + adjustseconds * 1000);
+  const oldDate = new Date(currentTime + oldAdjustSeconds * 1000);
+  if (newDate.getDate() !== oldDate.getDate()) AutoSchedule();
+  StorageManager.savePreference('timeAdjustment', adjustseconds);
+}
+
+function inputTimeAdj(input) {
+  const old = adjustseconds;
+  const next = parseFloat(input);
+  const valid = !isNaN(next);
+  adjustseconds = valid ? next : (!isNaN(old) ? old : 0);
+  (valid ? ValidTimeAdj : ErrorTimeAdj)();
+  evaluateMath();
+  updateMainDisplay();
+}
+const timeAdjustmentInput = document.getElementById("timeadj");
+
+function evaluateMath() {
+  const input = timeAdjustmentInput.value;
+  const previousAdjustSeconds = adjustseconds;
+
+  if (input === "") {
+    adjustseconds = 0;
+    formatMath(true, 0);
+    secondsDisplay.textContent = "";
+    resultDisplay.textContent = "";
+    ValidTimeAdj();
+    return;
+  }
+
+  let isIntegerInput = true;
+  for (let i = 0; i < input.length; i++) {
+    const charCode = input.charCodeAt(i);
+    if (charCode < 48 || charCode > 57) {
+      isIntegerInput = false;
+      break;
+    }
+  }
+
+  let result;
+  try {
+    result = evaluateMathExpression(input);
+  } catch {
+    adjustseconds = previousAdjustSeconds;
+    ErrorTimeAdj();
+    formatMath(false);
+    return;
+  }
+
+  if (!isFinite(result)) {
+    adjustseconds = 0;
+    secondsDisplay.textContent = "and the universe is now dead because of you";
+    resultDisplay.textContent = "Infinity";
+    return;
+  }
+
+  const absoluteResult = Math.abs(result);
+  if (absoluteResult > 1e12) {
+    adjustseconds = previousAdjustSeconds;
+    ErrorTimeAdj();
+    formatMath(false);
+    return;
+  }
+
+  adjustseconds = result;
+
+  if (isIntegerInput) {
+    if (absoluteResult > 60) {
+      formatMath(true, result);
+    } else {
+      secondsDisplay.textContent = "";
+      resultDisplay.textContent = "";
+    }
+  } else {
+    formatMath(true, result);
+  }
+
+  ValidTimeAdj();
 }
 
 function ErrorTimeAdj() {
@@ -2675,117 +2620,6 @@ function ValidTimeAdj() {
   document.getElementById("timeadj").style.backgroundColor = "White";
 }
 
-function timeadj() {
-  const oldAdjustSeconds = adjustseconds;
-  const inputValue = document.getElementById("timeadj").value.trim();
-  const newAdjustSeconds = Number(inputValue);
-
-  if (isNaN(newAdjustSeconds)) {
-    ErrorTimeAdj();
-  } else {
-    const maxSeconds = 100000 * 365 * 24 * 3600;
-    adjustseconds = Math.max(-maxSeconds, Math.min(maxSeconds, newAdjustSeconds));
-    
-    if (Math.abs(newAdjustSeconds) > maxSeconds) {
-      document.getElementById("timeadj").value = adjustseconds;
-      NotificationManager.showAlert('', 'Time adjustment clamped to ±100,000 years maximum', 'warning');
-    }
-    
-    ValidTimeAdj();
-  }
-
-  evaluateMath();
-  updateMainDisplay();
-
-  const currentTime = Date.now();
-  const newDate = new Date(currentTime + adjustseconds * 1000);
-  const oldDate = new Date(currentTime + oldAdjustSeconds * 1000);
-
-  if (newDate.getDate() !== oldDate.getDate()) {
-    AutoSchedule();
-  }
-
-  savePreferenceToStorage('timeAdjustment', adjustseconds);
-}
-
-function inputTimeAdj(input) {
-  let oldAdjustSeconds = adjustseconds;
-  adjustseconds = parseFloat(input);
-  if (isNaN(adjustseconds)) {
-    if (!isNaN(oldAdjustSeconds)) {
-      adjustseconds = oldAdjustSeconds;
-    } else {
-      adjustseconds = 0;
-    }
-    ErrorTimeAdj();
-  } else {
-    ValidTimeAdj();
-  }
-  evaluateMath();
-  updateMainDisplay();
-}
-
-function evaluateMath() {
-  const inputElement = document.getElementById("timeadj");
-  const input = inputElement.value;
-  const oldAdjustSeconds = adjustseconds;
-  if (input === "") {
-      adjustseconds = 0;
-      formatMath(true, 0);
-      secondsDisplay.textContent = "";
-      resultDisplay.textContent = "";
-      ValidTimeAdj();
-      return;
-  }
-
-  let result;
-  try {
-    result = math.evaluate(input);
-  } catch {
-    adjustseconds = oldAdjustSeconds;
-    ErrorTimeAdj();
-    formatMath(false);
-    return;
-  }
-
-  if (!isFinite(result)) {
-    adjustseconds = 0;
-    secondsDisplay.textContent = "and the universe is now dead because of you";
-    resultDisplay.textContent = "Infinity";
-    return;
-  }
-
-  const MAX_ALLOWED = 1e12;
-  if (Math.abs(result) > MAX_ALLOWED) {
-    adjustseconds = oldAdjustSeconds;
-    ErrorTimeAdj();
-    formatMath(false);
-    return;
-  }
-
-  const isIntegerInput = /^[0-9]+$/.test(input);
-
-  if (!isNaN(result)) {
-    if (!isIntegerInput) {
-      formatMath(true, result);
-    } else {
-      adjustseconds = Number(input);
-      if (Math.abs(adjustseconds) > 60) {
-        formatMath(true, adjustseconds);
-      } else {
-        secondsDisplay.textContent = "";
-        resultDisplay.textContent = "";
-      }
-    }
-    adjustseconds = result;
-    ValidTimeAdj();
-  } else {
-    formatMath(false);
-    adjustseconds = oldAdjustSeconds;
-  }
-}
-
-
 function formatMath(isMathExpression, result) {
   const resultDisplay = document.getElementById("resultDisplay");
   const secondsDisplay = document.getElementById("secondsDisplay");
@@ -2797,24 +2631,22 @@ function formatMath(isMathExpression, result) {
   }
 
   const formattedResult = formatTime(result);
-
   resultDisplay.textContent = result === 0 ? "= 0s" : "= " + formattedResult;
   secondsDisplay.textContent = "= " + result + " seconds";
 }
 
-function adjustInputWidth(value) {
-  var inputElement = document.getElementById("timeadj");
-  var inputWidth = getTextWidth(value);
+function adjustTimeAdjustmentWidth(value) {
+  let inputElement = document.getElementById("timeadj");
+  let inputWidth = getTextWidth(value) + 20;
   inputElement.style.width = inputWidth + "px";
 }
 
 function getTextWidth(text) {
-  var canvas = document.createElement("canvas");
-  var context = canvas.getContext("2d");
+  let canvas = document.createElement("canvas");
+  let context = canvas.getContext("2d");
   context.font = getComputedStyle(document.body).fontSize + " Arial";
-  var width = context.measureText(text).width;
+  let width = context.measureText(text).width;
   if (width < 30) width = 30;
-  
   return width;
 }
 
@@ -2822,13 +2654,30 @@ function formatTime(seconds) {
   let neg = seconds < 0;
   seconds = Math.floor(Math.abs(seconds));
 
-  const units = [
-    { label: "c", value: 3600 * 24 * 365 * 100 },
-    { label: "y", value: 3600 * 24 * 365 },
-    { label: "d", value: 3600 * 24 },
-    { label: "h", value: 3600 },
-    { label: "m", value: 60 },
-    { label: "s", value: 1 }
+  const units = [{
+      label: "c",
+      value: 3600 * 24 * 365 * 100
+    },
+    {
+      label: "y",
+      value: 3600 * 24 * 365
+    },
+    {
+      label: "d",
+      value: 3600 * 24
+    },
+    {
+      label: "h",
+      value: 3600
+    },
+    {
+      label: "m",
+      value: 60
+    },
+    {
+      label: "s",
+      value: 1
+    }
   ];
 
   let str = neg ? "-" : "";
@@ -2856,16 +2705,6 @@ function colorizeRandom() {
   document.body.style.backgroundColor = getRandomColor();
 }
 
-const predefinedColorSchemes = {
-  gb: { text: "grey", background: "black", optionText: "black", optionBackground: "white" },
-  wb: { text: "white", background: "black", optionText: "black", optionBackground: "white" },
-  bw: { text: "black", background: "white", optionText: "black", optionBackground: "white" },
-  dk: { text: "crimson", background: "black", optionText: "crimson", optionBackground: "black" },
-  bg: { text: "#5077BE", background: "#D9FFB2", optionText: "#5077BE", optionBackground: "#D9FFB2" },
-  py: { text: "#B44DE0", background: "#FFFF99", optionText: "#B44DE0", optionBackground: "#FFFF99" },
-  sr: "random"
-};
-
 function colorBackground() {
   const optionElement = document.getElementById("colorscheme");
   const selected = optionElement.value;
@@ -2882,7 +2721,7 @@ function colorBackground() {
     document.body.style.backgroundColor = scheme.background;
   }
 
-  savePreferenceToStorage("colorScheme", selected);
+  StorageManager.savePreference("colorScheme", selected);
 }
 
 function padZero(number) {
@@ -2908,211 +2747,326 @@ function timePartsFromDate(date) {
   };
 }
 
-function formatDisplayedDate(date) {
-  const parts = timePartsFromDate(date);
-  return `${days[date.getDay()]} ${months[date.getMonth()]} ${padZero(date.getDate())} ${date.getFullYear()} ${parts.hh12Str}:${parts.mmStr}:${parts.ssStr} ${parts.meridiem}`;
-}
-
 function getCurrentSecondsFromDate(date) {
   return date.getHours() * 3600 + date.getMinutes() * 60 + date.getSeconds();
 }
 
 function formatScheduleTime(timeStr) {
-  const hour24 = parseInt(timeStr.substring(0, 2), 10);
-  const minutePart = timeStr.substring(2, 5);
-  const meridiem = hour24 >= 12 ? "PM" : "AM";
-  let hour12 = hour24 % 12;
-  if (hour12 === 0) hour12 = 12;
-  return padZero(hour12) + minutePart + " " + meridiem;
+  const hour24 = (timeStr.charCodeAt(0) - 48) * 10 + (timeStr.charCodeAt(1) - 48);
+  const minutePart = timeStr.slice(2, 5);
+  const meridiem = ["AM", "PM"][(hour24 / 12) | 0];
+  const hour12 = ((hour24 + 11) % 12) + 1;
+  const hourStr = (hour12 < 10 ? "0" : "") + hour12;
+  return hourStr + minutePart + " " + meridiem;
 }
 
-function updateMainDisplay() {
-  const originalDate = new Date();
-  const adjustedDate = new Date(originalDate.getTime() + (adjustseconds || 0) * 1000);
+function arraysEqual(a, b) {
+  if (!a || !b || a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++)
+    if (a[i] !== b[i]) return false;
+  return true;
+}
 
-  const currentDayOfMonth = adjustedDate.getDate();
-  const dayChanged = lastDisplayState.lastDayOfMonth !== currentDayOfMonth;
-  if (dayChanged) {
-    lastDisplayState.lastDayOfMonth = currentDayOfMonth;
-    AutoSchedule()
+function queueDOMUpdate(elementKey, content, stateKey, isHTML = false) {
+  pendingDOMUpdates[elementKey] = {
+    content,
+    stateKey,
+    isHTML
+  };
+
+  if (!hasScheduledDOMUpdate) {
+    hasScheduledDOMUpdate = true;
+    requestAnimationFrame(applyBatchedDOMUpdates);
+  }
+}
+
+function applyBatchedDOMUpdates() {
+  Object.entries(pendingDOMUpdates).forEach(([elementKey, update]) => {
+    const el = Els[elementKey];
+    if (el && lastDisplayState[update.stateKey] !== update.content) {
+      if (update.isHTML) {
+        el.innerHTML = update.content;
+      } else {
+        el.textContent = update.content;
+      }
+      lastDisplayState[update.stateKey] = update.content;
+    }
+  });
+  pendingDOMUpdates = {};
+  hasScheduledDOMUpdate = false;
+}
+
+function updateText(el, content, stateKey) {
+  if (lastDisplayState[stateKey] !== content) {
+    const elementKey = getElementKey(el);
+    if (elementKey) {
+      queueDOMUpdate(elementKey, content, stateKey, false);
+    }
+  }
+}
+
+function updateHTML(el, content, stateKey) {
+  if (lastDisplayState[stateKey] !== content) {
+    const elementKey = getElementKey(el);
+    if (elementKey) {
+      queueDOMUpdate(elementKey, content, stateKey, true);
+    }
+  }
+}
+
+function getElementKey(el) {
+  return Object.keys(Els).find(key => Els[key] === el);
+}
+
+let cachedTimeComponents = null;
+let lastCalculatedTimestamp = -1;
+
+function getOptimizedTimeComponents(adjustedDate) {
+  const timestamp = adjustedDate.getTime();
+  const secondTimestamp = Math.floor(timestamp / 1000) * 1000;
+
+  if (secondTimestamp !== lastCalculatedTimestamp) {
+    cachedTimeComponents = {
+      dayOfMonth: adjustedDate.getDate(),
+      hour: adjustedDate.getHours(),
+      minute: adjustedDate.getMinutes(),
+      second: adjustedDate.getSeconds(),
+      currentSeconds: getCurrentSecondsFromDate(adjustedDate),
+      timestamp: timestamp
+    };
+    lastCalculatedTimestamp = secondTimestamp;
+  }
+  return cachedTimeComponents;
+}
+
+function updateDisplayedDate(adjustedDate) {
+  const timeComponents = getOptimizedTimeComponents(adjustedDate);
+  const lastDay = lastDisplayState.lastDayOfMonth;
+  const lastHour = lastDisplayState.lastHour;
+  const lastMinute = lastDisplayState.lastMinute;
+  const lastSecond = lastDisplayState.lastSecond;
+
+  if (timeComponents.dayOfMonth !== lastDay ||
+    timeComponents.hour !== lastHour ||
+    timeComponents.minute !== lastMinute ||
+    timeComponents.second !== lastSecond ||
+    dateFormatUpdated) {
+
+    const displayedDate = formatDisplayedDate(adjustedDate);
+    const currentDateEl = Els["currentdate"];
+    if (currentDateEl) updateText(currentDateEl, displayedDate, "displayedDate");
+
+    lastDisplayState.lastDayOfMonth = timeComponents.dayOfMonth;
+    lastDisplayState.lastHour = timeComponents.hour;
+    lastDisplayState.lastMinute = timeComponents.minute;
+    lastDisplayState.lastSecond = timeComponents.second;
+    dateFormatUpdated = false;
   }
 
-  const scheduleChanged = lastDisplayState.lastScheduleId !== currentScheduleId || 
-                         lastDisplayState.lastIsEven !== isEven ||
-                         JSON.stringify(lastDisplayState.lastScheduleTimes) !== JSON.stringify(times);
-  
+  return timeComponents;
+}
+
+
+function updateMainDisplay() {
+  const now = Date.now() + ((adjustseconds || 0) * 1000);
+  const adjustedDate = new Date(now);
+  const timeComponents = updateDisplayedDate(adjustedDate);
+  const dayChanged = lastDisplayState.lastDayOfMonth !== timeComponents.dayOfMonth;
+  updateDisplayedDate(adjustedDate);
+
+  if (dayChanged) {
+    AutoSchedule();
+  }
+
+  const scheduleChanged =
+    lastDisplayState.lastScheduleId !== currentScheduleId ||
+    lastDisplayState.lastIsEven !== isEven ||
+    !arraysEqual(lastDisplayState.lastScheduleTimes, times);
+
   if (scheduleChanged) {
     lastDisplayState.lastScheduleId = currentScheduleId;
     lastDisplayState.lastIsEven = isEven;
     lastDisplayState.lastScheduleTimes = [...times];
-    lastDisplayState.currentPeriod = -999; 
+    lastDisplayState.currentPeriod = -1;
   }
 
-  const displayedDate = formatDisplayedDate(adjustedDate);
-  const currentDateEl = document.getElementById("currentdate");
-  if (currentDateEl && lastDisplayState.displayedDate !== displayedDate) {
-    currentDateEl.textContent = displayedDate;
-    lastDisplayState.displayedDate = displayedDate;
-  }
-
-  const parts = timePartsFromDate(adjustedDate);
-  if (random && parts.ss === 0 && !randomChange) {
-    colorizeRandom();
-    randomChange = true;
-  } else if (parts.ss !== 0) {
-    randomChange = false;
-  }
-
-  const currentSeconds = getCurrentSecondsFromDate(adjustedDate);
-
-  if (typeof starts === "undefined" || !Array.isArray(starts) || starts.length === 0) {
-    const scheduleEl = document.getElementById("scheduledisplay");
-    if (scheduleEl && lastDisplayState.scheduleHTML !== "No school today!") {
-      scheduleEl.innerHTML = "No school today!";
-      lastDisplayState.scheduleHTML = "No school today!";
+  if (random) {
+    if (timeComponents.second === 0 && !randomChange) {
+      colorizeRandom();
+      randomChange = true;
+    } else if (timeComponents.second !== 0) {
+      randomChange = false;
     }
+  }
+
+  if (starts.length === 0) {
+    updateHTML(Els["scheduledisplay"], "No school today!", "scheduleHTML");
+    updateText(Els["currentduration"], "", "currentDuration");
+    updateText(Els["nextduration"], "", "nextDuration");
+    updateText(Els["endofschedulesubtitle"], "", "endOfScheduleSubtitle");
+    updateText(Els["currentschedule"], "", "currentSchedule");
+    updateText(Els["nextschedule"], "", "nextSchedule");
+    updateText(Els["currentlengthofperiod"], "", "currentLength");
+    updateText(Els["currentperiodsubtitle"], "", "currentPeriodSubtitle");
     return;
   }
 
+  const currentSeconds = timeComponents.currentSeconds;
   const periodIndex = starts.length - 1;
   let currentPeriod = -1;
-  const updateElement = (id, content, stateKey) => {
-    const el = document.getElementById(id);
-    if (el && lastDisplayState[stateKey] !== content) {
-      el.innerHTML = content;
-      lastDisplayState[stateKey] = content;
-    }
-  };
 
   if (currentSeconds < starts[0]) {
-    updateElement("currentperiodsubtitle", "Countdown to", "currentPeriodSubtitle");
-    updateElement("currentschedule", names[0], "currentSchedule");
-    updateElement("endofschedulesubtitle", "", "endOfScheduleSubtitle");
-    updateElement("currentduration", formatDisplayTimer(Math.abs(currentSeconds - starts[0])), "currentDuration");
-    updateElement("currentlengthofperiod", "", "currentLength");
-    updateElement("nextperiodsubtitle", "", "nextPeriodSubtitle");
-    updateElement("nextschedule", "", "nextSchedule");
-    updateElement("nextduration", "", "nextDuration");
-  } else if (currentSeconds > starts[periodIndex]) {
-    updateElement("currentperiodsubtitle", "", "currentPeriodSubtitle");
-    updateElement("currentschedule", names[periodIndex], "currentSchedule");
-    updateElement("endofschedulesubtitle", "Time elapsed since end of schedule", "endOfScheduleSubtitle");
-    updateElement("currentduration", formatDisplayTimer(currentSeconds - starts[periodIndex]), "currentDuration");
-    updateElement("nextperiodsubtitle", "", "nextPeriodSubtitle");
-    updateElement("nextschedule", "", "nextSchedule");
-    updateElement("nextduration", "", "nextDuration");
-    updateElement("currentlengthofperiod", "", "currentLength");
+    currentPeriod = -1;
+  } else if (currentSeconds >= starts[periodIndex]) {
+    currentPeriod = periodIndex;
   } else {
-    for (let x = 0; x < periodIndex; x++) {
-      if (starts[x] < currentSeconds && starts[x + 1] > currentSeconds) {
-        currentPeriod = x;
-        let elapsed = currentSeconds - starts[x];
-        let elapsedStr = formatDisplayTimer(elapsed);
-        if (elapsed < 60) {
-          elapsedStr += " seconds";
-        }
-        
-        updateElement("currentperiodsubtitle", "We are now " + elapsedStr + " into:", "currentPeriodSubtitle");
-        updateElement("currentschedule", names[x], "currentSchedule");
-        updateElement("endofschedulesubtitle", "", "endOfScheduleSubtitle");
-        updateElement("currentduration", "", "currentDuration");
-        updateElement("nextschedule", `<strong>${names[x + 1]}</strong> starts in:`, "nextSchedule");
-        updateElement("nextduration", formatDisplayTimer(Math.abs(currentSeconds - starts[x + 1])), "nextDuration");
+    let left = 0,
+      right = periodIndex;
+    while (left <= right) {
+      const mid = Math.floor((left + right) / 2);
+      if (starts[mid] <= currentSeconds && currentSeconds < starts[mid + 1]) {
+        currentPeriod = mid;
         break;
+      } else if (currentSeconds < starts[mid]) {
+        right = mid - 1;
+      } else {
+        left = mid + 1;
       }
     }
   }
 
-  if (lastDisplayState.currentPeriod !== currentPeriod || scheduleChanged || dayChanged) {
+  if (currentPeriod === -1) {
+    updateText(Els["currentduration"], formatDisplayTimer(starts[0] - currentSeconds), "currentDuration");
+  } else if (currentPeriod >= 0 && currentPeriod < periodIndex) {
+    updateText(Els["nextduration"], formatDisplayTimer(starts[currentPeriod + 1] - currentSeconds), "nextDuration");
+  } else {
+    updateText(Els["currentduration"], formatDisplayTimer(currentSeconds - starts[periodIndex]), "currentDuration");
+  }
+
+  const lastPeriod = lastDisplayState.currentPeriod;
+  if (lastPeriod !== currentPeriod || scheduleChanged || dayChanged) {
     lastDisplayState.currentPeriod = currentPeriod;
-    const scheduleEl = document.getElementById("scheduledisplay");
-    if (scheduleEl && Array.isArray(times) && times.length > 0) {
-      const lines = [];
-      lines.push(`
-        <div style="margin-top:30px; display:block; width:100%; text-align:center">
-          <div style="display:inline-block; margin-left:auto; margin-right:auto; text-align:left; width:auto">
-            Today's Schedule:<br />
-      `);
 
-      times.slice(0, periodIndex).forEach((startTimeRaw, x) => {
-        const endTimeRaw = times[x + 1] || "";
-        const startLabel = formatScheduleTime(startTimeRaw);
-        const endLabel = formatScheduleTime(endTimeRaw);
-        const periodLine = `${startLabel} - ${endLabel} ${names[x]}<br />`;
+    if (currentPeriod === -1) {
+      updateText(Els["currentperiodsubtitle"], "Countdown to", "currentPeriodSubtitle");
+      updateText(Els["currentschedule"], names[0], "currentSchedule");
+      updateText(Els["endofschedulesubtitle"], "", "endOfScheduleSubtitle");
+      updateText(Els["currentlengthofperiod"], "", "currentLength");
+      updateText(Els["nextschedule"], "", "nextSchedule");
+      updateText(Els["nextduration"], "", "nextDuration");
 
-        if (x === currentPeriod) {
-          lines.push(`<strong>${periodLine}</strong>`);
-          updateElement("currentlengthofperiod", `${startLabel} - ${endLabel}`, "currentLength");
-        } else {
-          lines.push(periodLine);
+    } else if (currentPeriod === periodIndex) {
+      updateText(Els["currentperiodsubtitle"], "", "currentPeriodSubtitle");
+      updateText(Els["currentschedule"], names[periodIndex], "currentSchedule");
+      updateText(Els["endofschedulesubtitle"], "Time elapsed since end of schedule", "endOfScheduleSubtitle");
+      updateText(Els["currentlengthofperiod"], "", "currentLength");
+      updateText(Els["nextschedule"], "", "nextSchedule");
+      updateText(Els["nextduration"], "", "nextDuration");
+
+    } else {
+      const elapsed = currentSeconds - starts[currentPeriod];
+      let elapsedStr = formatDisplayTimer(elapsed);
+      if (elapsed < 60) elapsedStr += " seconds";
+
+      updateText(Els["currentperiodsubtitle"], `We are now ${elapsedStr} into:`, "currentPeriodSubtitle");
+      updateText(Els["currentschedule"], names[currentPeriod], "currentSchedule");
+      updateText(Els["endofschedulesubtitle"], "", "endOfScheduleSubtitle");
+      updateText(Els["currentduration"], "", "currentDuration");
+      updateHTML(Els["nextschedule"], `<strong>${names[currentPeriod + 1]}</strong> starts in:`, "nextSchedule");
+    }
+
+    if (currentPeriod >= 0 && currentPeriod < periodIndex) {
+      updateText(Els["currentlengthofperiod"],
+        `${formatScheduleTime(times[currentPeriod])} - ${formatScheduleTime(times[currentPeriod + 1])}`,
+        "currentLength");
+    } else {
+      updateText(Els["currentlengthofperiod"], "", "currentLength");
+    }
+
+    if (scheduleChanged) {
+      const scheduleEl = Els["scheduledisplay"] || document.getElementById("scheduledisplay");
+      if (scheduleEl) {
+        const lines = [];
+        lines.push(
+          '<div style="margin-top:30px; display:block; width:100%; text-align:center">' +
+          '<div style="display:inline-block; margin-left:auto; margin-right:auto; text-align:left; width:auto">' +
+          "Today's Schedule:<br />"
+        );
+
+        for (let x = 0; x < periodIndex; x++) {
+          const startLabel = formatScheduleTime(times[x]);
+          const endLabel = formatScheduleTime(times[x + 1] || "");
+          let line = `${startLabel} - ${endLabel} ${names[x]}<br />`;
+          if (x === currentPeriod) line = `<strong>${line}</strong>`;
+
+          lines.push(line);
         }
-      });
-      /* will make this a displayable option later
-      if (times.length > 0) {
-        const endTime = formatScheduleTime(times[periodIndex]);
-        lines.push(`${endTime} ${names[periodIndex]}<br />`);
+        lines.push('</div></div>');
+        const html = lines.join("");
+        if (scheduleEl.innerHTML !== html) {
+          updateHTML(scheduleEl, html, "scheduleHTML");
+        }
       }
-      */
-      lines.push("</div></div>");
-      const newHTML = lines.join("");
-      scheduleEl.innerHTML = newHTML;
-      lastDisplayState.scheduleHTML = newHTML;
     }
   }
 }
 
 function formatDisplayTimer(totalSeconds) {
   totalSeconds = Math.floor(totalSeconds);
-
   const hours = Math.floor(totalSeconds / 3600);
   totalSeconds %= 3600;
-
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
-
   if (hours > 0) return `${padZero(hours)}:${padZero(minutes)}:${padZero(seconds)}`;
   if (minutes > 0) return `${padZero(minutes)}:${padZero(seconds)}`;
   return padZero(seconds);
 }
 
-async function AutoSchedule() {
+function AutoSchedule() {
+  const formatDate = (date) => {
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   document.querySelector("#auto-schedule").classList.remove("selected-state");
-  const currentDate = getAdjustedDate();
-  const dateString = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(currentDate.getDate()).padStart(2, '0')}`;
+  const now = new Date();
+  const currentDate = new Date(now.getTime() + adjustseconds * 1000);
+  const dateString = formatDate(currentDate);
   const scheduleConfig = CalendarManager.getScheduleForDate(dateString);
   StorageManager.savePreference('lastUsedSchedule', 'auto');
-  let foundScheduleData = false;
-  if (scheduleConfig) {
-    foundScheduleData = true;
+  let foundScheduleData = !!scheduleConfig;
+  if (foundScheduleData) {
     if (scheduleConfig.isEven !== null && scheduleConfig.isEven !== isEven) {
       isEven = scheduleConfig.isEven;
       updateOddEvenToggleButton();
     }
     loadSchedule(scheduleConfig.schedule);
   } else {
-    NormalSchedule();
+    loadSchedule('normal');
   }
-  
-  const tomorrowDate = getTomorrow();
-  const tomorrowString = `${tomorrowDate.getFullYear()}-${String(tomorrowDate.getMonth() + 1).padStart(2, '0')}-${String(tomorrowDate.getDate()).padStart(2, '0')}`;
+
+  const tomorrowDate = new Date(currentDate.getTime() + 86400 * 1000);
+  const tomorrowString = formatDate(tomorrowDate);
   const tomorrowConfig = CalendarManager.getScheduleForDate(tomorrowString);
-  
-  if (tomorrowConfig) {
-    let result = "";
+
+  if (tomorrowConfig && tomorrowConfig.schedule) {
+    const parts = [];
     if (tomorrowConfig.schedule === "noSchool") {
-      result = "No School";
+      parts.push("No School");
     } else {
       if (tomorrowConfig.isEven !== null) {
-        result += tomorrowConfig.isEven ? "Even " : "Odd ";
+        parts.push(tomorrowConfig.isEven ? "Even" : "Odd");
       }
       const allSchedules = StorageManager.getAllSchedules();
       const schedule = allSchedules[tomorrowConfig.schedule];
-      result += schedule ? schedule.displayName : tomorrowConfig.schedule;
+      parts.push(schedule?.displayName || tomorrowConfig.schedule);
     }
-    
+    const result = parts.join(" ");
     document.getElementById("tomorrowScheduleTitle").classList.remove("hidden");
     document.getElementById("tomorrowScheduleDisplay").classList.remove("hidden");
-    document.getElementById("tomorrowScheduleDisplay").innerHTML = result;
+    document.getElementById("tomorrowScheduleDisplay").textContent = result;
   } else {
     document.getElementById("tomorrowScheduleTitle").classList.add("hidden");
     document.getElementById("tomorrowScheduleDisplay").classList.add("hidden");
@@ -3122,219 +3076,113 @@ async function AutoSchedule() {
   }
 }
 
-function removeElementById(id) {
-  var element = document.getElementById(id);
-  if (element) {
-    element.parentNode.removeChild(element);
-  }
-}
-
-function clearElementContentById(id) {
-  var element = document.getElementById(id);
-  if (element) {
-    element.innerHTML = "";
-  }
-}
-
-function getAdjustedDate() {
-  const og = new Date();
-  return new Date(og.getTime() + adjustseconds * 1000);
-}
-
-function getTomorrow() {
-  const og = new Date();
-  return new Date(og.getTime() + (adjustseconds + 86400) * 1000);
-}
-
-function noSchool() {
-  loadSchedule('noSchool');
-}
-
-function clearAll() {
-  let divIds = [
-    "timer_type",
-    "subtitle",
-    "currentdate",
-    "currentperiodsubtitle",
-    "currentschedule",
-    "currentlengthofperiod",
-    "endofschedulesubtitle",
-    "currentduration",
-    "nextperiodsubtitle",
-    "nextschedule",
-    "nextduration",
-  ];
-
-  divIds.forEach(function(id) {
-    let div = document.getElementById(id);
-    if (div) {
-      div.innerHTML = "";
-    }
-  });
-}
-
-function clearSelectedStateButtons() {
-  var buttons = document.querySelectorAll(".schedule-button");
-  buttons.forEach(function(button) {
-    button.classList.remove("selected-state");
-  });
-}
-
-function updateStarts() {
-  starts = times.map((time) => {
-    let [hours, minutes] = time.split(":").map(Number);
-    return hours * 3600 + minutes * 60;
-  });
-}
-
-function NormalSchedule() {
-  schedule = 0;
-  loadSchedule('normal');
-}
-
-function LateSchedule() {
-  schedule = 1;
-  loadSchedule('late');
-}
-
-function MinimumSchedule() {
-  schedule = 2;
-  loadSchedule('minimum');
-}
-
-function AnchorSchedule() {
-  schedule = 4;
-  loadSchedule('anchor');
-}
-
-function RallySchedule() {
-  schedule = 3;
-  loadSchedule('rally');
-}
-
-function ExtendedSnackSchedule() {
-  schedule = 5;
-  loadSchedule('extendedSnack');
-}
-
-function TestingSchedule() {
-  schedule = 7;
-  loadSchedule('testing');
-}
-
-function ToggleScheduleOddEven() {
-  isEven = !isEven;
-  if (currentScheduleId && scheduleTemplates[currentScheduleId]) {
-    loadSchedule(currentScheduleId);
-  }
-
-  var button = document.getElementById("odd-even-toggle");
-  if (isEven) {
-    button.classList.remove("normal-state");
-    button.classList.add("toggled-state");
-  } else {
-    button.classList.remove("toggled-state");
-    button.classList.add("normal-state");
-  }
-}
-
 function HandleSpecialScheduleChange() {
-  var selectedOption = document.getElementById("special-schedule").value;
+  const selectedOption = document.getElementById("special-schedule").value;
   const allSchedules = StorageManager.getAllSchedules();
+
   if (allSchedules[selectedOption]) {
     loadSchedule(selectedOption);
     return;
   }
 
-  switch (selectedOption) {
-    case "anchorSchedule":
-      loadSchedule('anchor');
-      break;
-    case "rallySchedule":
-      loadSchedule('rally');
-      break;
-    case "ExtendedSnackSchedule":
-      loadSchedule('extendedSnack');
-      break;
-    case "TestingSchedule":
-      loadSchedule('testing');
-      break;
-    default:
-      loadSchedule('normal');
-      break;
+  const remap = {
+    anchorSchedule: "anchor",
+    rallySchedule: "rally",
+    ExtendedSnackSchedule: "extendedSnack",
+    TestingSchedule: "testing"
+  };
+
+  loadSchedule(remap[selectedOption] || "normal");
+}
+
+function ToggleScheduleOddEven() {
+  isEven = !isEven;
+
+  if (currentScheduleId) {
+    const schedule = StorageManager.getAllSchedules()[currentScheduleId];
+    if (schedule) loadSchedule(currentScheduleId);
   }
+
+  updateOddEvenToggleButton();
 }
 
 function updateOddEvenToggleButton() {
-  var oddEvenButton = document.getElementById("odd-even-toggle");
-  oddEvenButton.disabled = !(currentScheduleData && currentScheduleData.canToggleOddEven);
-
-  if (isEven) {
-    oddEvenButton.classList.remove("normal-state");
-    oddEvenButton.classList.add("toggled-state");
-  } else {
-    oddEvenButton.classList.remove("toggled-state");
-    oddEvenButton.classList.add("normal-state");
-  }
+  const button = document.getElementById("odd-even-toggle");
+  button.disabled = !(currentScheduleData && currentScheduleData.canToggleOddEven);
+  button.classList.toggle("toggled-state", isEven);
+  button.classList.toggle("normal-state", !isEven);
 }
 
 function clearSelectedStateButtons() {
-  var buttons = document.querySelectorAll(".selected-state");
-  buttons.forEach(function(button) {
-    button.classList.remove("selected-state");
-  });
+  const buttons = document.getElementsByClassName("selected-state");
+  while (buttons.length) {
+    buttons[0].classList.remove("selected-state");
+  }
 }
 
-function ClearSubtitle() {
-  document.getElementById("subtitle").innerHTML = "";
-}
-
-window.onload = async function () {
+window.onload = async function() {
   StorageManager.init();
+  DateFormatter.init();
+  initializeSettingsHandlers();
   regenerateScheduleButtons();
   loadPreferences();
+  detectStorageLimitAsync();
+  Els = {
+    currentdate: document.getElementById('currentdate'),
+    timer_type: document.getElementById('timer_type'),
+    subtitle: document.getElementById('subtitle'),
+    currentperiodsubtitle: document.getElementById('currentperiodsubtitle'),
+    currentschedule: document.getElementById('currentschedule'),
+    currentlengthofperiod: document.getElementById('currentlengthofperiod'),
+    endofschedulesubtitle: document.getElementById('endofschedulesubtitle'),
+    currentduration: document.getElementById('currentduration'),
+    nextperiodsubtitle: document.getElementById('nextperiodsubtitle'),
+    nextschedule: document.getElementById('nextschedule'),
+    nextduration: document.getElementById('nextduration'),
+    scheduledisplay: document.getElementById('scheduledisplay'),
+    autoUpdateToggle: document.getElementById('autoUpdateToggle'),
+    updateFrequencies: document.getElementById('updateFrequencies')
+  };
 
+  document.getElementById('versionSpan').textContent = 'v' + version;
   const userStatus = UserManager.getUserStatus();
-  
   await CalendarManager.handleVersionUpdate(userStatus.currentVersion);
-    
+
   if (userStatus.showWelcome) {
     NotificationManager.showWelcome(
       async function() {
-        const defaultCalendar = await CalendarManager.loadDefaultCalendar();
-        if (defaultCalendar) {
-          CalendarManager.saveConfig(defaultCalendar);
-          CalendarUI.render();
-          AutoSchedule();
+          const defaultCalendar = await CalendarManager.loadDefaultCalendar();
+          if (defaultCalendar) {
+            CalendarManager.saveConfig(defaultCalendar);
+            AutoSchedule();
+          }
+          UserManager.completeOnboarding();
+          if (userStatus.showWhatsNew) {
+            setTimeout(() => {
+              NotificationManager.showWhatsNew(
+                userStatus.currentVersion,
+                function() {
+                  UserManager.updateVersion();
+                }
+              );
+            }, 800);
+          }
+        },
+        function() {
+          CalendarUI.initializeWeekends();
+          UserManager.completeOnboarding();
+
+          if (userStatus.showWhatsNew) {
+            setTimeout(() => {
+              NotificationManager.showWhatsNew(
+                userStatus.currentVersion,
+                function() {
+                  UserManager.updateVersion();
+                }
+              );
+            }, 300);
+          }
         }
-        UserManager.completeOnboarding();
-        
-        if (userStatus.showWhatsNew) {
-          setTimeout(() => {
-            NotificationManager.showWhatsNew(
-              userStatus.currentVersion,
-              function() {
-                UserManager.updateVersion();
-              }
-            );
-          }, 800);
-        }
-      },
-      function() {
-        CalendarUI.initializeWeekends();
-        UserManager.completeOnboarding();
-        
-        if (userStatus.showWhatsNew) {
-          setTimeout(() => {
-            NotificationManager.showWhatsNew(
-              userStatus.currentVersion,
-              function() {
-                UserManager.updateVersion();
-              }
-            );
-          }, 300);
-        }
-      }
     );
   } else if (userStatus.showWhatsNew) {
     NotificationManager.showWhatsNew(
@@ -3351,22 +3199,22 @@ window.onload = async function () {
     if (allSchedules[lastUsedSchedule]) {
       loadSchedule(lastUsedSchedule);
     } else {
-      NormalSchedule();
+      loadSchedule('normal');
     }
   } else {
-    NormalSchedule();
+    loadSchedule('normal');
   }
 
   updateAndCallAgain();
-
   if (!lastUsedSchedule || lastUsedSchedule === 'auto') AutoSchedule();
-  
   const link = document.getElementById("schoolSchedule");
   const urls = getSchoolScheduleLink();
   link.href = urls.main;
-  if (urls.fallback) {
-    link.title = `If schedule isn't posted yet, try: ${urls.fallback}`;
-  }
+  if (urls.fallback) link.title = `If schedule isn't posted yet, try: ${urls.fallback}`;
+
+  setTimeout(() => {
+    UpdateChecker.checkForUpdate(true);
+  }, 100);
 };
 
 function clearAllLocalStorage() {
@@ -3385,6 +3233,8 @@ function clearAllLocalStorage() {
           function() {
             try {
               localStorage.clear();
+              cachedStorageLimit = null;
+              localStorage.removeItem('__cachedStorageLimit__');
               NotificationManager.showAlert('', 'All localStorage data has been cleared. The page will now reload in 3 seconds.', 'success');
               setTimeout(() => {
                 window.location.reload();
@@ -3421,28 +3271,25 @@ const NotificationManager = {
   showToast(title, message, type = 'info', duration = 5000) {
     const toastId = ++this.toastId;
     const container = document.getElementById('toastContainer');
-    
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
     toast.id = `toast-${toastId}`;
-    
+
     let toastContent = `<button class="toast-close" onclick="NotificationManager.removeToast(${toastId})">&times;</button>`;
-    
     if (title) {
       toastContent += `<div class="toast-title">${title}</div>`;
       toastContent += `<div class="toast-message">${message}</div>`;
     } else {
       toastContent += `<div class="toast-message-only">${message}</div>`;
     }
-    
+
     toast.innerHTML = toastContent;
-    
     container.appendChild(toast);
-    
+
     setTimeout(() => {
       toast.classList.add('show');
     }, 10);
-    
+
     setTimeout(() => {
       this.removeToast(toastId);
     }, duration);
@@ -3456,9 +3303,22 @@ const NotificationManager = {
         if (toast.parentNode) {
           toast.parentNode.removeChild(toast);
         }
+        const container = document.getElementById('toastContainer');
+        if (container && container.children.length === 0) {
+          this.toastId = 0;
+        }
       }, 300);
     }
   },
+
+  clearAllToasts() {
+    const container = document.getElementById('toastContainer');
+    if (container) {
+      container.innerHTML = '';
+      this.toastId = 0;
+    }
+  },
+
   showWelcome(primaryCallback, secondaryCallback) {
     this.show(
       'Welcome to Schedule Monitor',
@@ -3469,59 +3329,61 @@ const NotificationManager = {
       secondaryCallback
     );
   },
-  
+
   showWhatsNew(version, primaryCallback) {
     const features = this.getVersionFeatures(version);
     const tertiaryConfig = this.getTertiaryButtonConfig(version);
-    
-    document.getElementById('notificationTitle').textContent = `Welcome back! Updated to v${version}`;
-    document.getElementById('notificationMessage').innerHTML = `New features in this version:<br><br>${features.replace(/\n/g, '<br>')}`;
-    document.getElementById('notificationPrimaryButton').textContent = 'Got it!';
-    
-    const secondaryButton = document.getElementById('notificationSecondaryButton');
-    secondaryButton.textContent = 'View Full Changelog';
-    secondaryButton.style.display = 'block';
+    let tertiaryText = null;
+    let tertiaryCallback = null;
 
-    // hard coded for now
-    const autoUpdateAttempted = localStorage.getItem('autoUpdateAttempted_2.2.1') === 'true';
-    const tertiaryButton = document.getElementById('notificationTertiaryButton');
-    if (tertiaryConfig && !(version === '2.2.1' && autoUpdateAttempted)) {
-      tertiaryButton.textContent = tertiaryConfig.text;
-      tertiaryButton.style.display = 'block';
-      window.currentNotificationTertiary = function() {
+    if (tertiaryConfig && this.shouldShowTertiaryButton(version, tertiaryConfig)) {
+      tertiaryText = tertiaryConfig.text;
+      tertiaryCallback = () => {
         tertiaryConfig.callback();
         primaryCallback();
       };
-    } else {
-      tertiaryButton.style.display = 'none';
-      window.currentNotificationTertiary = null;
     }
-    
-    window.currentNotificationPrimary = primaryCallback;
-    window.currentNotificationSecondary = function() {
-      window.open('https://github.com/oirehm/schedulemonitor/blob/main/Changelog.md', '_blank');
-      primaryCallback();
-    };
-    
-    document.getElementById('notificationModal').classList.remove('hidden');
+
+    this.show(
+      `What's New in v${version}`,
+      features,
+      'Got it!',
+      'View Full Changelog',
+      primaryCallback,
+      function() {
+        window.open('https://github.com/oirehm/schedulemonitor/blob/main/Changelog.md', '_blank');
+        primaryCallback();
+      },
+      false,
+      'left',
+      tertiaryText,
+      tertiaryCallback
+    );
   },
 
-  
+  shouldShowTertiaryButton(version, tertiaryConfig) {
+    if (tertiaryConfig.condition) {
+      return tertiaryConfig.condition();
+    }
+    return true;
+  },
+
   getVersionFeatures(version) {
     const versionFeatures = {
+      '2.3.0': '• Updated schedule config UI\n• Settings UI updated to match visual theme\n• Added an option to quick offset by the hour\n• Optimized main display and other backend functions\n• Fixed some bugs with schedule rendering & updates\n• Less intrusive What\'s new modal\n• Temporarily removed timer function to be improved later',
       '2.2.1': '• Updated default calendar. Click the button below to Fixed some display bugs and clamped the time adjustment to prevent lag',
       '2.2.0': '• New notification system with toast alerts and styled modals\n• Enhanced user onboarding with welcome prompts\n• Improved timer interface with seamless editing\n• Default Bellflower calendar integration\n• Better AutoSchedule state management',
       '2.1.0': '• Full Calendar interface with drag & drop\n• Import/Export calendars\n• Right-click context menus\n• Keyboard shortcuts for quick editing',
       '2.0.0': '• Custom Schedule Creator & Manager\n• Import/Export functionality\n• Persistent storage system',
     };
-    
     return versionFeatures[version] || 'Error: Unidentified Version';
   },
-  
+
   getTertiaryButtonConfig(version) {
     const tertiaryConfigs = {
       '2.2.1': {
         text: 'Load Default Calendar',
+        condition: () => localStorage.getItem('autoUpdateAttempted_2.2.1') !== 'true',
         callback: async function() {
           const defaultCalendar = await CalendarManager.loadDefaultCalendar();
           if (defaultCalendar) {
@@ -3534,15 +3396,48 @@ const NotificationManager = {
         }
       },
     };
-    
+
     return tertiaryConfigs[version] || null;
   },
-  
-  show(title, message, primaryText, secondaryText, primaryCallback, secondaryCallback) {
+
+  showPersist(title, message, primaryText, secondaryText, primaryCallback = null, secondaryCallback = null) {
+    this.show(
+      title,
+      message,
+      primaryText,
+      secondaryText,
+      primaryCallback || function() {},
+      secondaryCallback || function() {},
+      false,
+      'left'
+    );
+  },
+
+  show(title, message, primaryText, secondaryText, primaryCallback, secondaryCallback, isBlocking = true, textAlign = '', tertiaryText = null, tertiaryCallback = null) {
     document.getElementById('notificationTitle').textContent = title;
     document.getElementById('notificationMessage').innerHTML = message.replace(/\n/g, '<br>');
     document.getElementById('notificationPrimaryButton').textContent = primaryText;
-    
+    const modal = document.getElementById('notificationModal');
+    const messageElement = document.getElementById('notificationMessage');
+
+    if (textAlign) {
+      messageElement.style.textAlign = textAlign;
+    } else {
+      messageElement.style.textAlign = 'center';
+    }
+    if (!isBlocking) {
+      modal.style.backgroundColor = 'transparent';
+      modal.style.top = '80px';
+      modal.style.right = '20px';
+      modal.style.left = 'auto';
+      modal.style.bottom = 'auto';
+    } else {
+      modal.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+      modal.style.top = '0';
+      modal.style.right = '0';
+      modal.style.left = '0';
+      modal.style.bottom = '0';
+    }
     const secondaryButton = document.getElementById('notificationSecondaryButton');
     if (secondaryText) {
       secondaryButton.textContent = secondaryText;
@@ -3550,17 +3445,25 @@ const NotificationManager = {
     } else {
       secondaryButton.style.display = 'none';
     }
-    
+    const tertiaryButton = document.getElementById('notificationTertiaryButton');
+    if (tertiaryText && tertiaryCallback) {
+      tertiaryButton.textContent = tertiaryText;
+      tertiaryButton.style.display = 'block';
+      window.currentNotificationTertiary = tertiaryCallback;
+    } else {
+      tertiaryButton.style.display = 'none';
+      window.currentNotificationTertiary = null;
+    }
     window.currentNotificationPrimary = primaryCallback;
     window.currentNotificationSecondary = secondaryCallback;
-    
     document.getElementById('notificationModal').classList.remove('hidden');
   },
-  
+
   hide() {
     document.getElementById('notificationModal').classList.add('hidden');
     window.currentNotificationPrimary = null;
     window.currentNotificationSecondary = null;
+    window.currentNotificationTertiary = null;
   }
 };
 
@@ -3583,4 +3486,806 @@ function handleNotificationTertiary() {
     window.currentNotificationTertiary();
   }
   NotificationManager.hide();
+}
+
+document.getElementById("toggleButton").addEventListener("click", function() {
+  toggleSettings();
+});
+
+function toggleSettings() {
+  if (settingsPanelOpen) {
+    closeSettings();
+  } else {
+    openSettings();
+  }
+}
+
+function openSettings() {
+  const panel = document.getElementById('settingsPanel');
+  const button = document.getElementById('toggleButton');
+  panel.classList.remove('hidden');
+  panel.classList.add('open');
+  button.classList.add('selected-bottom');
+  settingsPanelOpen = true;
+
+  if (settingsPanelMinimized) {
+    panel.classList.remove('minimized');
+    settingsPanelMinimized = false;
+  }
+  updateStorageDisplay();
+}
+
+function closeSettings() {
+  cleanupSettingsEventListeners();
+  const panel = document.getElementById('settingsPanel');
+  const button = document.getElementById('toggleButton');
+  settingsPanelOpen = false;
+  settingsPanelMinimized = false;
+  panel.classList.remove('minimized');
+  panel.classList.remove('open');
+  button.classList.remove('selected-bottom');
+}
+
+function minimizeSettings() {
+  const panel = document.getElementById('settingsPanel');
+
+  if (settingsPanelMinimized) {
+    panel.classList.remove('minimized');
+    settingsPanelMinimized = false;
+  } else {
+    panel.classList.add('minimized');
+    settingsPanelMinimized = true;
+  }
+}
+document.addEventListener('DOMContentLoaded', function() {
+  bindWheelAdjust("#fastForwardDay", "day");
+  bindWheelAdjust("#fastForwardHour", "hour");
+  const header = document.querySelector('.settings-panel-header');
+  if (header) {
+    header.addEventListener('click', function(e) {
+      if (e.target === header || e.target.tagName === 'H2') {
+        minimizeSettings();
+      }
+    });
+  }
+});
+
+function minimizeSettings() {
+  const panel = document.getElementById('settingsPanel');
+
+  if (settingsPanelMinimized) {
+    panel.classList.remove('minimized');
+    document.body.classList.remove('settings-panel-minimized');
+    settingsPanelMinimized = false;
+  } else {
+    panel.classList.add('minimized');
+    document.body.classList.add('settings-panel-minimized');
+    settingsPanelMinimized = true;
+  }
+}
+
+function switchSettingsTab(tabName, event) {
+  document.querySelectorAll('.settings-tab-content').forEach(tab => {
+    tab.classList.remove('active');
+  });
+
+  document.querySelectorAll('#settingsTabs .tab-button').forEach(btn => {
+    btn.classList.remove('active');
+  });
+
+  document.getElementById(tabName + 'Tab').classList.add('active');
+  event.target.classList.add('active');
+  currentSettingsTab = tabName;
+}
+
+function setSettingsPanelPosition(position) {
+  const panel = document.getElementById('settingsPanel');
+  const validPositions = ["left", "center", "right"];
+  const finalPosition = validPositions.includes(position) ? position : "right";
+  panel.classList.remove("position-left", "position-center", "position-right");
+  panel.classList.add(`position-${finalPosition}`);
+  settingsPanelPosition = finalPosition;
+  StorageManager.savePreference("settingsPanelPosition", finalPosition);
+}
+
+function loadSettingsPanelPosition() {
+  const savedPosition = StorageManager.getPreference('settingsPanelPosition') || 'right';
+  setSettingsPanelPosition(savedPosition);
+}
+
+function getLocalStorageUsage() {
+  let totalSize = 0;
+
+  for (let key in localStorage) {
+    if (localStorage.hasOwnProperty(key)) {
+      totalSize += new Blob([localStorage[key]]).size + new Blob([key]).size;
+    }
+  }
+
+  const maxSize = cachedStorageLimit || 5242880;
+
+  const usedKB = (totalSize / 1024).toFixed(2);
+  const usedMB = (totalSize / 1048576).toFixed(2);
+  const maxMB = (maxSize / 1048576).toFixed(1);
+  const percentUsed = ((totalSize / maxSize) * 100).toFixed(1);
+
+  return {
+    bytes: totalSize,
+    kilobytes: usedKB,
+    megabytes: usedMB,
+    maxMegabytes: maxMB,
+    percentUsed: Math.min(percentUsed, 100),
+    isEstimate: cachedStorageLimit === null
+  };
+}
+
+async function detectStorageLimitAsync() {
+  if (isCalculatingLimit || cachedStorageLimit !== null) {
+    return cachedStorageLimit;
+  }
+  isCalculatingLimit = true;
+  const savedLimit = localStorage.getItem('__cachedStorageLimit__');
+  if (savedLimit) {
+    cachedStorageLimit = parseInt(savedLimit);
+    isCalculatingLimit = false;
+    return cachedStorageLimit;
+  }
+
+  await new Promise(resolve => setTimeout(resolve, 1000));
+
+  try {
+    let low = 0;
+    let high = 10485760;
+    let lastGood = 0;
+    const testKey = '__test__';
+    const chunkSize = 32768;
+
+    localStorage.removeItem(testKey);
+
+    while (low <= high) {
+      const mid = Math.floor((low + high) / 2);
+      const testString = 'x'.repeat(mid);
+
+      try {
+        localStorage.setItem(testKey, testString);
+        lastGood = mid;
+        low = mid + chunkSize;
+        localStorage.removeItem(testKey);
+      } catch (e) {
+        high = mid - 1;
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 0));
+    }
+
+    const currentUsage = getCurrentStorageSize();
+    cachedStorageLimit = lastGood + currentUsage;
+    localStorage.setItem('__cachedStorageLimit__', cachedStorageLimit.toString());
+    updateStorageDisplay();
+  } catch (e) {
+    console.error('Could not determine storage limit:', e);
+    cachedStorageLimit = 5242880;
+  }
+  isCalculatingLimit = false;
+  return cachedStorageLimit;
+}
+
+function getCurrentStorageSize() {
+  let size = 0;
+  for (let key in localStorage) {
+    if (localStorage.hasOwnProperty(key) &&
+      key !== '__test__' &&
+      key !== '__cachedStorageLimit__') {
+      size += (localStorage[key].length + key.length) * 2;
+    }
+  }
+  return size;
+}
+
+function updateStorageDisplay() {
+  const usage = getLocalStorageUsage();
+  const storageDisplay = document.getElementById('storageUsageDisplay');
+
+  if (storageDisplay) {
+    let displayText = '';
+    if (usage.bytes < 1024) {
+      displayText = `${usage.bytes} bytes`;
+    } else if (usage.bytes < 1048576) {
+      displayText = `${usage.kilobytes} KB`;
+    } else {
+      displayText = `${usage.megabytes} MB`;
+    }
+
+    displayText += ` / ${usage.isEstimate ? '~' : ''}${usage.maxMegabytes} MB (${usage.percentUsed}%)`;
+
+    if (isCalculatingLimit) {
+      displayText += ' (calculating...)';
+    }
+
+    storageDisplay.textContent = displayText;
+
+    const storageBar = document.getElementById('storageUsageBar');
+    if (storageBar) {
+      storageBar.style.width = `${usage.percentUsed}%`;
+      if (usage.percentUsed > 90) {
+        storageBar.style.backgroundColor = '#ff6666';
+      } else if (usage.percentUsed > 70) {
+        storageBar.style.backgroundColor = '#ffaa44';
+      } else {
+        storageBar.style.backgroundColor = '#44aa44';
+      }
+    }
+  }
+}
+
+const DateFormatter = {
+  preset: 'default',
+  settings: {
+    monthStyle: 'short',
+    dayStyle: 'numeric',
+    yearStyle: 'full',
+    weekdayStyle: 'short',
+
+    hourFormat: '12',
+    showSeconds: true,
+    ampmStyle: 'upper',
+
+    dateOrder: 'mdy',
+    dateSeparator: ' ',
+    timeSeparator: ':',
+    dateTimeSeparator: ' '
+  },
+
+  defaultSettings: {
+    monthStyle: 'short',
+    dayStyle: 'numeric',
+    yearStyle: 'full',
+    weekdayStyle: 'short',
+    hourFormat: '12',
+    showSeconds: true,
+    ampmStyle: 'upper',
+    dateOrder: 'mdy',
+    dateSeparator: ' ',
+    timeSeparator: ':',
+    dateTimeSeparator: ' '
+  },
+
+  init() {
+    const saved = StorageManager.getPreference('dateFormatSettings');
+    if (saved) {
+      this.settings = {
+        ...this.settings,
+        ...saved
+      };
+    }
+    this.updateUI();
+  },
+
+  updateUI() {
+    const presetSelect = document.getElementById('datePreset');
+    if (presetSelect) presetSelect.value = this.preset;
+    Object.keys(this.settings).forEach(key => {
+      const element = document.getElementById(key);
+      if (element) {
+        if (element.type === 'checkbox') {
+          element.checked = this.settings[key];
+        } else {
+          element.value = this.settings[key];
+        }
+      }
+    });
+  },
+
+  formatDate(date) {
+    if (this.preset === 'default') return this.formatOriginal(date);
+
+    const components = this.getDateComponents(date);
+    const settings = this.settings;
+    const buffer = [];
+
+    if (settings.weekdayStyle !== 'none') {
+      buffer.push(components.weekday, ' ');
+    }
+
+    const order = settings.dateOrder.split('');
+    order.forEach((part, i) => {
+      switch (part) {
+        case 'm':
+          buffer.push(components.month);
+          break;
+        case 'd':
+          buffer.push(components.day);
+          break;
+        case 'y':
+          buffer.push(components.year);
+          break;
+      }
+      if (i < order.length - 1) {
+        buffer.push(settings.dateSeparator);
+      }
+    });
+
+    buffer.push(settings.dateTimeSeparator);
+
+    buffer.push(components.hour, settings.timeSeparator, components.minute);
+
+    if (settings.showSeconds) {
+      buffer.push(settings.timeSeparator, components.second);
+    }
+
+    if (settings.hourFormat === '12') {
+      buffer.push(' ', components.ampm);
+    }
+
+    return buffer.join('');
+  },
+
+  formatOriginal(date) {
+    const parts = timePartsFromDate(date);
+    return `${DAY_NAMES.short[date.getDay()]} ${MONTH_NAMES.short[date.getMonth()]} ${padZero(date.getDate())} ${date.getFullYear()} ${parts.hh12Str}:${parts.mmStr}:${parts.ssStr} ${parts.meridiem}`;
+  },
+
+  getDateComponents(date) {
+    const components = {};
+    if (this.settings.weekdayStyle !== 'none') {
+      components.weekday = DAY_NAMES[this.settings.weekdayStyle][date.getDay()];
+    }
+
+    const monthIndex = date.getMonth();
+    const monthStyle = this.settings.monthStyle;
+    if (monthStyle === 'long') {
+      components.month = MONTH_NAMES.long[monthIndex];
+    } else if (monthStyle === 'short') {
+      components.month = MONTH_NAMES.short[monthIndex];
+    } else if (monthStyle === 'numeric') {
+      components.month = monthIndex + 1;
+    } else {
+      components.month = padZero(monthIndex + 1);
+    }
+
+    const dayOfMonth = date.getDate();
+    const dayStyle = this.settings.dayStyle;
+    if (dayStyle === 'numeric') {
+      components.day = dayOfMonth;
+    } else if (dayStyle === 'padded') {
+      components.day = padZero(dayOfMonth);
+    } else {
+      components.day = dayOfMonth + this.getOrdinalSuffix(dayOfMonth);
+    }
+
+    if (this.settings.yearStyle === 'full') {
+      components.year = date.getFullYear();
+    } else {
+      components.year = String(date.getFullYear()).slice(-2);
+    }
+
+    const hours24 = date.getHours();
+
+    if (this.settings.hourFormat === '24') {
+      components.hour = padZero(hours24);
+    } else {
+      const hours12 = hours24 % 12 || 12;
+      components.hour = padZero(hours12);
+    }
+
+    components.minute = padZero(date.getMinutes());
+    components.second = padZero(date.getSeconds());
+
+    if (this.settings.hourFormat === '12') {
+      const ampmStyle = this.settings.ampmStyle;
+      const base = hours24 >= 12 ? 'PM' : 'AM';
+      if (ampmStyle === 'upper') {
+        components.ampm = base;
+      } else if (ampmStyle === 'lower') {
+        components.ampm = base.toLowerCase();
+      } else {
+        components.ampm = base.split('').join('.') + '.';
+      }
+    }
+
+    return components;
+  },
+
+  getOrdinalSuffix(day) {
+    if (day > 3 && day < 21) return 'th';
+    switch (day % 10) {
+      case 1:
+        return 'st';
+      case 2:
+        return 'nd';
+      case 3:
+        return 'rd';
+      default:
+        return 'th';
+    }
+  },
+
+  save() {
+    StorageManager.savePreference('dateFormatSettings', {
+      preset: this.preset,
+      settings: this.settings
+    });
+  },
+};
+let dateFormatUpdated = false;
+
+function updateDateFormat() {
+  const presetSelect = document.getElementById('datePreset');
+  if (presetSelect && DateFormatter.preset !== 'custom') {
+    DateFormatter.preset = 'custom';
+    presetSelect.value = 'custom';
+  }
+
+  Object.keys(DateFormatter.settings).forEach(key => {
+    const element = document.getElementById(key);
+    if (element) {
+      if (element.type === 'checkbox') {
+        DateFormatter.settings[key] = element.checked;
+      } else {
+        DateFormatter.settings[key] = element.value;
+      }
+    }
+  });
+  dateFormatUpdated = true;
+  DateFormatter.save();
+}
+
+function applyDatePreset() {
+  const preset = document.getElementById('datePreset').value;
+  DateFormatter.preset = preset;
+
+  const presets = {
+    'default': DateFormatter.defaultSettings,
+    'us-standard': {
+      monthStyle: 'padded',
+      dayStyle: 'padded',
+      yearStyle: 'full',
+      weekdayStyle: 'none',
+      hourFormat: '12',
+      showSeconds: true,
+      ampmStyle: 'upper',
+      dateOrder: 'mdy',
+      dateSeparator: '/',
+      timeSeparator: ':',
+      dateTimeSeparator: ' '
+    },
+    'international': {
+      monthStyle: 'padded',
+      dayStyle: 'padded',
+      yearStyle: 'full',
+      weekdayStyle: 'none',
+      hourFormat: '24',
+      showSeconds: true,
+      dateOrder: 'dmy',
+      dateSeparator: '/',
+      timeSeparator: ':',
+      dateTimeSeparator: ' '
+    },
+    'iso': {
+      monthStyle: 'padded',
+      dayStyle: 'padded',
+      yearStyle: 'full',
+      weekdayStyle: 'none',
+      hourFormat: '24',
+      showSeconds: true,
+      dateOrder: 'ymd',
+      dateSeparator: '-',
+      timeSeparator: ':',
+      dateTimeSeparator: 'T'
+    }
+  };
+
+  if (preset === 'custom') {
+    DateFormatter.updateUI();
+  } else if (presets[preset]) {
+    DateFormatter.settings = {
+      ...presets[preset]
+    };
+    DateFormatter.updateUI();
+  }
+  dateFormatUpdated = true;
+  DateFormatter.save();
+}
+
+function formatDisplayedDate(date) {
+  return DateFormatter.formatDate(date);
+}
+
+const UpdateChecker = {
+  VERSION_URL: 'https://api.github.com/repos/oirehm/schedulemonitor/contents/version.txt',
+  CHECK_INTERVAL: 1000 * 60 * 60,
+  STORAGE_KEY: 'lastUpdateCheck',
+
+  async checkForUpdate(isManual = false) {
+    const autoEnabled = localStorage.getItem('autoUpdateEnabled') === '1';
+    const lastCheck = localStorage.getItem(this.STORAGE_KEY);
+    const now = Date.now();
+
+    if (!isManual && (!autoEnabled || (lastCheck && (now - parseInt(lastCheck)) < this.CHECK_INTERVAL))) {
+      return;
+    }
+    const lastCheckEl = document.querySelector('.last-check');
+    lastCheckEl.textContent = `Last checked: ${new Date(parseInt(lastCheck)).toLocaleString()}`;
+
+    try {
+      const response = await fetch(this.VERSION_URL);
+      if (!response.ok) return;
+      const data = await response.json();
+      const latestVersion = atob(data.content).trim();
+      const currentVersion = version;
+      const versionComparison = compareVersions(currentVersion, latestVersion);
+
+      if (versionComparison < 0) {
+        NotificationManager.showPersist(
+          'Update Available!',
+          `Version ${latestVersion} is available! Would you like to refresh the page?`,
+          'Refresh to update',
+          'Dismiss',
+          function() {
+            window.location.reload();
+          }
+        );
+      } else if (versionComparison === 0 && isManual) {
+        NotificationManager.showAlert('', 'Schedule Monitor is up to date', 'success')
+      } else if (versionComparison > 0 && isManual) {
+        NotificationManager.showAlert('', `Schedule Monitor Beta v${currentVersion} loaded!`, 'success')
+      }
+
+      localStorage.setItem(this.STORAGE_KEY, now.toString());
+    } catch (error) {
+
+      console.log('Update check failed:', error);
+    }
+  }
+};
+
+function compareVersions(v1, v2) {
+  const a = v1.split('.').map(Number);
+  const b = v2.split('.').map(Number);
+  for (let i = 0; i < a.length || i < b.length; i++) {
+    const diff = (a[i] || 0) - (b[i] || 0);
+    if (diff !== 0) return diff;
+  }
+  return 0;
+}
+
+let settingsEventListeners = [];
+
+function addSettingsEventListener(element, event, handler) {
+  element.addEventListener(event, handler);
+  settingsEventListeners.push({
+    element,
+    event,
+    handler
+  });
+}
+
+function cleanupSettingsEventListeners() {
+  settingsEventListeners.forEach(({
+    element,
+    event,
+    handler
+  }) => {
+    element.removeEventListener(event, handler);
+  });
+  settingsEventListeners = [];
+}
+
+function initializeSettingsHandlers() {
+  const autoToggle = document.getElementById('autoUpdateToggle');
+  const updateFrequencies = document.getElementById('updateFrequencies');
+
+  if (autoToggle) {
+    addSettingsEventListener(autoToggle, 'change', () => {
+      StorageManager.savePreference('autoUpdateEnabled', autoToggle.checked ? '1' : '0');
+    });
+  }
+
+  if (updateFrequencies) {
+    addSettingsEventListener(updateFrequencies, 'change', () => {
+      const selectedValue = parseInt(updateFrequencies.value, 10);
+      StorageManager.savePreference('updateFrequency', selectedValue);
+      UpdateChecker.CHECK_INTERVAL = selectedValue * 1000;
+    });
+  }
+}
+
+function evaluateMathExpression(expression) {
+  const constants = {
+    'pi': Math.PI,
+    'e': Math.E,
+    'phi': (1 + Math.sqrt(5)) / 2,
+    'tau': 2 * Math.PI,
+    'infinity': Infinity,
+    'inf': Infinity,
+    'nan': NaN,
+    'true': true,
+    'false': false,
+    'null': null
+  };
+
+  const functions = {
+    'sin': Math.sin,
+    'cos': Math.cos,
+    'tan': Math.tan,
+    'asin': Math.asin,
+    'acos': Math.acos,
+    'atan': Math.atan,
+    'atan2': Math.atan2,
+
+    'sinh': Math.sinh,
+    'cosh': Math.cosh,
+    'tanh': Math.tanh,
+    'asinh': Math.asinh,
+    'acosh': Math.acosh,
+    'atanh': Math.atanh,
+
+    'arcsin': Math.asin,
+    'arccos': Math.acos,
+    'arctan': Math.atan,
+
+    'sec': (x) => 1 / Math.cos(x),
+    'csc': (x) => 1 / Math.sin(x),
+    'cot': (x) => 1 / Math.tan(x),
+    'asec': (x) => Math.acos(1 / x),
+    'acsc': (x) => Math.asin(1 / x),
+    'acot': (x) => Math.atan(1 / x),
+
+    'log': Math.log,
+    'ln': Math.log,
+    'log10': Math.log10,
+    'log2': Math.log2,
+    'lb': Math.log2,
+    'lg': Math.log10,
+
+    'exp': Math.exp,
+    'exp2': (x) => Math.pow(2, x),
+    'exp10': (x) => Math.pow(10, x),
+    'expm1': Math.expm1,
+    'log1p': Math.log1p,
+
+    'pow': Math.pow,
+    'sqrt': Math.sqrt,
+    'cbrt': Math.cbrt,
+    'square': (x) => x * x,
+    'cube': (x) => x * x * x,
+    'nthRoot': (x, n) => Math.pow(x, 1 / n),
+
+    'round': Math.round,
+    'floor': Math.floor,
+    'ceil': Math.ceil,
+    'trunc': Math.trunc,
+    'fix': Math.trunc,
+
+    'abs': Math.abs,
+    'sign': Math.sign,
+    'signum': Math.sign,
+
+    'min': Math.min,
+    'max': Math.max,
+    'clip': (x, min, max) => Math.min(Math.max(x, min), max),
+    'clamp': (x, min, max) => Math.min(Math.max(x, min), max),
+
+    'random': (min = 0, max = 1) => Math.random() * (max - min) + min,
+    'randomInt': (min, max) => Math.floor(Math.random() * (max - min + 1)) + min,
+
+    'factorial': (n) => {
+      if (n < 0) return NaN;
+      if (n === 0 || n === 1) return 1;
+      let result = 1;
+      for (let i = 2; i <= n; i++) result *= i;
+      return result;
+    },
+    'fac': function(n) {
+      return this.factorial(n);
+    },
+    'gamma': (x) => functions.factorial(x - 1),
+
+    'permutation': (n, k) => functions.factorial(n) / functions.factorial(n - k),
+    'combination': (n, k) => functions.factorial(n) / (functions.factorial(k) * functions.factorial(n - k)),
+    'nPr': function(n, k) {
+      return this.permutation(n, k);
+    },
+    'nCr': function(n, k) {
+      return this.combination(n, k);
+    },
+
+    'hypot': Math.hypot,
+    'pythagoras': Math.hypot,
+    'pyt': Math.hypot,
+
+    'deg': (x) => x * Math.PI / 180,
+    'rad': (x) => x * 180 / Math.PI,
+    'degToRad': (x) => x * Math.PI / 180,
+    'radToDeg': (x) => x * 180 / Math.PI,
+
+    'sum': (...args) => args.reduce((a, b) => a + b, 0),
+    'mean': (...args) => args.reduce((a, b) => a + b, 0) / args.length,
+    'average': function(...args) {
+      return this.mean(...args);
+    },
+    'median': (...args) => {
+      const sorted = args.sort((a, b) => a - b);
+      const mid = Math.floor(sorted.length / 2);
+      return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+    },
+
+    'mod': (a, b) => ((a % b) + b) % b,
+    'gcd': (a, b) => b === 0 ? Math.abs(a) : functions.gcd(b, a % b),
+    'lcm': (a, b) => Math.abs(a * b) / functions.gcd(a, b),
+
+    'complex': (real, imag = 0) => ({
+      real,
+      imag
+    }),
+    're': (complex) => typeof complex === 'object' ? complex.real : complex,
+    'im': (complex) => typeof complex === 'object' ? complex.imag : 0,
+
+    'and': (a, b) => a && b,
+    'or': (a, b) => a || b,
+    'not': (a) => !a,
+    'xor': (a, b) => !!(a ^ b),
+
+    'equal': (a, b) => a === b,
+    'unequal': (a, b) => a !== b,
+    'smaller': (a, b) => a < b,
+    'larger': (a, b) => a > b,
+    'smallerEq': (a, b) => a <= b,
+    'largerEq': (a, b) => a >= b,
+
+    'isNaN': isNaN,
+    'isFinite': isFinite,
+    'isInteger': Number.isInteger,
+
+    'size': (arr) => Array.isArray(arr) ? arr.length : 1,
+    'length': function(arr) {
+      return this.size(arr);
+    }
+  };
+
+  let expr = expression.toLowerCase().trim();
+
+  if (!expr) return 0;
+
+  Object.keys(constants).forEach(name => {
+    const regex = new RegExp(`\\b${name}\\b`, 'g');
+    expr = expr.replace(regex, constants[name]);
+  });
+
+  Object.keys(functions).forEach(name => {
+    const regex = new RegExp(`\\b${name}\\s*\\(`, 'g');
+    expr = expr.replace(regex, `functions.${name}(`);
+  });
+
+  expr = expr
+
+    .replace(/(\d+\.?\d*)\s*([a-z_])/g, '$1*$2')
+    .replace(/(\d+\.?\d*)\s*\(/g, '$1*(')
+
+    .replace(/\)\s*(\d+\.?\d*)/g, ')*$1')
+    .replace(/\)\s*([a-z_])/g, ')*$1')
+    .replace(/\)\s*\(/g, ')*(')
+
+    .replace(/([a-z_])\s*\(/g, '$1*(');
+
+  expr = expr.replace(/(\d+\.?\d*|\))\s*!/g, 'functions.factorial($1)');
+
+  expr = expr.replace(/\^/g, '**');
+
+  expr = expr.replace(/(\d+\.?\d*)\s*%/g, '($1/100)');
+
+  const context = {
+    functions,
+    Math,
+
+    ...functions
+  };
+
+  try {
+
+    return Function('functions', 'Math', ...Object.keys(functions), `return ${expr}`)
+      (functions, Math, ...Object.values(functions));
+  } catch (error) {
+    throw new Error(`Invalid expression: ${error.message}`);
+  }
 }

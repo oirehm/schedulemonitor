@@ -1,3 +1,35 @@
+## Version 2.3.0 - Optimization Update
+
+### UI Improvements
+
+- Overhauled schedule configuration UI: schedules are now displayed in a unified category.
+- Updated settings modal UI for consistency with other modals.
+- Settings are now organized into three tabs: **General**, **Display**, **Advanced**.
+- Improved mobile UI to some degree.
+- "What’s New" modal is now less intrusive.
+
+### New Features
+
+- Added quick offset adjustment by the hour.
+- Added a setting to display your localStorage limit.
+- Added an automatic update checker (defaults to hourly checks).
+
+### Enhancements
+
+- Highly optimized main loops, improving performance and
+- Better validation highlighting in the schedule creator.
+- Additional performance optimizations throughout.
+- Replaced math.js library with a custom parser.
+
+### Bug Fixes
+
+- Fixed custom schedules not updating when toggling odd/even.
+- Fixed schedules not properly resetting when switching between main/special.
+
+### Other Changes
+
+- Timer functionality temporarily removed.
+
 ## Version 2.2.1
 
 - Fixed some bugs where the display wouldn't render correctly at times
@@ -31,7 +63,7 @@
 
 - Small patch to address needing to hard refresh to fix calendar functioning correctly for existing users
 
-## Version 2.1.0 – Full Calendar Release
+## Version 2.1.0 - Full Calendar Release
 
 ### Main Changes
 
@@ -48,13 +80,13 @@
 
 ### Known Issues
 
-* GUI does not scale correctly on different resolutions
-* Top panel alignment can block text display in certain screen sizes
-* Timer input is reversed
-* Countdown sometimes stops at `01` instead of `00`
-* Custom schedule IDs cannot be renamed
-* Color scheme setting no longer functions
-  
+- GUI does not scale correctly on different resolutions
+- Top panel alignment can block text display in certain screen sizes
+- Timer input is reversed
+- Countdown sometimes stops at `01` instead of `00`
+- Custom schedule IDs cannot be renamed
+- Color scheme setting no longer functions
+
 ## Version 2.0.1
 
 - Small patch to address needing to hard refresh to fix new CSS being displayed correctly
@@ -87,13 +119,13 @@
 
 ### Known Issues
 
-* GUI does not scale correctly on different resolutions
-* Top panel alignment can block text display in certain screen sizes
-* Timer input is reversed
-* Countdown sometimes stops at `01` instead of `00`
-* Auto Schedule only works for Jan–June 2024 (v2.1 planned)
-* Custom schedule IDs cannot be renamed
-* Color scheme setting no longer functions
+- GUI does not scale correctly on different resolutions
+- Top panel alignment can block text display in certain screen sizes
+- Timer input is reversed
+- Countdown sometimes stops at `01` instead of `00`
+- Auto Schedule only works for Jan–June 2024 (v2.1 planned)
+- Custom schedule IDs cannot be renamed
+- Color scheme setting no longer functions
 
 ## Version 1.6.59
 

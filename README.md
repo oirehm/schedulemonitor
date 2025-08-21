@@ -82,19 +82,19 @@ Visit [https://oirehm.github.io/schedulemonitor/](https://oirehm.github.io/sched
 
 See [Changelog.md](Changelog.md) for detailed version history.
 
-### Latest: v2.0.0
+### Latest: v2.3.0
 - Complete schedule management system
 - Custom schedule creator
-- Full persistence layer
-- Import/export functionality
+- Custom calendar configuration
+- Import/export schedules and calendar config
 
 ## Known Issues
 
 - GUI does not scale correctly on different resolutions
+- Mobile UI not working as intended
 - Top panel alignment can block text display in certain screen sizes
 - Timer input is reversed
 - Countdown sometimes stops at `01` instead of `00`
-- Auto Schedule only works for Jan–June 2024 (v2.1 planned)
 - Custom schedule IDs cannot be renamed
 - Color scheme setting no longer functions
 
