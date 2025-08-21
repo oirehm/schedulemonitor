@@ -4492,8 +4492,7 @@ async function loadVersion() {
       if (fetchedVersion) {
         version = fetchedVersion;
         console.log('Loaded version:', version);
-        
-        // Update the version display
+
         const versionSpan = document.getElementById('versionSpan');
         if (versionSpan) {
           versionSpan.textContent = 'v' + version;
