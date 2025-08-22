@@ -45,20 +45,14 @@ No installation required! Schedule Monitor runs entirely in your browser and sav
 - Odd/even day configurations
 - Preview mode for testing schedules
 
-### ⚙️ **Powerful Customization**
+### ⚙️ **Settings & Customization**
 - Flexible date/time formatting
 - Adjustable update frequencies
-- Settings panel positioning
 
 ### 💾 **Data Management**
 - Import/export schedules and calendars
 - Cross-device compatibility via JSON export
 - No account required as everything stays on your device
-
-### 🔧 **Developer Features**
-- Time adjustment tools for testing
-- Built-in update checker
-- Responsive design for all devices
 
 ## 🎯 Getting Started
 

@@ -26,6 +26,7 @@
 - Mobile support (portrait layout + gestures)
 - Keyboard shortcuts for all actions
 - Undo/Redo functionality
+- Add sharing data via link
 - Holiday support in Calendar Configuration
 
 ## Roadmap (v2.1 and beyond)
