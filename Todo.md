@@ -5,8 +5,6 @@
 - Top panel alignment can block text display in certain screen sizes
 - Custom schedule IDs cannot be renamed
 - Color scheme setting does not apply to all elements
-- Default schedules do not reset when moved from normal to special panel and vice versa
-- Quick feedback button
 
 ## Tasks / Improvements
 

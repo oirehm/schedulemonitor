@@ -1,113 +1,210 @@
 # Schedule Monitor
 
-[Click on me to access!!](https://oirehm.github.io/schedulemonitor/)
+**Real-time school schedule tracking and management made simple**
 
-Schedule Monitor is a single-page application (SPA) that provides real-time schedule tracking, dynamic school year updates, and easy management of custom schedules.
+[![Version](https://img.shields.io/badge/version-2.4.0-blue.svg)](https://github.com/oirehm/schedulemonitor/releases)
+[![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)](LICENSE)
+[![Live Demo](https://img.shields.io/badge/demo-live-brightgreen.svg)](https://oirehm.github.io/schedulemonitor/)
+[![GitHub Stars](https://img.shields.io/github/stars/oirehm/schedulemonitor?style=social)](https://github.com/oirehm/schedulemonitor/stargazers)
 
-## Features
+> A powerful, browser-based application that helps students and teachers track their current class period, time remaining, and upcoming schedule changes in real-time.
 
-### Core Features
-- **Real-time Schedule Tracking**: See current period, time remaining, and next period
-- **Schedule Manager**: Create and edit schedules, and reorder them in the schedule button panel
-- **Persistent Settings**: All preferences save automatically to browser storage
-- **Import/Export**: Backup and share your custom schedules
-- **Time Adjustment**: Offset time with built-in calculator (`log(2phi)*2(10/3)+cos(0)/sec(pi)`)
-- **Built-in Timer**: Countdown timer with audio/visual alerts
-- **Multiple Color Schemes**: Including dark mode and custom themes
+## 🚀 Quick Start
 
-### Schedule Management (v2.1+)
-- Create single or odd/even schedules
-- Edit any schedule (including defaults)
-- Drag & drop to reorder periods
-- Hide unused schedules
-- Clone existing schedules as templates
-- Preview before saving
-- Reset modified schedules to defaults
+**Try it now:** [**https://oirehm.github.io/schedulemonitor/**](https://oirehm.github.io/schedulemonitor/)
 
-### Advanced Features
-- Zen Mode: Right-click to toggle UI elements
-- Responsive design for mobile devices
-- Keyboard navigation support
-- Real-time validation of time inputs
-- Automatic time formatting
+No installation required! Schedule Monitor runs entirely in your browser and saves all your settings locally.
 
-## Getting Started
+## 📋 Table of Contents
 
-### Online Access
-Visit [https://oirehm.github.io/schedulemonitor/](https://oirehm.github.io/schedulemonitor/)
+- [✨ Features](#-features)
+- [🎯 Getting Started](#-getting-started)
+- [📱 Usage](#-usage)
+- [🛠️ Advanced Features](#️-advanced-features)
+- [📅 Calendar Configuration](#-calendar-configuration)
+- [💾 Data Management](#-data-management)
+- [🤝 Contributing](#-contributing)
+- [📄 License](#-license)
+- [🆘 Support](#-support)
 
-### Local Installation
-1. Clone the repository or download as ZIP
-2. Open `index.html` in any modern web browser
-3. No server or dependencies required!
+## ✨ Features
 
-## How to Use
+### 🕐 **Real-Time Schedule Tracking**
+- Live countdown to next period
+- Current period display with elapsed time
+- Automatic day transitions and schedule detection
 
-### Creating Custom Schedules
-1. Click **"Manage"** button
-2. Click **"+ Add Custom Schedule"**
-3. Enter schedule name and configure:
-   - Choose single or odd/even type
-   - Select button location
-   - Add periods with times and names
-   - Drag to reorder periods
-4. Click **"Save Schedule"**
+### 📅 **Smart Calendar Integration**
+- Visual calendar interface for schedule configuration
+- Automatic odd/even day detection
+- Bulk date selection and editing
 
-### Managing Schedules
-- **Hide/Show**: Click the ● / ○ icon
-- **Reorder**: Use ↑ ↓ arrows
-- **Edit**: Click "Edit" on any schedule
-- **Delete**: Available for custom schedules only
-- **Reset**: Available for modified default schedules
+### 🎨 **Custom Schedule Builder**
+- Create unlimited custom schedules
+- Drag-and-drop period reordering
+- Odd/even day configurations
+- Preview mode for testing schedules
 
-## Data Management
+### ⚙️ **Powerful Customization**
+- Flexible date/time formatting
+- Adjustable update frequencies
+- Settings panel positioning
 
-### Export Your Settings
-1. Open Schedule Manager
-2. Click **"Export"**
-3. Save the JSON file
+### 💾 **Data Management**
+- Import/export schedules and calendars
+- Cross-device compatibility via JSON export
+- No account required as everything stays on your device
 
-### Import Settings
-1. Open Schedule Manager
-2. Click **"Import"**
-3. Select your JSON backup file
+### 🔧 **Developer Features**
+- Time adjustment tools for testing
+- Built-in update checker
+- Responsive design for all devices
 
-### Storage
-- All data stored in browser localStorage
-- Automatic migration for updates
-- ~5-10MB storage limit
-- No account required
+## 🎯 Getting Started
 
-## Version History
+### Instant Access
+1. **Visit** [https://oirehm.github.io/schedulemonitor/](https://oirehm.github.io/schedulemonitor/)
+2. **Choose** your setup:
+   - Load Bellflower High School calendar (pre-configured)
+   - Start with empty calendar (customize everything)
+3. **Start tracking** your schedule immediately!
 
-See [Changelog.md](Changelog.md) for detailed version history.
+### For Bellflower High School Students & Teachers
+Schedule Monitor comes with Bellflower High School's calendar pre-loaded, including:
+- Normal, Late Start, and Minimum Day schedules
+- Automatic odd/even day detection
+- Special event schedules (Anchor Day, etc.)
 
-### Latest: v2.3.0
-- Complete schedule management system
-- Custom schedule creator
-- Custom calendar configuration
-- Import/export schedules and calendar config
+I do my best to keep the Bellflower calendar updated with the latest schedule changes and events as they're announced. However, since schedules can change throughout the year, I recommend:
+- Double-checking important dates with the [official school calendar](https://bellflowerhigh.org/)
+- Using the Calendar feature to make personal adjustments when needed
+- Reporting any discrepancies via [GitHub Issues](https://github.com/oirehm/schedulemonitor/issues) so I can update the defaults
 
-## Known Issues
+*Want to help keep the calendar current? Feel free to submit updates or corrections!*
 
-- GUI does not scale correctly on different resolutions
-- Mobile UI not working as intended
-- Top panel alignment can block text display in certain screen sizes
-- Timer input is reversed
-- Countdown sometimes stops at `01` instead of `00`
-- Custom schedule IDs cannot be renamed
-- Color scheme setting no longer functions
+### For Other Schools
+1. Start with an empty calendar
+2. Add your school's schedule using the **Calendar** button
+3. Create custom schedules in **Schedule Manager**
+4. Export your configuration to share with classmates
 
-## License
+## 📱 Usage
 
-[Apache License 2.0](LICENSE)
+### Basic Operations
 
-## Contact
+**Viewing Current Schedule:**
+- The main display shows your current period and time remaining
+- Tomorrow's schedule appears automatically
+- Color-coded odd/even day indicators
 
-If you have any questions or feedback, please feel free to reach out at jrmmcapagal@gmail.com.
+**Quick Schedule Switching:**
+- Use the top button panel for common schedules
+- Access special schedules via the dropdown menu
+- Hit "Auto" to let the app choose based on today's calendar
 
-## Acknowledgments
+**Time Adjustment:**
+- Use Settings → Time Control for testing different times
+- Quick day/hour forward buttons for rapid testing
+- Perfect for verifying schedule configurations
 
-- [awesome-readme](https://github.com/matiassingers/awesome-readme)
-- Contributors and testers
-- Original school schedule system inspiration
+### Calendar Management
+
+**Adding Schedules to Dates:**
+1. Click **Calendar** button
+2. Select date(s) by clicking and dragging
+3. Right-click for quick schedule assignment
+4. Or use the bottom buttons for common schedules
+
+**Bulk Operations:**
+- Shift+click to select date ranges
+- Ctrl+click for multiple individual dates
+- Keyboard shortcuts: N (Normal), L (Late), M (Minimum), X (No School)
+
+## 🛠️ Advanced Features
+
+### Custom Schedule Creation
+
+1. **Open Schedule Manager** → "Add Custom Schedule"
+2. **Choose Type:**
+   - Single Schedule: Same every day
+   - Odd/Even Schedule: Different for A/B days
+3. **Add Periods:**
+   - Drag the ≡ handle to reorder
+   - Set start times and period names
+   - Use "Preview" to test before saving
+
+### Schedule Templates
+Clone existing schedules as starting points:
+- Normal → Late Start → Minimum Day
+- Special schedules (Anchor, Rally, Testing)
+- Import from other users' exported files
+
+## 📅 Calendar Configuration
+
+### Year Overview
+- Click "Year Overview" for a bird's-eye view of the entire school year
+- Color-coded months show schedule distribution
+- Click any month to jump to detailed view
+
+### Import/Export Calendars
+- **Export:** Save your calendar configuration as JSON
+- **Import:** Load calendars shared by others
+- **Reset:** Return to Bellflower default or clear all data
+
+## 💾 Data Management
+
+### Backup Your Data
+```
+Settings → Advanced → Export Schedules/Calendar
+```
+Saves all your custom schedules, calendar data, and preferences to a JSON file.
+
+### Sharing Configurations
+1. Export your setup
+2. Share the JSON file with others
+3. They can import it to get identical settings
+
+### Storage Information
+- Everything stored locally in your browser
+- No personal data sent to servers
+- Automatic storage limit monitoring
+
+## 🤝 Contributing
+
+We welcome contributions! Here's how you can help:
+
+### 🐛 Found a Bug?
+[Open an issue](https://github.com/oirehm/schedulemonitor/issues/new?labels=bug&template=bug_report.md) with:
+- What you were trying to do
+- What happened instead
+- Your browser and device info
+
+### 💡 Have an Idea?
+[Suggest a feature](https://github.com/oirehm/schedulemonitor/issues/new?labels=enhancement&template=feature_request.md) or start a discussion!
+
+### 🛠️ Want to Code?
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature-name`
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
+
+### 📚 Improve Documentation
+- Fix typos or unclear instructions
+- Add examples or screenshots
+- Translate to other languages
+
+## 📄 License
+
+This project is licensed under the [Apache License 2.0](LICENSE) - see the LICENSE file for details.
+
+## 🆘 Support
+
+### Getting Help
+- **📖 Documentation:** Check this README and inline help text
+- **🐛 Bug Reports:** [GitHub Issues](https://github.com/oirehm/schedulemonitor/issues)
+- **📧 Direct Contact:** [jrmmcapagal@gmail.com](mailto:jrmmcapagal@gmail.com)
+
+### School-Specific Resources
+- **Bellflower High School:** [Website](https://bellflowerhigh.org/)
+- **Other Schools:** We'd love to add more defaults! Contact us with your schedule information.

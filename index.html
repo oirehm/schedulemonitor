@@ -10,7 +10,7 @@
     <title>Schedule Monitor</title>
     <link rel="icon" href="icon/monitor.png" />
     <link rel="apple-touch-icon" href="icon/monitor.png" />
-    <link rel="stylesheet" type="text/css" href="css/styles.css?v=241" />
+    <link rel="stylesheet" type="text/css" href="css/styles.css?v=250" />
   </head>
   <body id="body">
     <div class="button-panel">
@@ -201,10 +201,10 @@
                 <label for="displayupdatefrequency">Display Update Frequency</label>
                 <select name="updateTime" id="displayupdatefrequency">
                   <option value="2000">2000ms (Slow)</option>
-                  <option value="1000" selected>1000ms (Normal)</option>
+                  <option value="1000">1000ms (Normal)</option>
                   <option value="250">250ms (Fast)</option>
                   <option value="200">200ms (Faster)</option>
-                  <option value="100">100ms (Very Fast)</option>
+                  <option value="100" selected>100ms (Very Fast)</option>
                   <option value="50">50ms (Extreme)</option>
                   <option value="16">16ms (Real Time)</option>
                 </select>
@@ -406,7 +406,6 @@
       <div class="context-menu-header">Custom Schedules</div>
       <div id="customSchedulesMenu"></div>
       <div class="context-menu-separator"></div>
-      <!--  <div class="context-menu-item" onclick="CalendarUI.promptHolidayName()"> Set Holiday...</div> -->
       <div class="context-menu-item" onclick="setSelectedSchedule('noSchool')">No School</div>
       <div class="context-menu-separator"></div>
       <div class="context-menu-item" onclick="clearSelectedDates()">Clear</div>
@@ -454,7 +453,7 @@
       </div>
     </div>
     <div id="toastContainer"></div>
-    <script src="script.js?v=241"></script>
+    <script src="script.js?v=250"></script>
     </div>
   </body>
 </html>

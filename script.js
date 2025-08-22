@@ -212,6 +212,8 @@ const UserManager = {
 const StorageManager = {
   STORAGE_KEY: 'scheduleMonitorData',
   VERSION: '2.0',
+  _scheduleCache: null,
+  _cacheVersion: null,
 
   init() {
     const stored = this.load();
@@ -222,8 +224,13 @@ const StorageManager = {
         this.savePreference('timeAdjustment', oldTimeAdj);
       }
     }
+    this.invalidateScheduleCache();
   },
 
+  invalidateScheduleCache() {
+    this._scheduleCache = null;
+    this._cacheVersion = null;
+  },
   load() {
     try {
       const data = localStorage.getItem(this.STORAGE_KEY);
@@ -234,6 +241,15 @@ const StorageManager = {
     }
   },
 
+  _getCacheKey() {
+    const data = this.getData();
+    return JSON.stringify({
+      customSchedules: Object.keys(data.customSchedules || {}),
+      scheduleOverrides: Object.keys(data.scheduleOverrides || {}),
+      lastUpdated: data.lastUpdated
+    });
+  },
+
   save(data) {
     try {
       const toSave = {
@@ -242,6 +258,8 @@ const StorageManager = {
         lastUpdated: new Date().toISOString()
       };
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(toSave));
+
+      this.invalidateScheduleCache();
       return true;
     } catch (error) {
       if (error.name === 'QuotaExceededError') {
@@ -331,28 +349,30 @@ const StorageManager = {
   },
 
   getAllSchedules() {
+    const currentCacheKey = this._getCacheKey();
+
+    if (this._scheduleCache && this._cacheVersion === currentCacheKey) {
+      return this._scheduleCache;
+    }
+
     const data = this.getData();
-    const allSchedules = {
-      ...scheduleTemplates
-    };
+    const allSchedules = { ...scheduleTemplates };
 
     if (data.customSchedules) {
-      Object.keys(data.customSchedules).forEach(id => {
-        allSchedules[id] = data.customSchedules[id];
-      });
+      Object.assign(allSchedules, data.customSchedules);
     }
 
     if (data.scheduleOverrides) {
-      Object.keys(data.scheduleOverrides).forEach(id => {
+      for (const [id, override] of Object.entries(data.scheduleOverrides)) {
         if (allSchedules[id] && !allSchedules[id].isCustom) {
-          allSchedules[id] = {
-            ...allSchedules[id],
-            ...data.scheduleOverrides[id]
-          };
+          allSchedules[id] = { ...allSchedules[id], ...override };
         }
-      });
+      }
     }
 
+    this._scheduleCache = allSchedules;
+    this._cacheVersion = currentCacheKey;
+    
     return allSchedules;
   },
 
@@ -752,6 +772,7 @@ const CalendarUI = {
 
   renderDays() {
     this.cleanupCalendar();
+    this.cleanupAllEventListeners();
     const daysContainer = document.querySelector('.calendar-days');
     daysContainer.innerHTML = '';
     const firstDay = new Date(this.currentYear, this.currentMonth, 1).getDay();
@@ -1691,6 +1712,16 @@ const ScheduleEditor = {
       names: []
     }
   },
+  boundHandleDragStart: null,
+  boundHandleDragOver: null,
+  boundHandleDrop: null,
+  boundHandleDragEnd: null,
+  init() {
+    this.boundHandleDragStart = this.handleDragStart.bind(this);
+    this.boundHandleDragOver = this.handleDragOver.bind(this);
+    this.boundHandleDrop = this.handleDrop.bind(this);
+    this.boundHandleDragEnd = this.handleDragEnd.bind(this);
+  },
 
   open(scheduleId = null) {
     this.currentScheduleId = scheduleId;
@@ -1857,10 +1888,10 @@ const ScheduleEditor = {
         <button class="period-delete" onclick="deletePeriod(${index})">×</button>
       `;
 
-      periodDiv.addEventListener('dragstart', this.handleDragStart.bind(this));
-      periodDiv.addEventListener('dragover', this.handleDragOver.bind(this));
-      periodDiv.addEventListener('drop', this.handleDrop.bind(this));
-      periodDiv.addEventListener('dragend', this.handleDragEnd.bind(this));
+      periodDiv.addEventListener('dragstart', this.boundHandleDragStart);
+      periodDiv.addEventListener('dragover', this.boundHandleDragOver);
+      periodDiv.addEventListener('drop', this.boundHandleDrop);
+      periodDiv.addEventListener('dragend', this.boundHandleDragEnd);
       container.appendChild(periodDiv);
     });
   },
@@ -2278,41 +2309,39 @@ function regenerateScheduleButtons() {
 
   const dropdown = document.getElementById('special-schedule');
   const currentValue = dropdown.value;
+
   dropdown.innerHTML = '<option value="Nothing">Special Schedules</option>';
 
-  data.specialScheduleOrder.forEach(id => {
-    if (!data.hiddenSchedules.includes(id) && allSchedules[id]) {
-      const option = document.createElement('option');
-      if (!allSchedules[id].isCustom) {
-        switch (id) {
-          case 'anchor':
-            option.value = 'anchorSchedule';
-            break;
-          case 'rally':
-            option.value = 'rallySchedule';
-            break;
-          case 'extendedSnack':
-            option.value = 'ExtendedSnackSchedule';
-            break;
-          case 'testing':
-            option.value = 'TestingSchedule';
-            break;
-          default:
-            option.value = id;
-        }
-      } else {
-        option.value = id;
-      }
+  const valueMap = {
+    anchor: 'anchorSchedule',
+    rally: 'rallySchedule',
+    extendedSnack: 'ExtendedSnackSchedule',
+    testing: 'TestingSchedule'
+  };
 
-      option.textContent = allSchedules[id].displayName;
-      dropdown.appendChild(option);
-    }
-  });
+  const frag = document.createDocumentFragment();
 
-  if ([...dropdown.options].some(opt => opt.value === currentValue)) {
+  const hidden = new Set(data.hiddenSchedules);
+  for (let i = 0, order = data.specialScheduleOrder; i < order.length; i++) {
+    const id = order[i];
+    if (hidden.has(id)) continue;
+
+    const sched = allSchedules[id];
+    if (!sched) continue;
+
+    const option = document.createElement('option');
+    option.value = sched.isCustom ? id : (valueMap[id] || id);
+    option.textContent = sched.displayName;
+    frag.appendChild(option);
+  }
+
+  dropdown.appendChild(frag);
+
+  if (dropdown.querySelector(`option[value="${CSS.escape(currentValue)}"]`)) {
     dropdown.value = currentValue;
   }
 }
+
 const largeScheduleMap = {};
 largeScheduleMap.normal = {
   schedule: 0,
@@ -2876,7 +2905,6 @@ function updateMainDisplay() {
   const adjustedDate = new Date(now);
   const timeComponents = updateDisplayedDate(adjustedDate);
   const dayChanged = lastDisplayState.lastDayOfMonth !== timeComponents.dayOfMonth;
-  updateDisplayedDate(adjustedDate);
 
   if (dayChanged) {
     AutoSchedule();
@@ -2918,7 +2946,6 @@ function updateMainDisplay() {
   const currentSeconds = timeComponents.currentSeconds;
   const periodIndex = starts.length - 1;
   let currentPeriod = -1;
-  const periodChanged = lastDisplayState.currentPeriod !== currentPeriod;
   if (currentSeconds < starts[0]) {
     currentPeriod = -1;
   } else if (currentSeconds >= starts[periodIndex]) {
@@ -2955,6 +2982,7 @@ function updateMainDisplay() {
   }
 
   const lastPeriod = lastDisplayState.currentPeriod;
+  const periodChanged = lastDisplayState.currentPeriod !== currentPeriod;
   if (lastPeriod !== currentPeriod || scheduleChanged || dayChanged) {
     lastDisplayState.currentPeriod = currentPeriod;
 
@@ -2965,7 +2993,6 @@ function updateMainDisplay() {
       updateText(Els["currentlengthofperiod"], "", "currentLength");
       updateText(Els["nextschedule"], "", "nextSchedule");
       updateText(Els["nextduration"], "", "nextDuration");
-
     } else if (currentPeriod === periodIndex) {
       updateText(Els["currentperiodsubtitle"], "", "currentPeriodSubtitle");
       updateText(Els["currentschedule"], names[periodIndex], "currentSchedule");
@@ -3028,18 +3055,18 @@ function formatDisplayTimer(totalSeconds) {
   return padZero(seconds);
 }
 
-function AutoSchedule() {
-  const formatDate = (date) => {
-    const year = date.getFullYear();
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const day = date.getDate().toString().padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
+function formatDateString(date) {
+  const year = date.getFullYear();
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const day = date.getDate().toString().padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
 
+function AutoSchedule() {
   document.querySelector("#auto-schedule").classList.remove("selected-state");
   const now = new Date();
   const currentDate = new Date(now.getTime() + adjustseconds * 1000);
-  const dateString = formatDate(currentDate);
+  const dateString = formatDateString(currentDate);
   const scheduleConfig = CalendarManager.getScheduleForDate(dateString);
   StorageManager.savePreference('lastUsedSchedule', 'auto');
   let foundScheduleData = !!scheduleConfig;
@@ -3054,7 +3081,7 @@ function AutoSchedule() {
   }
 
   const tomorrowDate = new Date(currentDate.getTime() + 86400 * 1000);
-  const tomorrowString = formatDate(tomorrowDate);
+  const tomorrowString = formatDateString(tomorrowDate);
   const tomorrowConfig = CalendarManager.getScheduleForDate(tomorrowString);
 
   if (tomorrowConfig && tomorrowConfig.schedule) {
@@ -3120,10 +3147,9 @@ function updateOddEvenToggleButton() {
 }
 
 function clearSelectedStateButtons() {
-  const buttons = document.getElementsByClassName("selected-state");
-  while (buttons.length) {
-    buttons[0].classList.remove("selected-state");
-  }
+  document.querySelectorAll(".selected-state").forEach(button => {
+    button.classList.remove("selected-state");
+  });
 }
 
 window.onload = async function() {
@@ -3150,8 +3176,9 @@ window.onload = async function() {
     nextduration: document.getElementById('nextduration'),
     scheduledisplay: document.getElementById('scheduledisplay'),
     autoUpdateToggle: document.getElementById('autoUpdateToggle'),
-    updateFrequencies: document.getElementById('updateFrequencies')
+    updateFrequencies: document.getElementById('updateFrequencies'),
   };
+  ScheduleEditor.init();
 
   document.getElementById('versionSpan').textContent = 'v' + version;
   const userStatus = UserManager.getUserStatus();
@@ -3262,6 +3289,9 @@ function clearAllLocalStorage() {
 const NotificationManager = {
   notificationQueue: [],
   isShowingNotification: false,
+  toastId: 0,
+  currentModalType: null,
+
   showAlert(title, message, type = 'info', duration = 5000) {
     if (arguments.length === 3 && ['success', 'error', 'warning', 'info'].includes(message)) {
       this.showToast(null, title, message, duration);
@@ -3356,6 +3386,8 @@ const NotificationManager = {
       };
     }
 
+    this.currentModalType = 'changelog';
+
     this.show(
       `What's New in v${version}`,
       features,
@@ -3387,6 +3419,7 @@ const NotificationManager = {
 
     const userStatus = UserManager.getUserStatus();
     const previousVersion = userStatus.previousVersion;
+
 
     if (!previousVersion) {
       const changes = this.changelogData[version] || ['Error: Version not found'];
@@ -3501,6 +3534,9 @@ const NotificationManager = {
   },
 
   show(title, message, primaryText, secondaryText, primaryCallback, secondaryCallback, isBlocking = true, textAlign = '', tertiaryText = null, tertiaryCallback = null) {
+    if (this.notificationQueue.length > 10) {
+      this.notificationQueue.shift();
+    }
     const notification = {
       title,
       message,
@@ -3526,11 +3562,23 @@ const NotificationManager = {
     const notification = this.notificationQueue.shift();
     this.isShowingNotification = true;
     this.displayNotification(notification);
+
+    if (this.notificationQueue.length === 0) {
+      this.notificationQueue = [];
+    }
   },
 
   displayNotification(notification) {
     const { title, message, primaryText, secondaryText, primaryCallback, secondaryCallback, isBlocking, textAlign, tertiaryText, tertiaryCallback } = notification;
-
+    if (window.currentNotificationPrimary) {
+      window.currentNotificationPrimary = null;
+    }
+    if (window.currentNotificationSecondary) {
+      window.currentNotificationSecondary = null;
+    }
+    if (window.currentNotificationTertiary) {
+      window.currentNotificationTertiary = null;
+    }
     document.getElementById('notificationTitle').textContent = title;
     document.getElementById('notificationMessage').innerHTML = message.replace(/\n/g, '<br>');
     document.getElementById('notificationPrimaryButton').textContent = primaryText;
@@ -3598,6 +3646,9 @@ const NotificationManager = {
 
   onNotificationClosed() {
     this.isShowingNotification = false;
+    if (this.currentModalType === 'changelog' && this.changelogData) {
+      this.changelogData = null;
+    }
     setTimeout(() => {
       this.processQueue();
     }, 100);
@@ -3789,14 +3840,21 @@ async function detectStorageLimitAsync() {
 
     while (low <= high) {
       const mid = Math.floor((low + high) / 2);
-      const testString = 'x'.repeat(mid);
 
+      let testString;
       try {
+        testString = 'x'.repeat(mid);
         localStorage.setItem(testKey, testString);
         lastGood = mid;
         low = mid + chunkSize;
         localStorage.removeItem(testKey);
+
+        testString = null;
+        if (mid > 1000000 && window.gc) {
+          window.gc();
+        }
       } catch (e) {
+        testString = null;
         high = mid - 1;
       }
 
@@ -4138,15 +4196,23 @@ function formatDisplayedDate(date) {
 
 const UpdateChecker = {
   VERSION_URL: 'https://oirehm.github.io/schedulemonitor/version.txt',
+  REPO_VERSION_URL: 'https://raw.githubusercontent.com/oirehm/schedulemonitor/main/version.txt',
   CHECK_INTERVAL: 1000 * 60 * 60,
+  DEPLOYMENT_CHECK_INTERVAL: 1000 * 30,
   STORAGE_KEY: 'lastUpdateCheck',
   intervalId: null,
+
+  getCurrentInterval() {
+    const savedInterval = StorageManager.getPreference('autoUpdateInterval');
+    return savedInterval ? parseInt(savedInterval) * 1000 : this.CHECK_INTERVAL;
+  },
 
   async checkForUpdate(isManual = false, isStartup = false) {
     const autoEnabled = localStorage.getItem('autoUpdateEnabled') === '1';
     const lastCheck = localStorage.getItem(this.STORAGE_KEY);
     const now = Date.now();
-    const interval = this.TEST_MODE ? 5000 : this.CHECK_INTERVAL;
+    const interval = this.getCurrentInterval();
+
     if (!(isManual || isStartup) && (!autoEnabled || (lastCheck && (now - parseInt(lastCheck)) < interval))) {
         return;
     }
@@ -4154,56 +4220,99 @@ const UpdateChecker = {
     if (lastCheckEl && lastCheck) {
       lastCheckEl.textContent = `Last checked: ${new Date(parseInt(lastCheck)).toLocaleString()}`;
     }
-
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
-      const response = await fetch(this.VERSION_URL + '?t=' + Date.now());
-      if (!response.ok) return;
+      const repoResponse = await fetch(this.REPO_VERSION_URL + '?t=' + Date.now());
+      if (!repoResponse.ok) return;
 
-      const latestVersion = (await response.text()).trim()
+      const repoVersion = (await repoResponse.text()).trim();
       const currentVersion = version;
-      const versionComparison = compareVersions(currentVersion, latestVersion);
-      if (versionComparison < 0) {
-        NotificationManager.showPersist(
-          'Update Available!',
-          `Version ${latestVersion} is available! Would you like to refresh the page?`,
-          'Refresh to update',
-          'Dismiss',
-          function() {
-            window.location.reload();
-          }
-        );
-      } else if (versionComparison === 0 && isManual) {
-        NotificationManager.showAlert('', 'Schedule Monitor is up to date', 'success')
-      } else if (versionComparison > 0 && isManual) {
-        NotificationManager.showAlert('', `Schedule Monitor Beta v${currentVersion} loaded!`, 'success')
+
+      if (compareVersions(currentVersion, repoVersion) < 0) {
+
+        const deployedResponse = await fetch(this.VERSION_URL + '?t=' + Date.now());
+        if (!deployedResponse.ok) return;
+
+        const deployedVersion = (await deployedResponse.text()).trim();
+
+        if (compareVersions(currentVersion, deployedVersion) < 0) {
+          this.showUpdateAvailable(deployedVersion);
+        } else {
+          this.pendingVersion = repoVersion;
+          this.showUpdatePending(repoVersion);
+          this.startDeploymentCheck();
+        }
+      } else if (compareVersions(currentVersion, repoVersion) === 0 && isManual) {
+        NotificationManager.showAlert('', 'Schedule Monitor is up to date', 'success');
       }
 
       localStorage.setItem(this.STORAGE_KEY, now.toString());
     } catch (error) {
-      if (error.name === 'AbortError') {
-        console.log('Update check timed out');
-      } else {
-        console.log('Update check failed:', error);
-      }
+      console.log('Update check failed:', error);
     }
   },
 
+  startDeploymentCheck() {
+    if (this.deploymentCheckId) {
+      clearInterval(this.deploymentCheckId);
+    }
+
+    this.deploymentCheckId = setInterval(async () => {
+      try {
+        const deployedResponse = await fetch(this.VERSION_URL + '?t=' + Date.now());
+        if (deployedResponse.ok) {
+          const deployedVersion = (await deployedResponse.text()).trim();
+
+          if (compareVersions(version, deployedVersion) < 0) {
+            clearInterval(this.deploymentCheckId);
+            this.deploymentCheckId = null;
+            this.pendingVersion = null;
+            this.showUpdateAvailable(deployedVersion);
+          }
+        }
+      } catch (error) {
+        console.log('Deployment check failed:', error);
+      } finally {
+        deployedResponse = null;
+      }
+    }, this.DEPLOYMENT_CHECK_INTERVAL);
+  },
+
+  showUpdatePending(pendingVersion) {
+    NotificationManager.showPersist(
+      'Update Detected!',
+      `Version ${pendingVersion} is being prepared for deployment. You'll be notified when it's ready to install.`,
+      'Dismiss',
+      null,
+      function() {}
+    );
+  },
+
+  showUpdateAvailable(availableVersion) {
+    NotificationManager.showPersist(
+      'Update Available!',
+      `Version ${availableVersion} is available! Would you like to refresh the page?`,
+      'Refresh to update',
+      'Dismiss',
+      function() {
+        window.location.reload();
+      }
+    );
+  },
+
   startAutoCheck() {
-    const autoEnabled = localStorage.getItem('autoUpdateEnabled') === '1';
+    const autoEnabled = StorageManager.getPreference('autoUpdateEnabled') === '1';
     if (!autoEnabled) {
       return;
     }
+
     if (this.intervalId) {
       clearInterval(this.intervalId);
     }
 
-    const interval = this.TEST_MODE ? 5000 : this.CHECK_INTERVAL;
+    const interval = this.getCurrentInterval();
     this.intervalId = setInterval(() => {
       this.checkForUpdate(false, false);
     }, interval);
-
   },
 
   stopAutoCheck() {
@@ -4254,7 +4363,6 @@ function initializeSettingsHandlers() {
     addSettingsEventListener(autoToggle, 'change', () => {
       const enabled = autoToggle.checked;
       StorageManager.savePreference('autoUpdateEnabled', enabled ? '1' : '0');
-
       if (enabled) {
         UpdateChecker.startAutoCheck();
       } else {
@@ -4265,9 +4373,13 @@ function initializeSettingsHandlers() {
 
   if (updateFrequencies) {
     addSettingsEventListener(updateFrequencies, 'change', () => {
-      const selectedValue = parseInt(updateFrequencies.value, 10);
-      StorageManager.savePreference('updateFrequency', selectedValue);
-      UpdateChecker.CHECK_INTERVAL = selectedValue * 1000;
+      const selectedValue = updateFrequencies.value;
+      StorageManager.savePreference('autoUpdateInterval', selectedValue);
+
+      UpdateChecker.stopAutoCheck();
+      if (StorageManager.getPreference('autoUpdateEnabled') === '1') {
+        UpdateChecker.startAutoCheck();
+      }
     });
   }
 }
@@ -4440,20 +4552,15 @@ function evaluateMathExpression(expression) {
   });
 
   expr = expr
-
     .replace(/(\d+\.?\d*)\s*([a-z_])/g, '$1*$2')
     .replace(/(\d+\.?\d*)\s*\(/g, '$1*(')
-
     .replace(/\)\s*(\d+\.?\d*)/g, ')*$1')
     .replace(/\)\s*([a-z_])/g, ')*$1')
     .replace(/\)\s*\(/g, ')*(')
-
     .replace(/([a-z_])\s*\(/g, '$1*(');
 
   expr = expr.replace(/(\d+\.?\d*|\))\s*!/g, 'functions.factorial($1)');
-
   expr = expr.replace(/\^/g, '**');
-
   expr = expr.replace(/(\d+\.?\d*)\s*%/g, '($1/100)');
 
   const context = {
@@ -4464,7 +4571,6 @@ function evaluateMathExpression(expression) {
   };
 
   try {
-
     return Function('functions', 'Math', ...Object.keys(functions), `return ${expr}`)
       (functions, Math, ...Object.values(functions));
   } catch (error) {

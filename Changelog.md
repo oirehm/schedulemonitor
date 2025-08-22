@@ -8,24 +8,48 @@ Changelog Header Order:
 6. Deprecations
 -->
 
+## Version 2.5.0
+
+### New Features
+
+- Enhanced update checker now detects updates before deployment is ready
+- Added "update pending" notifications when new versions are detected in development
+- Users now get early notification that an update is coming, then automatic notification when ready
+
+### Improvements
+
+- Update notifications now provide clearer context about update availability vs readiness
+- Added better handling of notifications to fix potential memory issues
+- Memory handling is improved slightly
+- Overhauled README.md
+
+### Bug Fixes
+
+- Current period highlight now properly initializes after the first period has begun
+- Auto update function now properly executes per interval
+
 ## Version 2.4.1
 
 ### Bug Fixes
+
 - Fixed elapsed time display not updating properly during periods - now updates every second as intended
 
 ## Version 2.4.0
 
 ### New Features
+
 - Notification modals now buffer instead of override each other when trying to show simultaneously
 - Clicking on the version number in the footer now reshows the "What's New" notification
 - Added a Feedback button to the footer that links directly to GitHub issues
 
 ### Improvements
+
 - Updating across multiple versions now displays the missed version's changes
 - Auto update checker is now more accurate, checking actual deployment rather than repository
 - "What's New" notification now directly pulls from the changelog for consistency
 
 ### Bug Fixes
+
 - Fixed issue with current period not switching properly on the schedule display
 - Fixed Auto Check For Updates not working
 
