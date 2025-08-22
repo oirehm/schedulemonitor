@@ -2,7 +2,7 @@
 
 **Real-time school schedule tracking and management made simple**
 
-[![Version](https://img.shields.io/badge/version-2.4.0-blue.svg)](https://github.com/oirehm/schedulemonitor/releases)
+[![Version](https://img.shields.io/badge/version-2.5.1-blue.svg)](https://github.com/oirehm/schedulemonitor/releases)
 [![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)](LICENSE)
 [![Live Demo](https://img.shields.io/badge/demo-live-brightgreen.svg)](https://oirehm.github.io/schedulemonitor/)
 [![GitHub Stars](https://img.shields.io/github/stars/oirehm/schedulemonitor?style=social)](https://github.com/oirehm/schedulemonitor/stargazers)

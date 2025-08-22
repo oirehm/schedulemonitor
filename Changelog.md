@@ -8,6 +8,10 @@ Changelog Header Order:
 6. Deprecations
 -->
 
+## Version 2.5.1
+
+- Added new Troubleshooting section in the Advanced settings tab
+
 ## Version 2.5.0
 
 ### New Features

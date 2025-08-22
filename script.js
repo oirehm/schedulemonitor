@@ -3420,7 +3420,6 @@ const NotificationManager = {
     const userStatus = UserManager.getUserStatus();
     const previousVersion = userStatus.previousVersion;
 
-
     if (!previousVersion) {
       const changes = this.changelogData[version] || ['Error: Version not found'];
       return changes.join('');
@@ -4607,4 +4606,43 @@ async function loadVersion() {
   } catch (error) {
     console.log('Failed to load version, using fallback:', version);
   }
+}
+
+function forceHardRefresh() {
+  NotificationManager.showConfirm(
+    'Force Hard Refresh',
+    'This will reload the page and clear cached files. This will NOT affect your local storage. Any unsaved changes will be lost.',
+    'Hard Refresh',
+    'Cancel',
+    function() {
+      window.location.reload(true);
+    }
+  );
+}
+
+function showCacheTroubleshooting() {
+  const isWindows = navigator.platform.toLowerCase().includes('win');
+  const isMac = navigator.platform.toLowerCase().includes('mac');
+  let refreshKey = isWindows ? 'Ctrl+Shift+R (or Ctrl+F5)' : (isMac ? 'Cmd+Shift+R' : 'Ctrl+Shift+R');
+  
+  const troubleshootingText = 
+    `If Schedule Monitor seems outdated or broken after an update:\n\n` +
+    `1. <strong>Hard Refresh</strong>: ${refreshKey}\n` +
+    `2. <strong>Private Window</strong> Open in incognito/private browsing\n` +
+    `3. <strong>Clear Cache</strong> Browser Settings → Clear browsing data\n` +
+    `4. <strong>Check Version</strong> Look at version number in footer\n\n` +
+    `Most issues are solved with a hard refresh!`;
+  
+  NotificationManager.show(
+    'Cache Troubleshooting',
+    troubleshootingText,
+    'Got it!',
+    'Hard Refresh Now',
+    function() {},
+    function() {
+      window.location.reload(true);
+    },
+    false,
+    'left'
+  );
 }

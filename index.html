@@ -10,7 +10,7 @@
     <title>Schedule Monitor</title>
     <link rel="icon" href="icon/monitor.png" />
     <link rel="apple-touch-icon" href="icon/monitor.png" />
-    <link rel="stylesheet" type="text/css" href="css/styles.css?v=250" />
+    <link rel="stylesheet" type="text/css" href="css/styles.css?v=251" />
   </head>
   <body id="body">
     <div class="button-panel">
@@ -229,6 +229,18 @@
               </div>
             </div>
             <div class="settings-section">
+              <h3>Troubleshooting</h3>
+              <div class="settings-field">
+                <label>Having issues after an update?</label>
+                <button class="button action-button" onclick="forceHardRefresh()">Force Hard Refresh</button>
+                <button class="button action-button" onclick="showCacheTroubleshooting()">Cache Help</button>
+                <p id="settingFooter">
+                  Use if the app seems outdated or features aren't working properly
+                </p>
+              </div>
+            </div>
+
+            <div class="settings-section">
               <h3>Data Management</h3>
               <div class="settings-field">
                 <label>Storage Usage</label>
@@ -257,7 +269,7 @@
           <a href="https://github.com/oirehm/schedulemonitor/blob/main/Changelog.md" target="_blank">Changelog</a>
           <a href="https://github.com/oirehm/schedulemonitor" target="_blank">GitHub</a>
           <a id="schoolSchedule" href="#" target="_blank">Bellflower Calendar</a>
-          <a href="https://github.com/oirehm/schedulemonitor/issues/new?labels=feedback&title=[Feedback]%20&body=**Version:**%20v2.3.1%0A%0A**What%20type%20of%20feedback%20is%20this?**%0A-%20%5B%20%5D%20Bug%20report%20(something%20isn%27t%20working)%0A-%20%5B%20%5D%20Feature%20request%20(I%20wish%20it%20could...)%0A-%20%5B%20%5D%20General%20feedback%0A%0A**Tell%20us%20what%27s%20on%20your%20mind:**%0A(Just%20type%20here%20-%20no%20special%20formatting%20needed!)%0A%0A%0A**If%20reporting%20a%20bug,%20what%20were%20you%20trying%20to%20do?**%0A(You%20can%20skip%20this%20if%20not%20a%20bug)%0A%0A%0A**Any%20other%20details:**%0A(Optional%20-%20browser,%20device,%20etc.)%0A" target="_blank">Feedback</a>
+          <a href="https://github.com/oirehm/schedulemonitor/issues/new?labels=feedback&title=[Feedback]%20&body=What%20type%20of%20feedback%20is%20this?**%0A-%20%5B%20%5D%20Bug%20report%20(something%20isn%27t%20working)%0A-%20%5B%20%5D%20Feature%20request%20(I%20wish%20it%20could...)%0A-%20%5B%20%5D%20General%20feedback%0A%0A**Tell%20us%20what%27s%20on%20your%20mind:**%0A(Just%20type%20here%20-%20no%20special%20formatting%20needed!)%0A%0A%0A**If%20reporting%20a%20bug,%20what%20were%20you%20trying%20to%20do?**%0A(You%20can%20skip%20this%20if%20not%20a%20bug)%0A%0A%0A**Any%20other%20details:**%0A(Optional%20-%20browser,%20device,%20etc.)%0A" target="_blank">Feedback</a>
           <a href="#" onclick="showRecentChanges(event)" id="versionSpan"></a>
         </div>
       </footer>
@@ -453,7 +465,7 @@
       </div>
     </div>
     <div id="toastContainer"></div>
-    <script src="script.js?v=250"></script>
+    <script src="script.js?v=251"></script>
     </div>
   </body>
 </html>
