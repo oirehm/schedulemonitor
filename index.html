@@ -10,7 +10,7 @@
     <title>Schedule Monitor</title>
     <link rel="icon" href="icon/monitor.png" />
     <link rel="apple-touch-icon" href="icon/monitor.png" />
-    <link rel="stylesheet" type="text/css" href="css/styles.css?v=251" />
+    <link rel="stylesheet" type="text/css" href="css/styles.css?v=252" />
   </head>
   <body id="body">
     <div class="button-panel">
@@ -22,7 +22,7 @@
       <button id="auto-schedule" onclick="AutoSchedule()" class="schedule-button button">Auto</button>
     </div>
     <div id="container">
-      <div id="timer_type" style="font-size: 4em">Loading...</div>
+      <div id="timer_type">Loading...</div>
       <div id="subtitle">Please wait</div>
       <div id="currentdate"></div>
       <div id="currentperiodsubtitle"></div>
@@ -32,7 +32,7 @@
       <div id="currentduration"></div>
       <div id="nextperiodsubtitle"></div>
       <div id="nextschedule"></div>
-      <div id="nextduration" style="font-size: 5em; margin-top: 8px; color: orange"></div>
+      <div id="nextduration"></div>
       <div id="scheduledisplay"></div>
       <div id="tomorrowScheduleTitle" class="hidden">Tomorrow's Schedule:</div>
       <div id="tomorrowScheduleDisplay" class="hidden">Unknown</div>
@@ -157,10 +157,10 @@
                     <div class="format-row">
                       <label>Date Separator</label>
                       <select id="dateSeparator" onchange="updateDateFormat()">
-                        <option value="/">/</option>
-                        <option value="-">-</option>
-                        <option value=".">.</option>
                         <option value=" ">Space</option>
+                        <option value="-">-</option>
+                        <option value="/">/</option>
+                        <option value=".">.</option>
                       </select>
                     </div>
                     <div class="format-row">
@@ -184,6 +184,14 @@
                   </div>
                 </div>
               </div>
+              <!-- HOLD OFF
+              <h3>Timer Display</h3>
+              <div class="settings-field">
+                <label>
+                  <input type="checkbox" id="paddedTimerZeros" onchange="togglePaddedTimerZeros()" checked>
+                  Use padded zeros in timers (05:30 vs 5:30)
+                </label>
+              </div>-->
               <h3>Appearance</h3>
               <div class="settings-field">
                 <label for="colorscheme">Color Scheme</label>
@@ -218,8 +226,8 @@
                 <h3>Updates</h3>
                 <label>Auto Check For Updates</label>
                 <input type="checkbox" id="autoUpdateToggle" checked>
-                <label for="updateFrequencies">Display Update Frequency</label>
-                <select name="" id="updateFrequencies">
+                <label for="updateCheckFrequencies">Check for Update Frequency</label>
+                <select name="" id="updateCheckFrequencies">
                   <option value="86400">Every Day</option>
                   <option value="3600" selected>Every Hour</option>
                   <option value="1800">Every 30 minutes</option>
@@ -373,15 +381,15 @@
           <div id="calendarHeader">
             <h2>Calendar Configuration <span id="liveIndicator" style="font-size: 0.6em; color: #666; margin-left: 10px;">(Changes apply immediately)</span>
             </h2>
-            <button class="button" onclick="closeCalendar()">×</button>
+            <button class="button" onclick="CalendarUI.close()">×</button>
           </div>
           <div id="calendarBody">
             <div id="calendarControls">
-              <button class="button" onclick="openYearOverview()">Year Overview</button>
-              <button class="button" onclick="previousMonth()">◀</button>
+              <button class="button" onclick="YearOverviewUI.open()">Year Overview</button>
+              <button class="button" onclick="CalendarUI.previousMonth()">◀</button>
               <span id="currentMonthYear"></span>
-              <button class="button" onclick="nextMonth()">▶</button>
-              <button class="button" onclick="goToToday()" style="margin-left: 20px;">Today</button>
+              <button class="button" onclick="CalendarUI.nextMonth()">▶</button>
+              <button class="button" onclick="CalendarUI.goToToday()" style="margin-left: 20px;">Today</button>
             </div>
             <div id="calendarGrid">
               <div class="calendar-weekdays"></div>
@@ -420,20 +428,20 @@
       <div class="context-menu-separator"></div>
       <div class="context-menu-item" onclick="setSelectedSchedule('noSchool')">No School</div>
       <div class="context-menu-separator"></div>
-      <div class="context-menu-item" onclick="clearSelectedDates()">Clear</div>
+      <div class="context-menu-item" onclick="CalendarUI.clearSelectedDates()">Clear</div>
     </div>
     <div id="yearOverviewModal" class="hidden">
       <div id="yearOverviewContent">
         <div id="yearOverviewHeader">
           <h2>Year Overview - <span id="yearOverviewTitle"></span>
           </h2>
-          <button class="button" onclick="closeYearOverview()">×</button>
+          <button class="button" onclick="YearOverviewUI.close()">×</button>
         </div>
         <div id="yearOverviewBody">
           <div id="yearOverviewControls">
-            <button class="button" onclick="previousYear()">◀</button>
+            <button class="button" onclick="YearOverviewUI.previousYear()">◀</button>
             <span id="overviewYearDisplay"></span>
-            <button class="button" onclick="nextYear()">▶</button>
+            <button class="button" onclick="YearOverviewUI.nextYear()">▶</button>
           </div>
           <div id="yearOverviewGrid"></div>
           <div id="yearOverviewLegend">
@@ -465,7 +473,7 @@
       </div>
     </div>
     <div id="toastContainer"></div>
-    <script src="script.js?v=251"></script>
+    <script src="script.js?v=252"></script>
     </div>
   </body>
 </html>

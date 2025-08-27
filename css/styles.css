@@ -36,7 +36,59 @@ body {
   background-color: var(--page-bg);
   color: var(--text);
   line-height: 1.4;
-  padding-top: 60px;
+}
+
+html, body {
+  scrollbar-width: thin;
+  scrollbar-color: var(--muted-3) var(--dark-1);
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  width: 6px;
+}
+
+html::-webkit-scrollbar-track,
+body::-webkit-scrollbar-track {
+  background: var(--dark-1);
+}
+
+html::-webkit-scrollbar-thumb,
+body::-webkit-scrollbar-thumb {
+  background: var(--muted-3);
+  border-radius: 3px;
+}
+
+html::-webkit-scrollbar-thumb:hover,
+body::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}
+
+.settings-panel-body,
+.settings-tab-content {
+  scrollbar-width: thin;
+  scrollbar-color: var(--muted-3) var(--panel-bg);
+}
+
+.settings-panel-body::-webkit-scrollbar,
+.settings-tab-content::-webkit-scrollbar {
+  width: 2px;
+}
+
+.settings-panel-body::-webkit-scrollbar-track,
+.settings-tab-content::-webkit-scrollbar-track {
+  background: var(--panel-bg);
+}
+
+.settings-panel-body::-webkit-scrollbar-thumb,
+.settings-tab-content::-webkit-scrollbar-thumb {
+  background: var(--muted-3);
+  border-radius: 2px;
+}
+
+.settings-panel-body::-webkit-scrollbar-thumb:hover,
+.settings-tab-content::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
 }
 
 .button-panel {
@@ -60,6 +112,7 @@ body {
   max-width: 800px;
   margin: 0 auto;
   padding: 20px;
+  margin-top: calc(var(--button-panel-height, 0px) + 20px);
 }
 
 #currentdate {
@@ -71,7 +124,7 @@ body {
 }
 
 #timer_type {
-  font-size: 1.8em;
+  font-size: 4em;
   color: #ccc;
   margin-bottom: 5px;
   font-weight: normal;
@@ -147,9 +200,9 @@ body {
 }
 
 #nextduration {
-  font-size: 4em;
+  font-size: 4.5em;
+  margin-top: 8px;
   color: var(--accent);
-  margin: 20px 0;
 }
 
 #scheduledisplay {
@@ -227,6 +280,45 @@ body {
 
 #special-schedule {
   padding: 6px 12px;
+}
+
+@media (max-width: 600px) {
+  #timer_type {
+    font-size: 3em;
+  }
+  #currentdate {
+    font-size: 1em;
+  }
+  #currentschedule {
+    font-size: 2em;
+  }
+  #currentlengthofperiod {
+    font-size: 1.4em;
+  }
+  #currentduration {
+    font-size: 2em;
+  }
+  #nextschedule {
+    font-size: 1em;
+  }
+  #nextduration {
+    font-size: 3em;
+  }
+  #timerDisplay {
+    font-size: 1.5em;
+  }
+  #subtitle {
+    font-size: 0.9em;
+  }
+  #currentperiodsubtitle {
+    font-size: 1em;
+  }
+  #endofschedulesubtitle {
+    font-size: 0.85em;
+  }
+  #nextperiodsubtitle {
+    font-size: 0.85em;
+  }
 }
 
 #special-schedule:hover {
@@ -645,11 +737,6 @@ body.settings-panel-open.settings-panel-minimized #container {
     margin-bottom: 15px;
     overflow-x: auto;
     flex-wrap: nowrap;
-    scrollbar-width: none;
-  }
-
-  #settingsTabs::-webkit-scrollbar {
-    display: none;
   }
 
   #settingsTabs .tab-button {

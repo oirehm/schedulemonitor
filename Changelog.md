@@ -8,6 +8,23 @@ Changelog Header Order:
 6. Deprecations
 -->
 
+## Version 2.5.2
+
+### Improvements
+
+- Minor backend tweaks and optimizations
+- Optimized object creation in main display update loops to prevent memory accumulation
+- Replaced native scrollbar with a more sleek version
+- Reduced mobile UI font sizes on the main display
+
+### Bug Fixes
+
+- Fixed issue where the changelog wouldn’t display after the first view
+- Fixed auto update functionality to properly check for updates at configured intervals
+- Fixed bug causing the upcoming schedule to not update at day rollover in Auto mode
+- Fixed the date configurations not persisting after reloading the page
+- Restored keyboard shortcuts for calendar edits
+
 ## Version 2.5.1
 
 - Added new Troubleshooting section in the Advanced settings tab

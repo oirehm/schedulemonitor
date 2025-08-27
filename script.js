@@ -35,6 +35,7 @@ let hasScheduledDOMUpdate = false;
 let settingsPanelOpen = false;
 let settingsPanelMinimized = false;
 let currentSettingsTab = 'general';
+let usePaddedTimerZeros;
 const DAY_NAMES = {
   long: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
   short: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
@@ -43,7 +44,6 @@ const MONTH_NAMES = {
   long: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
   short: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 };
-
 const scheduleTemplates = {
   normal: {
     displayName: "Normal Schedule",
@@ -113,7 +113,6 @@ const scheduleTemplates = {
     names: []
   }
 };
-
 const predefinedColorSchemes = {
   gb: {
     text: "grey",
@@ -609,16 +608,14 @@ const CalendarUI = {
     });
   },
 
-  cleanupAllEventListeners() {
-    this.eventListeners.forEach(({
-      element,
-      event,
-      handler,
-      options
-    }) => {
-      element.removeEventListener(event, handler, options);
+  cleanupDayEventListeners() {
+    this.eventListeners = this.eventListeners.filter(({element, event, handler, options}) => {
+      if (element.closest && element.closest('.calendar-days')) {
+        element.removeEventListener(event, handler, options);
+        return false;
+      }
+      return true;
     });
-    this.eventListeners = [];
   },
 
   open() {
@@ -629,7 +626,7 @@ const CalendarUI = {
   },
 
   close() {
-    this.cleanupAllEventListeners();
+    this.cleanupDayEventListeners();
     document.getElementById('calendarModal').classList.add('hidden');
     this.selectedDates.clear();
     this.isDragging = false;
@@ -637,8 +634,6 @@ const CalendarUI = {
   },
 
   cleanup() {
-    document.removeEventListener('mouseup', this.handleGlobalMouseUp);
-    document.removeEventListener('keydown', this.handleKeyboard);
     const daysContainer = document.querySelector('.calendar-days');
     if (daysContainer) {
       const newContainer = daysContainer.cloneNode(false);
@@ -649,7 +644,6 @@ const CalendarUI = {
   handleKeyboard(e) {
     if (document.getElementById('calendarModal').classList.contains('hidden')) return;
     if (document.activeElement.tagName === 'INPUT') return;
-
     const hasSelection = CalendarUI.selectedDates.size > 0;
 
     switch (e.key) {
@@ -698,6 +692,7 @@ const CalendarUI = {
         break;
     }
   },
+
   toggleSelectedOddEvenAlternating() {
     const dates = Array.from(this.selectedDates).sort((a, b) => new Date(a) - new Date(b));
     let isEven = false;
@@ -738,6 +733,7 @@ const CalendarUI = {
       weekdaysContainer.appendChild(dayElement);
     });
   },
+
   initializeWeekends() {
     const config = CalendarManager.getConfig();
     const daysInMonth = new Date(this.currentYear, this.currentMonth + 1, 0).getDate();
@@ -772,7 +768,7 @@ const CalendarUI = {
 
   renderDays() {
     this.cleanupCalendar();
-    this.cleanupAllEventListeners();
+    this.cleanupDayEventListeners();
     const daysContainer = document.querySelector('.calendar-days');
     daysContainer.innerHTML = '';
     const firstDay = new Date(this.currentYear, this.currentMonth, 1).getDay();
@@ -862,7 +858,6 @@ const CalendarUI = {
       dayElement.addEventListener('mouseenter', (e) => this.handleMouseEnter(e, dateString));
       dayElement.addEventListener('mouseup', () => this.handleMouseUp());
       dayElement.addEventListener('contextmenu', (e) => this.handleRightClick(e, dateString));
-
 
       if (this.selectedDates.has(dateString)) {
         dayElement.classList.add('day-selected');
@@ -1063,14 +1058,20 @@ const CalendarUI = {
     this.selectedDates.clear();
     this.render();
   },
+
   clearSelectedDates() {
     const dates = Array.from(this.selectedDates);
+    const config = CalendarManager.getConfig();
+
     dates.forEach(dateString => {
-      CalendarManager.setScheduleForDate(dateString, '', null);
+      delete config.dates[dateString];
     });
+
+    CalendarManager.saveConfig(config);
     this.render();
   }
 };
+
 async function resetToDefaultCalendar() {
   NotificationManager.showConfirm(
     'Load Default Calendar',
@@ -1145,22 +1146,6 @@ function openCalendar() {
   CalendarUI.open();
 }
 
-function closeCalendar() {
-  CalendarUI.close();
-}
-
-function previousMonth() {
-  CalendarUI.previousMonth();
-}
-
-function nextMonth() {
-  CalendarUI.nextMonth();
-}
-
-function goToToday() {
-  CalendarUI.goToToday();
-}
-
 function setSelectedSchedule(scheduleId) {
   CalendarUI.setSelectedSchedule(scheduleId, false);
 }
@@ -1176,19 +1161,6 @@ function toggleSelectedOddEven() {
     }
   });
 
-  CalendarUI.render();
-
-}
-
-function clearSelectedDates() {
-  const dates = Array.from(CalendarUI.selectedDates);
-  const config = CalendarManager.getConfig();
-
-  dates.forEach(dateString => {
-    delete config.dates[dateString];
-  });
-
-  CalendarManager.saveConfig(config);
   CalendarUI.render();
 }
 
@@ -1351,24 +1323,9 @@ const YearOverviewUI = {
   }
 };
 
-function openYearOverview() {
-  YearOverviewUI.open();
-}
-
-function closeYearOverview() {
-  YearOverviewUI.close();
-}
-
-function previousYear() {
-  YearOverviewUI.previousYear();
-}
-
-function nextYear() {
-  YearOverviewUI.nextYear();
-}
-
 function loadPreferences() {
   loadSettingsPanelPosition();
+  usePaddedTimerZeros = StorageManager.getPreference('usePaddedTimerZeros') ?? true;
   const colorScheme = StorageManager.getPreference('colorScheme');
   if (colorScheme) {
     document.getElementById('colorscheme').value = colorScheme;
@@ -1387,6 +1344,14 @@ function loadPreferences() {
   if (updateFrequencyPref) {
     document.getElementById('displayupdatefrequency').value = updateFrequencyPref;
     displayUpdateFrequency = Math.max(16, parseInt(updateFrequencyPref));
+  }
+
+  const savedUpdateInterval = StorageManager.getPreference('autoUpdateInterval');
+  if (savedUpdateInterval) {
+    const updateFrequencies = document.getElementById('updateCheckFrequencies');
+    if (updateFrequencies) {
+      updateFrequencies.value = savedUpdateInterval;
+    }
   }
 
   let autoUpdate = StorageManager.getPreference('autoUpdateEnabled');
@@ -2340,6 +2305,8 @@ function regenerateScheduleButtons() {
   if (dropdown.querySelector(`option[value="${CSS.escape(currentValue)}"]`)) {
     dropdown.value = currentValue;
   }
+
+  adjustMainDisplayPosition();
 }
 
 const largeScheduleMap = {};
@@ -2392,13 +2359,19 @@ function loadSchedule(scheduleId, forceOddEven = null) {
   currentScheduleId = scheduleId;
   currentScheduleData = template;
 
+  const timerTypeEl = document.getElementById("timer_type");
+  const scheduleDisplayEl = document.getElementById("scheduledisplay");
+  const subtitleEl = document.getElementById("subtitle");
+
   if (scheduleId === 'noSchool') {
     times.length = 0;
     names.length = 0;
     starts.length = 0;
-    document.getElementById("timer_type").innerHTML = "No School";
+
+    timerTypeEl.textContent = "No School";
+    scheduleDisplayEl.textContent = "No school today!";
     lastDisplayState.scheduleHTML = "No school today!";
-    document.getElementById("scheduledisplay").innerHTML = "No school today!";
+
     updateButtonStates(scheduleId);
     return;
   }
@@ -2414,21 +2387,16 @@ function loadSchedule(scheduleId, forceOddEven = null) {
   times.push(...(scheduleData.times || template.times));
   names.push(...(scheduleData.names || template.names));
 
-  starts = times.map((time) => {
-    let [hours, minutes] = time.split(":").map(Number);
+  starts = times.map(time => {
+    const [hours, minutes] = time.split(":").map(Number);
     return hours * 3600 + minutes * 60;
   });
 
   const entry = largeScheduleMap[scheduleId];
   displayTitle = entry ? entry.baseTitle : "UNKNOWN";
 
-  document.getElementById("timer_type").textContent = displayTitle;
-
-  if (template.subtitle) {
-    document.getElementById("subtitle").textContent = template.subtitle;
-  } else {
-    document.getElementById("subtitle").textContent = '';
-  }
+  timerTypeEl.textContent = displayTitle;
+  subtitleEl.textContent = template.subtitle || '';
 
   updateButtonStates(scheduleId);
   updateMainDisplay();
@@ -2471,10 +2439,15 @@ infoElements.forEach(function(infoElement) {
   defaultDisplays[infoElement] = getComputedStyle(infoElement).display;
 });
 
+let animationId;
+let lastUpdateTime = 0;
 
-function updateAndCallAgain() {
-  updateMainDisplay();
-  setTimeout(updateAndCallAgain, displayUpdateFrequency);
+function updateAndCallAgain(timestamp) {
+  if (timestamp - lastUpdateTime >= displayUpdateFrequency) {
+    updateMainDisplay();
+    lastUpdateTime = timestamp;
+  }
+  animationId = requestAnimationFrame(updateAndCallAgain);
 }
 
 function getSchoolScheduleLink() {
@@ -2507,16 +2480,30 @@ document.getElementById("displayupdatefrequency").addEventListener("change", fun
   StorageManager.savePreference('updateFrequency', this.value);
 });
 
-let timeAdjInput = document.querySelector("#timeadj");
-timeAdjInput.addEventListener("wheel", function(event) {
+const timeAdjInput = document.querySelector("#timeadj");
+let timeAdjValue = parseFloat(timeAdjInput.value) || 0;
+
+let ticking = false;
+function updateTimeAdjDisplay() {
+  if (!ticking) {
+    ticking = true;
+    requestAnimationFrame(() => {
+      timeAdjInput.value = timeAdjValue;
+      timeadj();
+      ticking = false;
+    });
+  }
+}
+
+timeAdjInput.addEventListener("wheel", (event) => {
   event.preventDefault();
-  let currentVal = parseFloat(this.value) || 0;
-  this.value = event.deltaY > 0 ? currentVal - 1 : currentVal + 1;
-  timeadj();
+  timeAdjValue += event.deltaY < 0 ? 1 : -1;
+  updateTimeAdjDisplay();
 });
 
 function bindWheelAdjust(selector, unit) {
   const el = document.querySelector(selector);
+
   el.addEventListener("wheel", (event) => {
     event.preventDefault();
     quickAdjust(unit, event.deltaY < 0);
@@ -2524,22 +2511,21 @@ function bindWheelAdjust(selector, unit) {
 }
 
 function quickAdjust(type, forward = true) {
-  let inputBox = document.getElementById("timeadj");
-  switch (type) {
-    case 'day':
-      adjustseconds += forward ? 86400 : -86400;
-      break;
-    case 'hour':
-      adjustseconds += forward ? 3600 : -3600;
-      break;
-    case 'minute':
-      adjustseconds += forward ? 60 : -60;
-      break;
+  const inputBox = document.getElementById("timeadj");
+
+  if (type === 'day') {
+    adjustseconds += forward ? 86400 : -86400;
+  } else if (type === 'hour') {
+    adjustseconds += forward ? 3600 : -3600;
+  } else if (type === 'minute') {
+    adjustseconds += forward ? 60 : -60;
   }
+
   inputBox.value = adjustseconds;
   AutoSchedule();
   timeadj();
 }
+
 
 function timeadj() {
   const oldAdjustSeconds = adjustseconds;
@@ -2774,7 +2760,7 @@ function timePartsFromDate(date) {
     mm,
     ss,
     meridiem,
-    hh12Str: padZero(hh12),
+    hh12Str: hh12,
     mmStr: padZero(mm),
     ssStr: padZero(ss)
   };
@@ -2784,28 +2770,40 @@ function getCurrentSecondsFromDate(date) {
   return date.getHours() * 3600 + date.getMinutes() * 60 + date.getSeconds();
 }
 
+const MERIDIEM_ARRAY = ["AM", "PM"];
+
 function formatScheduleTime(timeStr) {
   const hour24 = (timeStr.charCodeAt(0) - 48) * 10 + (timeStr.charCodeAt(1) - 48);
   const minutePart = timeStr.slice(2, 5);
-  const meridiem = ["AM", "PM"][(hour24 / 12) | 0];
+  const meridiem = MERIDIEM_ARRAY[(hour24 / 12) | 0];
   const hour12 = ((hour24 + 11) % 12) + 1;
   const hourStr = (hour12 < 10 ? "0" : "") + hour12;
   return hourStr + minutePart + " " + meridiem;
 }
 
 function arraysEqual(a, b) {
-  if (!a || !b || a.length !== b.length) return false;
-  for (let i = 0; i < a.length; i++)
+  if (a === b) return true;
+  if (!a || !b) return a === b;
+  if (a.length !== b.length) return false;
+
+  for (let i = 0; i < a.length; i++) {
     if (a[i] !== b[i]) return false;
+  }
   return true;
 }
 
+let batchedUpdates = new Map();
+
 function queueDOMUpdate(elementKey, content, stateKey, isHTML = false) {
-  pendingDOMUpdates[elementKey] = {
-    content,
-    stateKey,
-    isHTML
-  };
+  if (lastDisplayState[stateKey] === content) {
+    return;
+  }
+
+  batchedUpdates.set(elementKey, {
+    content: content,
+    stateKey: stateKey,
+    isHTML: isHTML
+  });
 
   if (!hasScheduledDOMUpdate) {
     hasScheduledDOMUpdate = true;
@@ -2814,7 +2812,7 @@ function queueDOMUpdate(elementKey, content, stateKey, isHTML = false) {
 }
 
 function applyBatchedDOMUpdates() {
-  Object.entries(pendingDOMUpdates).forEach(([elementKey, update]) => {
+  for (const [elementKey, update] of batchedUpdates) {
     const el = Els[elementKey];
     if (el && lastDisplayState[update.stateKey] !== update.content) {
       if (update.isHTML) {
@@ -2824,8 +2822,8 @@ function applyBatchedDOMUpdates() {
       }
       lastDisplayState[update.stateKey] = update.content;
     }
-  });
-  pendingDOMUpdates = {};
+  }
+  batchedUpdates.clear();
   hasScheduledDOMUpdate = false;
 }
 
@@ -2847,45 +2845,54 @@ function updateHTML(el, content, stateKey) {
   }
 }
 
+const ElementKeyMap = new Map();
+
+
 function getElementKey(el) {
-  return Object.keys(Els).find(key => Els[key] === el);
+  return ElementKeyMap.get(el);
 }
 
-let cachedTimeComponents = null;
 let lastCalculatedTimestamp = -1;
+let cachedTimeComponents = {
+  dayOfMonth: 0,
+  hour: 0,
+  minute: 0,
+  second: 0,
+  currentSeconds: 0,
+  timestamp: 0
+};
 
-function getOptimizedTimeComponents(adjustedDate) {
+function getTimeComponents(adjustedDate) {
   const timestamp = adjustedDate.getTime();
   const secondTimestamp = Math.floor(timestamp / 1000) * 1000;
 
   if (secondTimestamp !== lastCalculatedTimestamp) {
-    cachedTimeComponents = {
-      dayOfMonth: adjustedDate.getDate(),
-      hour: adjustedDate.getHours(),
-      minute: adjustedDate.getMinutes(),
-      second: adjustedDate.getSeconds(),
-      currentSeconds: getCurrentSecondsFromDate(adjustedDate),
-      timestamp: timestamp
-    };
+    cachedTimeComponents.dayOfMonth = adjustedDate.getDate();
+    cachedTimeComponents.hour = adjustedDate.getHours();
+    cachedTimeComponents.minute = adjustedDate.getMinutes();
+    cachedTimeComponents.second = adjustedDate.getSeconds();
+    cachedTimeComponents.currentSeconds = getCurrentSecondsFromDate(adjustedDate);
+    cachedTimeComponents.timestamp = timestamp;
     lastCalculatedTimestamp = secondTimestamp;
   }
   return cachedTimeComponents;
 }
 
 function updateDisplayedDate(adjustedDate) {
-  const timeComponents = getOptimizedTimeComponents(adjustedDate);
+  const timeComponents = getTimeComponents(adjustedDate);
   const lastDay = lastDisplayState.lastDayOfMonth;
   const lastHour = lastDisplayState.lastHour;
   const lastMinute = lastDisplayState.lastMinute;
   const lastSecond = lastDisplayState.lastSecond;
 
-  if (timeComponents.dayOfMonth !== lastDay ||
-    timeComponents.hour !== lastHour ||
-    timeComponents.minute !== lastMinute ||
-    timeComponents.second !== lastSecond ||
+  const { dayOfMonth, hour, minute, second } = timeComponents;
+  if (dayOfMonth !== lastDay ||
+    hour !== lastHour ||
+    minute !== lastMinute ||
+    second !== lastSecond ||
     dateFormatUpdated) {
 
-    const displayedDate = formatDisplayedDate(adjustedDate);
+    const displayedDate = DateFormatter.formatDate(adjustedDate);
     const currentDateEl = Els["currentdate"];
     if (currentDateEl) updateText(currentDateEl, displayedDate, "displayedDate");
 
@@ -2899,12 +2906,14 @@ function updateDisplayedDate(adjustedDate) {
   return timeComponents;
 }
 
-
+const reusableDate = new Date();
 function updateMainDisplay() {
   const now = Date.now() + ((adjustseconds || 0) * 1000);
-  const adjustedDate = new Date(now);
-  const timeComponents = updateDisplayedDate(adjustedDate);
+  reusableDate.setTime(now)
+  const timeComponents = getTimeComponents(reusableDate);
   const dayChanged = lastDisplayState.lastDayOfMonth !== timeComponents.dayOfMonth;
+
+  updateDisplayedDate(reusableDate);
 
   if (dayChanged) {
     AutoSchedule();
@@ -3050,9 +3059,10 @@ function formatDisplayTimer(totalSeconds) {
   totalSeconds %= 3600;
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
-  if (hours > 0) return `${padZero(hours)}:${padZero(minutes)}:${padZero(seconds)}`;
-  if (minutes > 0) return `${padZero(minutes)}:${padZero(seconds)}`;
-  return padZero(seconds);
+  const padFn = usePaddedTimerZeros ? padZero : (n) => n.toString();
+  if (hours > 0) return `${padFn(hours)}:${padZero(minutes)}:${padZero(seconds)}`;
+  if (minutes > 0) return `${padFn(minutes)}:${padZero(seconds)}`;
+  return padFn(seconds);
 }
 
 function formatDateString(date) {
@@ -3176,8 +3186,13 @@ window.onload = async function() {
     nextduration: document.getElementById('nextduration'),
     scheduledisplay: document.getElementById('scheduledisplay'),
     autoUpdateToggle: document.getElementById('autoUpdateToggle'),
-    updateFrequencies: document.getElementById('updateFrequencies'),
+    updateFrequencies: document.getElementById('updateCheckFrequencies'),
   };
+
+  Object.entries(Els).forEach(([key, element]) => {
+    ElementKeyMap.set(element, key);
+  });
+
   ScheduleEditor.init();
 
   document.getElementById('versionSpan').textContent = 'v' + version;
@@ -3247,6 +3262,7 @@ window.onload = async function() {
   const urls = getSchoolScheduleLink();
   link.href = urls.main;
   if (urls.fallback) link.title = `If schedule isn't posted yet, try: ${urls.fallback}`;
+  adjustMainDisplayPosition();
 
   setTimeout(() => {
     UpdateChecker.checkForUpdate(false, true);
@@ -3645,9 +3661,7 @@ const NotificationManager = {
 
   onNotificationClosed() {
     this.isShowingNotification = false;
-    if (this.currentModalType === 'changelog' && this.changelogData) {
-      this.changelogData = null;
-    }
+    this.currentModalType = null;
     setTimeout(() => {
       this.processQueue();
     }, 100);
@@ -3732,9 +3746,11 @@ function minimizeSettings() {
     settingsPanelMinimized = true;
   }
 }
+
 document.addEventListener('DOMContentLoaded', function() {
   bindWheelAdjust("#fastForwardDay", "day");
   bindWheelAdjust("#fastForwardHour", "hour");
+  window.addEventListener('resize', adjustMainDisplayPosition);
   const header = document.querySelector('.settings-panel-header');
   if (header) {
     header.addEventListener('click', function(e) {
@@ -3746,17 +3762,9 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function minimizeSettings() {
-  const panel = document.getElementById('settingsPanel');
-
-  if (settingsPanelMinimized) {
-    panel.classList.remove('minimized');
-    document.body.classList.remove('settings-panel-minimized');
-    settingsPanelMinimized = false;
-  } else {
-    panel.classList.add('minimized');
-    document.body.classList.add('settings-panel-minimized');
-    settingsPanelMinimized = true;
-  }
+  settingsPanelMinimized = !settingsPanelMinimized;
+  document.getElementById('settingsPanel').classList.toggle('minimized', settingsPanelMinimized);
+  document.body.classList.toggle('settings-panel-minimized', settingsPanelMinimized);
 }
 
 function switchSettingsTab(tabName, event) {
@@ -3952,27 +3960,56 @@ const DateFormatter = {
     dateTimeSeparator: ' '
   },
 
-  init() {
-    const saved = StorageManager.getPreference('dateFormatSettings');
-    if (saved) {
-      this.settings = {
-        ...this.settings,
-        ...saved
-      };
-    }
-    this.updateUI();
+  _reusableComponents: {
+    weekday: '',
+    month: '',
+    day: '',
+    year: '',
+    hour: '',
+    minute: '',
+    second: '',
+    ampm: ''
   },
 
-  updateUI() {
-    const presetSelect = document.getElementById('datePreset');
-    if (presetSelect) presetSelect.value = this.preset;
-    Object.keys(this.settings).forEach(key => {
-      const element = document.getElementById(key);
+  init() {
+    this.domElements = {
+      presetSelect: document.getElementById('datePreset'),
+      ...Object.keys(this.settings).reduce((acc, key) => {
+        acc[key] = document.getElementById(key);
+        return acc;
+      }, {})
+    };
+  const saved = StorageManager.getPreference('dateFormatSettings');
+  if (saved) {
+    if (saved.preset) {
+      this.preset = saved.preset;
+    }
+    if (saved.settings) {
+      this.settings = {
+        ...this.settings,
+        ...saved.settings
+      };
+    }
+  }
+  this.updateUI();
+  },
+
+  updateUI(changedKeys = null) {
+    const keysToUpdate = changedKeys || Object.keys(this.settings);
+    if (!changedKeys && this.domElements.presetSelect) {
+      this.domElements.presetSelect.value = this.preset;
+    }
+    keysToUpdate.forEach(key => {
+      const element = this.domElements[key];
       if (element) {
-        if (element.type === 'checkbox') {
-          element.checked = this.settings[key];
-        } else {
-          element.value = this.settings[key];
+        const newValue = this.settings[key];
+        const currentValue = element.type === 'checkbox' ? element.checked : element.value;
+        if (currentValue !== newValue) {
+          if (element.type === 'checkbox') {
+            element.checked = newValue;
+          } else {
+            element.value = newValue;
+          }
         }
       }
     });
@@ -3983,43 +4020,39 @@ const DateFormatter = {
 
     const components = this.getDateComponents(date);
     const settings = this.settings;
-    const buffer = [];
 
-    if (settings.weekdayStyle !== 'none') {
-      buffer.push(components.weekday, ' ');
+    if (!this._cachedOrder || this._lastDateOrder !== settings.dateOrder) {
+      this._cachedOrder = settings.dateOrder.split('');
+      this._lastDateOrder = settings.dateOrder;
     }
 
-    const order = settings.dateOrder.split('');
-    order.forEach((part, i) => {
-      switch (part) {
-        case 'm':
-          buffer.push(components.month);
-          break;
-        case 'd':
-          buffer.push(components.day);
-          break;
-        case 'y':
-          buffer.push(components.year);
-          break;
-      }
-      if (i < order.length - 1) {
-        buffer.push(settings.dateSeparator);
-      }
-    });
+    let result = '';
 
-    buffer.push(settings.dateTimeSeparator);
+    if (settings.weekdayStyle !== 'none') {
+      result = components.weekday + ' ';
+    }
 
-    buffer.push(components.hour, settings.timeSeparator, components.minute);
+    const order = this._cachedOrder;
+    for (let i = 0; i < order.length; i++) {
+      switch (order[i]) {
+        case 'm': result += components.month; break;
+        case 'd': result += components.day; break;
+        case 'y': result += components.year; break;
+      }
+      if (i < order.length - 1) result += settings.dateSeparator;
+    }
+
+    result += settings.dateTimeSeparator + components.hour + settings.timeSeparator + components.minute;
 
     if (settings.showSeconds) {
-      buffer.push(settings.timeSeparator, components.second);
+      result += settings.timeSeparator + components.second;
     }
 
     if (settings.hourFormat === '12') {
-      buffer.push(' ', components.ampm);
+      result += ' ' + components.ampm;
     }
 
-    return buffer.join('');
+    return result;
   },
 
   formatOriginal(date) {
@@ -4028,9 +4061,12 @@ const DateFormatter = {
   },
 
   getDateComponents(date) {
-    const components = {};
+    const components = this._reusableComponents;
+
     if (this.settings.weekdayStyle !== 'none') {
       components.weekday = DAY_NAMES[this.settings.weekdayStyle][date.getDay()];
+    } else {
+      components.weekday = '';
     }
 
     const monthIndex = date.getMonth();
@@ -4062,12 +4098,11 @@ const DateFormatter = {
     }
 
     const hours24 = date.getHours();
-
     if (this.settings.hourFormat === '24') {
       components.hour = padZero(hours24);
     } else {
       const hours12 = hours24 % 12 || 12;
-      components.hour = padZero(hours12);
+      components.hour = hours12;
     }
 
     components.minute = padZero(date.getMinutes());
@@ -4083,6 +4118,8 @@ const DateFormatter = {
       } else {
         components.ampm = base.split('').join('.') + '.';
       }
+    } else {
+      components.ampm = '';
     }
 
     return components;
@@ -4109,6 +4146,7 @@ const DateFormatter = {
     });
   },
 };
+
 let dateFormatUpdated = false;
 
 function updateDateFormat() {
@@ -4203,22 +4241,20 @@ const UpdateChecker = {
 
   getCurrentInterval() {
     const savedInterval = StorageManager.getPreference('autoUpdateInterval');
-    return savedInterval ? parseInt(savedInterval) * 1000 : this.CHECK_INTERVAL;
+    const interval = savedInterval ? parseInt(savedInterval) * 1000 : this.CHECK_INTERVAL;
+    return interval;
   },
 
   async checkForUpdate(isManual = false, isStartup = false) {
-    const autoEnabled = localStorage.getItem('autoUpdateEnabled') === '1';
+    const autoEnabled = StorageManager.getPreference('autoUpdateEnabled') === '1';
     const lastCheck = localStorage.getItem(this.STORAGE_KEY);
     const now = Date.now();
     const interval = this.getCurrentInterval();
 
     if (!(isManual || isStartup) && (!autoEnabled || (lastCheck && (now - parseInt(lastCheck)) < interval))) {
-        return;
+      return;
     }
-    const lastCheckEl = document.querySelector('.last-check');
-    if (lastCheckEl && lastCheck) {
-      lastCheckEl.textContent = `Last checked: ${new Date(parseInt(lastCheck)).toLocaleString()}`;
-    }
+
     try {
       const repoResponse = await fetch(this.REPO_VERSION_URL + '?t=' + Date.now());
       if (!repoResponse.ok) return;
@@ -4245,6 +4281,11 @@ const UpdateChecker = {
       }
 
       localStorage.setItem(this.STORAGE_KEY, now.toString());
+
+      const lastCheckEl = document.querySelector('.last-check');
+      if (lastCheckEl && now) {
+        lastCheckEl.textContent = `Last checked: ${new Date(parseInt(now)).toLocaleString()}`;
+      }
     } catch (error) {
       console.log('Update check failed:', error);
     }
@@ -4332,54 +4373,46 @@ function compareVersions(v1, v2) {
   return 0;
 }
 
-let settingsEventListeners = [];
+let settingsController = new AbortController();
 
 function addSettingsEventListener(element, event, handler) {
-  element.addEventListener(event, handler);
-  settingsEventListeners.push({
-    element,
-    event,
-    handler
-  });
+  element.addEventListener(event, handler, { signal: settingsController.signal });
 }
 
 function cleanupSettingsEventListeners() {
-  settingsEventListeners.forEach(({
-    element,
-    event,
-    handler
-  }) => {
-    element.removeEventListener(event, handler);
-  });
-  settingsEventListeners = [];
+  settingsController.abort();
+  settingsController = new AbortController();
 }
 
 function initializeSettingsHandlers() {
   const autoToggle = document.getElementById('autoUpdateToggle');
-  const updateFrequencies = document.getElementById('updateFrequencies');
+  const updateFrequencies = document.getElementById('updateCheckFrequencies');
 
   if (autoToggle) {
     addSettingsEventListener(autoToggle, 'change', () => {
-      const enabled = autoToggle.checked;
-      StorageManager.savePreference('autoUpdateEnabled', enabled ? '1' : '0');
-      if (enabled) {
-        UpdateChecker.startAutoCheck();
-      } else {
-        UpdateChecker.stopAutoCheck();
-      }
+      StorageManager.savePreference(
+        'autoUpdateEnabled',
+        autoToggle.checked ? '1' : '0'
+      );
+      refreshAutoCheck();
     });
   }
 
   if (updateFrequencies) {
     addSettingsEventListener(updateFrequencies, 'change', () => {
-      const selectedValue = updateFrequencies.value;
-      StorageManager.savePreference('autoUpdateInterval', selectedValue);
-
-      UpdateChecker.stopAutoCheck();
-      if (StorageManager.getPreference('autoUpdateEnabled') === '1') {
-        UpdateChecker.startAutoCheck();
-      }
+      StorageManager.savePreference(
+        'autoUpdateInterval',
+        updateFrequencies.value
+      );
+      refreshAutoCheck();
     });
+  }
+}
+
+function refreshAutoCheck() {
+  UpdateChecker.stopAutoCheck();
+  if (StorageManager.getPreference('autoUpdateEnabled') === '1') {
+    UpdateChecker.startAutoCheck();
   }
 }
 
@@ -4624,15 +4657,14 @@ function showCacheTroubleshooting() {
   const isWindows = navigator.platform.toLowerCase().includes('win');
   const isMac = navigator.platform.toLowerCase().includes('mac');
   let refreshKey = isWindows ? 'Ctrl+Shift+R (or Ctrl+F5)' : (isMac ? 'Cmd+Shift+R' : 'Ctrl+Shift+R');
-  
-  const troubleshootingText = 
+  const troubleshootingText =
     `If Schedule Monitor seems outdated or broken after an update:\n\n` +
     `1. <strong>Hard Refresh</strong>: ${refreshKey}\n` +
     `2. <strong>Private Window</strong> Open in incognito/private browsing\n` +
     `3. <strong>Clear Cache</strong> Browser Settings → Clear browsing data\n` +
     `4. <strong>Check Version</strong> Look at version number in footer\n\n` +
     `Most issues are solved with a hard refresh!`;
-  
+
   NotificationManager.show(
     'Cache Troubleshooting',
     troubleshootingText,
@@ -4645,4 +4677,16 @@ function showCacheTroubleshooting() {
     false,
     'left'
   );
+}
+
+function adjustMainDisplayPosition() {
+  const buttonPanel = document.querySelector('.button-panel');
+  const container = document.querySelector('#container');
+  const panelHeight = buttonPanel.offsetHeight;
+  container.style.marginTop = (panelHeight + 20) + 'px';
+}
+
+function togglePaddedTimerZeros() {
+  usePaddedTimerZeros = document.getElementById('paddedTimerZeros').checked;
+  StorageManager.savePreference('usePaddedTimerZeros', usePaddedTimerZeros);
 }

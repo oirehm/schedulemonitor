@@ -5,11 +5,11 @@
 - Top panel alignment can block text display in certain screen sizes
 - Custom schedule IDs cannot be renamed
 - Color scheme setting does not apply to all elements
+- Autoschedule tends to run automatically even when toggled off
 
 ## Tasks / Improvements
 
 - Drag-and-drop to reorder schedules
-- Sync timer with displayed countdown
 - Improve button panel behavior (auto-hide, hover to show)
 - Enhance main UI layout (make current time more visible, reorganize controls)
 - Add ability to preview schedules with automatic return to menu
