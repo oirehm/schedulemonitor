@@ -7,6 +7,11 @@ Changelog Header Order:
 5. Technical Changes
 6. Deprecations
 -->
+## Version 2.5.3
+
+### Bug Fixes
+
+- Fixed October schedule configuration where Mondays were incorrectly set to Normal instead of Late Start
 
 ## Version 2.5.2
 

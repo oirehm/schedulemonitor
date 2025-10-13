@@ -3288,6 +3288,7 @@ function clearAllLocalStorage() {
               localStorage.clear();
               cachedStorageLimit = null;
               localStorage.removeItem('__cachedStorageLimit__');
+              sessionStorage.clear();
               NotificationManager.showAlert('', 'All localStorage data has been cleared. The page will now reload in 3 seconds.', 'success');
               setTimeout(() => {
                 window.location.reload();
@@ -3524,12 +3525,31 @@ const NotificationManager = {
           if (defaultCalendar) {
             CalendarManager.saveConfig(defaultCalendar);
             CalendarUI.render();
+            const lastSchedule = StorageManager.getPreference('lastUsedSchedule');
+            if (!lastSchedule || lastSchedule === 'auto') {
+              AutoSchedule();
+            }
             NotificationManager.showAlert('', 'Default Bellflower calendar loaded!', 'success');
           } else {
             NotificationManager.showAlert('', 'Could not load default calendar. Please check your internet connection.', 'error');
           }
         }
       },
+      '2.5.3': {
+        text: 'Update Calendar',
+        condition: () => localStorage.getItem('autoUpdateAttempted_2.5.3') !== 'true',
+        callback: async function() {
+          const defaultCalendar = await CalendarManager.loadDefaultCalendar();
+          if (defaultCalendar) {
+            CalendarManager.saveConfig(defaultCalendar);
+            CalendarUI.render();
+            NotificationManager.showAlert('', 'Default Bellflower calendar updated!', 'success');
+            localStorage.setItem('autoUpdateAttempted_2.5.3', 'true');
+          } else {
+            NotificationManager.showAlert('', 'Could not update calendar. Please check your internet connection.', 'error');
+          }
+        }
+      }
     };
 
     return tertiaryConfigs[version] || null;
