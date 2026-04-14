@@ -7,6 +7,16 @@ Changelog Header Order:
 5. Technical Changes
 6. Deprecations
 -->
+## Version 2.5.4
+
+### Improvements
+- Added Testing Schedules to default calendar
+- Testing Schedules now accessible in Special Schedule dropdown
+- What's new toast no longer appears for new users
+- Updates are now more subtle and the update modal only shows after-hours
+- Main update loop now throttles when the tab is hidden
+- Added slight tint on the current day in Calendar Configuration to differentiate from the selected day
+
 ## Version 2.5.3
 
 ### Bug Fixes

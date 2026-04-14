@@ -928,6 +928,12 @@ footer {
   text-align: center;
 }
 
+#versionSpan.update-available {
+  color: var(--accent) !important;
+  border-bottom: 1px dashed var(--accent);
+  cursor: pointer;
+}
+
 .info * {
   color: #444;
   text-decoration: none;
@@ -1538,9 +1544,7 @@ footer {
   font-size: 0.8em;
 }
 
-.day-selected {
-  border: 2px solid var(--accent) !important;
-}
+
 
 #calendarLegend {
   display: flex;
@@ -1628,6 +1632,19 @@ footer {
 
 .day-today {
   box-shadow: 0 0 0 2px var(--accent) inset !important;
+}
+
+.day-today::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-color: rgba(255, 165, 0, 0.16);
+  pointer-events: none;
+  border-radius: 2px;
+}
+
+.day-selected {
+  border: 2px solid var(--accent) !important;
 }
 
 .day-weekend {

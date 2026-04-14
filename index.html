@@ -10,7 +10,7 @@
     <title>Schedule Monitor</title>
     <link rel="icon" href="icon/monitor.png" />
     <link rel="apple-touch-icon" href="icon/monitor.png" />
-    <link rel="stylesheet" type="text/css" href="css/styles.css?v=253" />
+    <link rel="stylesheet" type="text/css" href="css/styles.css?v=254" />
   </head>
   <body id="body">
     <div class="button-panel">
@@ -229,8 +229,10 @@
                 <label for="updateCheckFrequencies">Check for Update Frequency</label>
                 <select name="" id="updateCheckFrequencies">
                   <option value="86400">Every Day</option>
-                  <option value="3600" selected>Every Hour</option>
-                  <option value="1800">Every 30 minutes</option>
+                  <option value="43200">Every 12 Hours</option>
+                  <option value="14400">Every 4 Hours</option>
+                  <option value="7200" selected>Every 2 Hours</option>
+                  <option value="3600">Every Hour</option>
                 </select>
                 <button class="button action-button" onclick="UpdateChecker.checkForUpdate(true)">Check for Updates</button>
                 <p id="settingFooter" class="last-check">Last checked: N/A</p>
@@ -473,7 +475,7 @@
       </div>
     </div>
     <div id="toastContainer"></div>
-    <script src="script.js?v=253"></script>
+    <script src="script.js?v=254"></script>
     </div>
   </body>
 </html>

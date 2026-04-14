@@ -106,6 +106,18 @@ const scheduleTemplates = {
     times: ["08:30", "08:58", "09:04", "09:32", "09:38", "10:06", "10:12", "10:40", "11:00", "11:06", "11:34", "11:40", "12:08", "12:14", "12:42", "12:48", "13:16"],
     names: ["Period 1", "Passing Period", "Period 2", "Passing Period", "Period 3", "Passing Period", "Period 4", "Extended Snack", "Passing Period", "Period 5", "Passing Period", "Period 6", "Passing Period", "Period 7", "Passing Period", "Period 8", "End of School"]
   },
+  testing: {
+    displayName: "Testing Schedule",
+    canToggleOddEven: true,
+    odd: {
+      times: ["08:30", "10:30", "10:39", "10:45", "11:45", "11:51", "12:51", "13:24", "13:30", "14:30", "14:36", "15:36"],
+      names: ["Testing Block", "Snack", "Passing Period", "Period 1", "Passing Period", "Period 3", "Lunch", "Passing Period", "Period 5", "Passing Period", "Period 7", "End of School"]
+    },
+    even: {
+      times: ["08:30", "10:30", "10:39", "10:45", "11:45", "11:51", "12:51", "13:24", "13:30", "14:30", "14:36", "15:36"],
+      names: ["Testing Block", "Snack", "Passing Period", "Period 2", "Passing Period", "Period 4", "Lunch", "Passing Period", "Period 6", "Passing Period", "Period 8", "End of School"]
+    }
+  },
   noSchool: {
     displayName: "No School",
     canToggleOddEven: false,
@@ -177,7 +189,7 @@ const UserManager = {
       status.showWelcome = true;
     }
 
-    if (storedVersion !== this.CURRENT_VERSION) {
+    if (storedVersion !== null && storedVersion !== this.CURRENT_VERSION) {
       status.showWhatsNew = true;
       status.previousVersion = storedVersion;
       status.currentVersion = this.CURRENT_VERSION;
@@ -443,6 +455,16 @@ const StorageManager = {
   resetToDefaults() {
     const defaultData = this.getDefaultData();
     return this.save(defaultData);
+  },
+
+  placeScheduleInOrder(data, scheduleId, location) {
+    data.scheduleOrder = data.scheduleOrder.filter(id => id !== scheduleId);
+    data.specialScheduleOrder = data.specialScheduleOrder.filter(id => id !== scheduleId);
+    if (location === 'main') {
+      data.scheduleOrder.push(scheduleId);
+    } else {
+      data.specialScheduleOrder.push(scheduleId);
+    }
   }
 };
 
@@ -529,29 +551,20 @@ const CalendarManager = {
     return config.dates[dateString] || null;
   },
 
+  _applyScheduleToConfig(config, dateString, scheduleId, isEven) {
+    config.dates[dateString] = { schedule: scheduleId, isEven: isEven };
+    if (config.isDefaultCalendar) config.hasUserModifications = true;
+  },
+
   setScheduleForDate(dateString, scheduleId, isEven = null) {
     const config = this.getConfig();
-    config.dates[dateString] = {
-      schedule: scheduleId,
-      isEven: isEven
-    };
-    if (config.isDefaultCalendar) {
-      config.hasUserModifications = true;
-    }
+    this._applyScheduleToConfig(config, dateString, scheduleId, isEven);
     return this.saveConfig(config);
   },
 
   setScheduleForDates(dateStrings, scheduleId, isEven = null) {
     const config = this.getConfig();
-    dateStrings.forEach(dateString => {
-      config.dates[dateString] = {
-        schedule: scheduleId,
-        isEven: isEven
-      };
-    });
-    if (config.isDefaultCalendar) {
-      config.hasUserModifications = true;
-    }
+    dateStrings.forEach(dateString => this._applyScheduleToConfig(config, dateString, scheduleId, isEven));
     return this.saveConfig(config);
   },
 
@@ -742,7 +755,7 @@ const CalendarUI = {
       const date = new Date(this.currentYear, this.currentMonth, day);
       const dayOfWeek = date.getDay();
       if (dayOfWeek === 0 || dayOfWeek === 6) {
-        const dateString = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+        const dateString = toDateString(date.getFullYear(), date.getMonth() + 1, date.getDate());
         if (!config.dates[dateString]) {
           CalendarManager.setScheduleForDate(dateString, 'noSchool', null);
         }
@@ -775,7 +788,7 @@ const CalendarUI = {
     const daysInMonth = new Date(this.currentYear, this.currentMonth + 1, 0).getDate();
     const config = CalendarManager.getConfig();
     const today = new Date();
-    const todayString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    const todayString = toDateString(today.getFullYear(), today.getMonth() + 1, today.getDate());
 
     const firstDate = new Date(this.currentYear, this.currentMonth, 1);
     let currentWeek = this.getWeekNumber(firstDate);
@@ -809,7 +822,7 @@ const CalendarUI = {
       const dayElement = document.createElement('div');
       dayElement.className = 'calendar-day';
 
-      const dateString = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const dateString = toDateString(this.currentYear, this.currentMonth + 1, day);
       const dayConfig = config.dates[dateString];
 
       if (dateString === todayString) {
@@ -840,7 +853,9 @@ const CalendarUI = {
         if (dayConfig && dayConfig.schedule) {
           const regularSchedules = ['normal', 'late', 'minimum', 'noSchool'];
           if (!regularSchedules.includes(dayConfig.schedule)) {
-            dayElement.classList.add('day-special');
+            if (!schedule || !schedule.canToggleOddEven) {
+              dayElement.classList.add('day-special');
+            }
           }
         }
       }
@@ -971,7 +986,7 @@ const CalendarUI = {
       const dayOfWeek = d.getDay();
       if (dayOfWeek === 0 || dayOfWeek === 6) continue;
 
-      const dateString = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const dateString = toDateString(d.getFullYear(), d.getMonth() + 1, d.getDate());
       this.selectedDates.add(dateString);
     }
 
@@ -1151,17 +1166,7 @@ function setSelectedSchedule(scheduleId) {
 }
 
 function toggleSelectedOddEven() {
-  const dates = Array.from(CalendarUI.selectedDates);
-
-  dates.forEach(dateString => {
-    const existing = CalendarManager.getScheduleForDate(dateString);
-    if (existing && existing.schedule !== 'noSchool') {
-      const newIsEven = existing.isEven === null ? false : !existing.isEven;
-      CalendarManager.setScheduleForDate(dateString, existing.schedule, newIsEven);
-    }
-  });
-
-  CalendarUI.render();
+  CalendarUI.toggleSelectedOddEven();
 }
 
 function exportCalendar() {
@@ -1269,7 +1274,7 @@ const YearOverviewUI = {
     const firstDay = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const today = new Date();
-    const todayString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    const todayString = toDateString(today.getFullYear(), today.getMonth() + 1, today.getDate());
 
     for (let i = 0; i < firstDay; i++) {
       const emptyDay = document.createElement('div');
@@ -1281,7 +1286,7 @@ const YearOverviewUI = {
       const dayElement = document.createElement('div');
       dayElement.className = 'mini-day';
 
-      const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const dateString = toDateString(year, month + 1, day);
       const dayConfig = config.dates[dateString];
 
       if (dateString === todayString) {
@@ -1509,21 +1514,13 @@ function resetScheduleToDefault(scheduleId) {
       const data = StorageManager.getData();
       if (data.scheduleOverrides && data.scheduleOverrides[scheduleId]) {
         delete data.scheduleOverrides[scheduleId];
-        data.scheduleOrder = data.scheduleOrder.filter(id => id !== scheduleId);
-        data.specialScheduleOrder = data.specialScheduleOrder.filter(id => id !== scheduleId);
 
         const defaultMainSchedules = ['normal', 'late', 'minimum'];
         const defaultSpecialSchedules = ['anchor', 'rally', 'extendedSnack', 'testing'];
-
-        if (defaultMainSchedules.includes(scheduleId)) {
-          if (!data.scheduleOrder.includes(scheduleId)) {
-            data.scheduleOrder.push(scheduleId);
-          }
-        } else if (defaultSpecialSchedules.includes(scheduleId)) {
-          if (!data.specialScheduleOrder.includes(scheduleId)) {
-            data.specialScheduleOrder.push(scheduleId);
-          }
-        }
+        const location = defaultMainSchedules.includes(scheduleId) ? 'main'
+          : defaultSpecialSchedules.includes(scheduleId) ? 'special'
+          : null;
+        if (location) StorageManager.placeScheduleInOrder(data, scheduleId, location);
 
         StorageManager.save(data);
 
@@ -1704,6 +1701,11 @@ const ScheduleEditor = {
     }
   },
 
+  getScheduleLocation(scheduleId) {
+    const data = StorageManager.getData();
+    return data.scheduleOrder.includes(scheduleId) ? 'main' : 'special';
+  },
+
   openForOverride(scheduleId, scheduleData) {
     this.currentScheduleId = scheduleId;
     this.isEditing = true;
@@ -1714,9 +1716,7 @@ const ScheduleEditor = {
     document.getElementById('scheduleName').value = scheduleData.displayName;
     document.getElementById('scheduleType').value = scheduleData.canToggleOddEven ? 'oddeven' : 'single';
 
-    const data = StorageManager.getData();
-    document.getElementById('buttonLocation').value =
-      data.scheduleOrder.includes(scheduleId) ? 'main' : 'special';
+    document.getElementById('buttonLocation').value = this.getScheduleLocation(scheduleId);
     this.scheduleData = JSON.parse(JSON.stringify(scheduleData));
     if (scheduleData.canToggleOddEven) document.getElementById('scheduleTabs').classList.remove('hidden');
     this.renderPeriods();
@@ -1763,12 +1763,7 @@ const ScheduleEditor = {
     document.getElementById('scheduleName').value = schedule.displayName;
     document.getElementById('scheduleType').value = schedule.canToggleOddEven ? 'oddeven' : 'single';
 
-    const data = StorageManager.getData();
-    if (data.scheduleOrder.includes(scheduleId)) {
-      document.getElementById('buttonLocation').value = 'main';
-    } else {
-      document.getElementById('buttonLocation').value = 'special';
-    }
+    document.getElementById('buttonLocation').value = this.getScheduleLocation(scheduleId);
 
     this.scheduleData = JSON.parse(JSON.stringify(schedule));
 
@@ -1816,6 +1811,12 @@ const ScheduleEditor = {
     if (event) event.target.classList.add('active');
     document.getElementById('currentTabLabel').textContent = `(${tab === 'odd' ? 'Odd Days' : 'Even Days'})`;
     this.renderPeriods();
+  },
+
+  getCurrentPeriods() {
+    return this.scheduleData.canToggleOddEven
+      ? this.scheduleData[this.currentTab]
+      : this.scheduleData;
   },
 
   renderPeriods() {
@@ -1928,12 +1929,7 @@ const ScheduleEditor = {
   },
 
   reorderPeriods(fromIndex, toIndex) {
-    let periods;
-    if (this.scheduleData.canToggleOddEven) {
-      periods = this.scheduleData[this.currentTab];
-    } else {
-      periods = this.scheduleData;
-    }
+    const periods = this.getCurrentPeriods();
 
     const time = periods.times.splice(fromIndex, 1)[0];
     const name = periods.names.splice(fromIndex, 1)[0];
@@ -1945,12 +1941,7 @@ const ScheduleEditor = {
   },
 
   addPeriod() {
-    let periods;
-    if (this.scheduleData.canToggleOddEven) {
-      periods = this.scheduleData[this.currentTab];
-    } else {
-      periods = this.scheduleData;
-    }
+    const periods = this.getCurrentPeriods();
 
     let nextTime = "08:00";
     if (periods.times.length > 0) {
@@ -2094,19 +2085,7 @@ const ScheduleEditor = {
 
       data.scheduleOverrides[this.currentScheduleId] = overrideData;
 
-      data.scheduleOrder = data.scheduleOrder.filter(id => id !== this.currentScheduleId);
-      data.specialScheduleOrder = data.specialScheduleOrder.filter(id => id !== this.currentScheduleId);
-
-      if (location === 'main') {
-        if (!data.scheduleOrder.includes(this.currentScheduleId)) {
-          data.scheduleOrder.push(this.currentScheduleId);
-        }
-      } else {
-        if (!data.specialScheduleOrder.includes(this.currentScheduleId)) {
-          data.specialScheduleOrder.push(this.currentScheduleId);
-        }
-      }
-
+      StorageManager.placeScheduleInOrder(data, this.currentScheduleId, location);
       StorageManager.save(data);
 
       NotificationManager.showAlert('', `Schedule "${name}" updated successfully!`, 'success');
@@ -2141,15 +2120,7 @@ const ScheduleEditor = {
 
       StorageManager.saveCustomSchedule(scheduleId, scheduleToSave);
       const data = StorageManager.getData();
-      data.scheduleOrder = data.scheduleOrder.filter(id => id !== scheduleId);
-      data.specialScheduleOrder = data.specialScheduleOrder.filter(id => id !== scheduleId);
-
-      if (location === 'main') {
-        data.scheduleOrder.push(scheduleId);
-      } else {
-        data.specialScheduleOrder.push(scheduleId);
-      }
-
+      StorageManager.placeScheduleInOrder(data, scheduleId, location);
       StorageManager.save(data);
       NotificationManager.showAlert('', `Schedule "${name}" ${this.isEditing ? 'updated' : 'created'} successfully!`, 'success');
     }
@@ -2173,32 +2144,20 @@ function switchTab(tab) {
 }
 
 function updatePeriodTime(index) {
-  let periods;
-  if (ScheduleEditor.scheduleData.canToggleOddEven) {
-    periods = ScheduleEditor.scheduleData[ScheduleEditor.currentTab];
-  } else {
-    periods = ScheduleEditor.scheduleData;
-  }
+  const periods = ScheduleEditor.getCurrentPeriods();
 
   const input = event.target;
   periods.times[index] = input.value;
 }
 
 function updatePeriodName(index) {
-  let periods;
-  if (ScheduleEditor.scheduleData.canToggleOddEven) {
-    periods = ScheduleEditor.scheduleData[ScheduleEditor.currentTab];
-  } else {
-    periods = ScheduleEditor.scheduleData;
-  }
+  const periods = ScheduleEditor.getCurrentPeriods();
 
   periods.names[index] = event.target.value;
 }
 
 function deletePeriod(index) {
-  const periods = ScheduleEditor.scheduleData.canToggleOddEven ?
-    ScheduleEditor.scheduleData[ScheduleEditor.currentTab] :
-    ScheduleEditor.scheduleData;
+  const periods = ScheduleEditor.getCurrentPeriods();
 
   periods.times.splice(index, 1);
   periods.names.splice(index, 1);
@@ -2230,8 +2189,9 @@ function testSchedule() {
     tempSchedule.odd = ScheduleEditor.scheduleData.odd;
     tempSchedule.even = ScheduleEditor.scheduleData.even;
   } else {
-    tempSchedule.times = ScheduleEditor.scheduleData.times;
-    tempSchedule.names = ScheduleEditor.scheduleData.names;
+    const periods = ScheduleEditor.getCurrentPeriods();
+    tempSchedule.times = periods.times;
+    tempSchedule.names = periods.names;
   }
 
   scheduleTemplates['__preview__'] = tempSchedule;
@@ -2449,6 +2409,18 @@ function updateAndCallAgain(timestamp) {
   }
   animationId = requestAnimationFrame(updateAndCallAgain);
 }
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    cancelAnimationFrame(animationId);
+    animationId = null;
+  } else {
+    if (!animationId) {
+      lastUpdateTime = 0;
+      animationId = requestAnimationFrame(updateAndCallAgain);
+    }
+  }
+});
 
 function getSchoolScheduleLink() {
   const now = new Date();
@@ -3066,10 +3038,11 @@ function formatDisplayTimer(totalSeconds) {
 }
 
 function formatDateString(date) {
-  const year = date.getFullYear();
-  const month = (date.getMonth() + 1).toString().padStart(2, '0');
-  const day = date.getDate().toString().padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  return toDateString(date.getFullYear(), date.getMonth() + 1, date.getDate());
+}
+
+function toDateString(year, month1based, day) {
+  return `${year}-${String(month1based).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
 
 function AutoSchedule() {
@@ -3515,41 +3488,36 @@ const NotificationManager = {
     return versions;
   },
 
-  getTertiaryButtonConfig(version) {
-    const tertiaryConfigs = {
-      '2.2.1': {
-        text: 'Load Default Calendar',
-        condition: () => localStorage.getItem('autoUpdateAttempted_2.2.1') !== 'true',
-        callback: async function() {
-          const defaultCalendar = await CalendarManager.loadDefaultCalendar();
-          if (defaultCalendar) {
-            CalendarManager.saveConfig(defaultCalendar);
-            CalendarUI.render();
+  makeCalendarUpdateConfig(version, text = 'Update Calendar', successMessage = 'Default Bellflower calendar updated!', runAutoSchedule = false) {
+    const flagKey = `autoUpdateAttempted_${version}`;
+    return {
+      text,
+      condition: () => localStorage.getItem(flagKey) !== 'true',
+      callback: async function() {
+        const defaultCalendar = await CalendarManager.loadDefaultCalendar();
+        if (defaultCalendar) {
+          CalendarManager.saveConfig(defaultCalendar);
+          CalendarUI.render();
+          if (runAutoSchedule) {
             const lastSchedule = StorageManager.getPreference('lastUsedSchedule');
             if (!lastSchedule || lastSchedule === 'auto') {
               AutoSchedule();
             }
-            NotificationManager.showAlert('', 'Default Bellflower calendar loaded!', 'success');
-          } else {
-            NotificationManager.showAlert('', 'Could not load default calendar. Please check your internet connection.', 'error');
           }
-        }
-      },
-      '2.5.3': {
-        text: 'Update Calendar',
-        condition: () => localStorage.getItem('autoUpdateAttempted_2.5.3') !== 'true',
-        callback: async function() {
-          const defaultCalendar = await CalendarManager.loadDefaultCalendar();
-          if (defaultCalendar) {
-            CalendarManager.saveConfig(defaultCalendar);
-            CalendarUI.render();
-            NotificationManager.showAlert('', 'Default Bellflower calendar updated!', 'success');
-            localStorage.setItem('autoUpdateAttempted_2.5.3', 'true');
-          } else {
-            NotificationManager.showAlert('', 'Could not update calendar. Please check your internet connection.', 'error');
-          }
+          NotificationManager.showAlert('', successMessage, 'success');
+          localStorage.setItem(flagKey, 'true');
+        } else {
+          NotificationManager.showAlert('', 'Could not update calendar. Please check your internet connection.', 'error');
         }
       }
+    };
+  },
+
+  getTertiaryButtonConfig(version) {
+    const tertiaryConfigs = {
+      '2.2.1': this.makeCalendarUpdateConfig('2.2.1', 'Load Default Calendar', 'Default Bellflower calendar loaded!', true),
+      '2.5.3': this.makeCalendarUpdateConfig('2.5.3'),
+      '2.5.4': this.makeCalendarUpdateConfig('2.5.4'),
     };
 
     return tertiaryConfigs[version] || null;
@@ -4254,15 +4222,23 @@ function formatDisplayedDate(date) {
 const UpdateChecker = {
   VERSION_URL: 'https://oirehm.github.io/schedulemonitor/version.txt',
   REPO_VERSION_URL: 'https://raw.githubusercontent.com/oirehm/schedulemonitor/main/version.txt',
-  CHECK_INTERVAL: 1000 * 60 * 60,
-  DEPLOYMENT_CHECK_INTERVAL: 1000 * 30,
+  CHECK_INTERVAL: 1000 * 60 * 60 * 2,
   STORAGE_KEY: 'lastUpdateCheck',
   intervalId: null,
+  pendingBadgeVersion: null,
 
   getCurrentInterval() {
     const savedInterval = StorageManager.getPreference('autoUpdateInterval');
     const interval = savedInterval ? parseInt(savedInterval) * 1000 : this.CHECK_INTERVAL;
     return interval;
+  },
+
+  isAfterHours() {
+    const now = new Date(Date.now() + adjustseconds * 1000);
+    const h = now.getHours();
+    const m = now.getMinutes();
+    const totalMinutes = h * 60 + m;
+    return totalMinutes < 7 * 60 + 30 || totalMinutes >= 15 * 60 + 45;
   },
 
   async checkForUpdate(isManual = false, isStartup = false) {
@@ -4283,18 +4259,13 @@ const UpdateChecker = {
       const currentVersion = version;
 
       if (compareVersions(currentVersion, repoVersion) < 0) {
-
         const deployedResponse = await fetch(this.VERSION_URL + '?t=' + Date.now());
         if (!deployedResponse.ok) return;
 
         const deployedVersion = (await deployedResponse.text()).trim();
 
         if (compareVersions(currentVersion, deployedVersion) < 0) {
-          this.showUpdateAvailable(deployedVersion);
-        } else {
-          this.pendingVersion = repoVersion;
-          this.showUpdatePending(repoVersion);
-          this.startDeploymentCheck();
+          this.showUpdateAvailable(deployedVersion, isManual);
         }
       } else if (compareVersions(currentVersion, repoVersion) === 0 && isManual) {
         NotificationManager.showAlert('', 'Schedule Monitor is up to date', 'success');
@@ -4311,52 +4282,44 @@ const UpdateChecker = {
     }
   },
 
-  startDeploymentCheck() {
-    if (this.deploymentCheckId) {
-      clearInterval(this.deploymentCheckId);
-    }
+  showUpdateAvailable(availableVersion, isManual = false) {
+    this.pendingBadgeVersion = availableVersion;
+    this.applyUpdateBadge(availableVersion);
 
-    this.deploymentCheckId = setInterval(async () => {
-      try {
-        const deployedResponse = await fetch(this.VERSION_URL + '?t=' + Date.now());
-        if (deployedResponse.ok) {
-          const deployedVersion = (await deployedResponse.text()).trim();
-
-          if (compareVersions(version, deployedVersion) < 0) {
-            clearInterval(this.deploymentCheckId);
-            this.deploymentCheckId = null;
-            this.pendingVersion = null;
-            this.showUpdateAvailable(deployedVersion);
-          }
+    if (isManual || this.isAfterHours()) {
+      NotificationManager.showPersist(
+        'Update Available!',
+        `Version ${availableVersion} is available! Would you like to refresh the page?`,
+        'Refresh to update',
+        'Dismiss',
+        function() {
+          window.location.reload();
         }
-      } catch (error) {
-        console.log('Deployment check failed:', error);
-      } finally {
-        deployedResponse = null;
-      }
-    }, this.DEPLOYMENT_CHECK_INTERVAL);
+      );
+    }
   },
 
-  showUpdatePending(pendingVersion) {
-    NotificationManager.showPersist(
-      'Update Detected!',
-      `Version ${pendingVersion} is being prepared for deployment. You'll be notified when it's ready to install.`,
-      'Dismiss',
-      null,
-      function() {}
-    );
-  },
-
-  showUpdateAvailable(availableVersion) {
-    NotificationManager.showPersist(
-      'Update Available!',
-      `Version ${availableVersion} is available! Would you like to refresh the page?`,
-      'Refresh to update',
-      'Dismiss',
-      function() {
+  applyUpdateBadge(availableVersion) {
+    const versionSpan = document.getElementById('versionSpan');
+    if (!versionSpan) return;
+    versionSpan.classList.add('update-available');
+    versionSpan.title = `v${availableVersion} available — click to refresh`;
+    const originalClick = versionSpan.getAttribute('onclick');
+    versionSpan.onclick = function(e) {
+      e.preventDefault();
+      if (confirm(`Version ${availableVersion} is available. Refresh to update?`)) {
         window.location.reload();
       }
-    );
+    };
+  },
+
+  clearUpdateBadge() {
+    const versionSpan = document.getElementById('versionSpan');
+    if (!versionSpan) return;
+    versionSpan.classList.remove('update-available');
+    versionSpan.title = '';
+    versionSpan.onclick = function(e) { showRecentChanges(e); };
+    this.pendingBadgeVersion = null;
   },
 
   startAutoCheck() {
