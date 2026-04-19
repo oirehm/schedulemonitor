@@ -7,8 +7,11 @@ Changelog Header Order:
 5. Technical Changes
 6. Deprecations
 -->
+## Version 2.6.2
+- Fixed service worker updates not properly working
+
 ## Version 2.6.1
-- Fixed updating default calendar not properly working
+- Fixed missing "Update Calendar" button in update prompt
 
 ## Version 2.6.0
 
