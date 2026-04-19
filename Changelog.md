@@ -7,6 +7,29 @@ Changelog Header Order:
 5. Technical Changes
 6. Deprecations
 -->
+## Version 2.6.0
+
+### New Features
+- Added service worker for offline caching and background update detection
+- Replaced interval-based update polling with service worker message events
+
+### Bug Fixes
+- Fixed switching to No School not immediately clearing period info displays
+- Fixed current date not updating when tab is restored from background
+- Fixed duplicate element IDs (`liveIndicator`, `settingFooter`) that could cause silent JS bugs
+- Fixed color scheme setting not applying to panels, modals, or UI chrome (was only changing body background)
+
+### Improvements
+- Main display loop now syncs to the system clock boundary on startup and tab restore, eliminating timer drift and the need for a display update frequency
+- Updated Calendar to include April's testing weeks
+- Minor optimizations
+- Added `defer` to script tag for faster page parse time
+- All settings panel labels now properly associated with their controls via `for=` attributes
+
+### Color Schemes Reworked
+- Color schemes now apply to the entire UI (panels, modals, buttons, calendar, tags, toasts) instead of just the page background and text
+- **Dark Mode** and **Light Mode** replace the old "Gray on black" / "White on black" / "Black on white" options
+
 ## Version 2.5.4
 
 ### Improvements

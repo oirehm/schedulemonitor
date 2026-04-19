@@ -6,6 +6,7 @@
 - Custom schedule IDs cannot be renamed
 - Color scheme setting does not apply to all elements
 - Autoschedule tends to run automatically even when toggled off
+- native ``<dialog>`` element migration to modals
 
 ## Tasks / Improvements
 

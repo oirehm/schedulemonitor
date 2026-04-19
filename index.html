@@ -10,7 +10,7 @@
     <title>Schedule Monitor</title>
     <link rel="icon" href="icon/monitor.png" />
     <link rel="apple-touch-icon" href="icon/monitor.png" />
-    <link rel="stylesheet" type="text/css" href="css/styles.css?v=254" />
+    <link rel="stylesheet" type="text/css" href="css/styles.css?v=260" />
   </head>
   <body id="body">
     <div class="button-panel">
@@ -60,7 +60,7 @@
                 <div id="secondsDisplay"></div>
               </div>
               <div class="settings-field">
-                <label>Quick Offset</label>
+                <span class="settings-label-text">Quick Offset</span>
                 <div id="fastForwardDay">
                   <button onclick="quickAdjust('day', false)" id="previousDay" class="button">◀</button>
                   <span>Day</span>
@@ -77,7 +77,7 @@
           <div id="displayTab" class="settings-tab-content">
             <div class="settings-section">
               <div class="settings-field">
-                <label>Date & Time Format</label>
+                <label for="datePreset">Date & Time Format</label>
                 <select id="datePreset" onchange="applyDatePreset()">
                   <option value="default">Default</option>
                   <option value="custom">Custom</option>
@@ -89,7 +89,7 @@
                   <div class="format-group">
                     <h4>Component Style</h4>
                     <div class="format-row">
-                      <label>Weekday</label>
+                      <label for="weekdayStyle">Weekday</label>
                       <select id="weekdayStyle" onchange="updateDateFormat()">
                         <option value="long">Full Name (Wednesday)</option>
                         <option value="short">Short Name (Wed)</option>
@@ -97,7 +97,7 @@
                       </select>
                     </div>
                     <div class="format-row">
-                      <label>Day</label>
+                      <label for="dayStyle">Day</label>
                       <select id="dayStyle" onchange="updateDateFormat()">
                         <option value="numeric">Numeric (2)</option>
                         <option value="padded">Padded (02)</option>
@@ -105,7 +105,7 @@
                       </select>
                     </div>
                     <div class="format-row">
-                      <label>Month</label>
+                      <label for="monthStyle">Month</label>
                       <select id="monthStyle" onchange="updateDateFormat()">
                         <option value="long">Full Name (January)</option>
                         <option value="short">Short Name (Jan)</option>
@@ -114,7 +114,7 @@
                       </select>
                     </div>
                     <div class="format-row">
-                      <label>Year</label>
+                      <label for="yearStyle">Year</label>
                       <select id="yearStyle" onchange="updateDateFormat()">
                         <option value="full">Full (2025)</option>
                         <option value="short">Short (25)</option>
@@ -124,18 +124,18 @@
                   <div class="format-group">
                     <h4>Time Style</h4>
                     <div class="format-row">
-                      <label>Hour Format</label>
+                      <label for="hourFormat">Hour Format</label>
                       <select id="hourFormat" onchange="updateDateFormat()">
                         <option value="12">12-hour (5:56)</option>
                         <option value="24">24-hour (17:56)</option>
                       </select>
                     </div>
                     <div class="format-row">
-                      <label>Show Seconds</label>
+                      <label for="showSeconds">Show Seconds</label>
                       <input type="checkbox" id="showSeconds" checked onchange="updateDateFormat()">
                     </div>
                     <div class="format-row">
-                      <label>AM/PM Style</label>
+                      <label for="ampmStyle">AM/PM Style</label>
                       <select id="ampmStyle" onchange="updateDateFormat()">
                         <option value="upper">Uppercase (PM)</option>
                         <option value="lower">Lowercase (pm)</option>
@@ -146,7 +146,7 @@
                   <div class="format-group">
                     <h4>Order & Separators</h4>
                     <div class="format-row">
-                      <label>Date Order</label>
+                      <label for="dateOrder">Date Order</label>
                       <select id="dateOrder" onchange="updateDateFormat()">
                         <option value="mdy">Month Day Year</option>
                         <option value="dmy">Day Month Year</option>
@@ -155,7 +155,7 @@
                       </select>
                     </div>
                     <div class="format-row">
-                      <label>Date Separator</label>
+                      <label for="dateSeparator">Date Separator</label>
                       <select id="dateSeparator" onchange="updateDateFormat()">
                         <option value=" ">Space</option>
                         <option value="-">-</option>
@@ -164,7 +164,7 @@
                       </select>
                     </div>
                     <div class="format-row">
-                      <label>Time Separator</label>
+                      <label for="timeSeparator">Time Separator</label>
                       <select id="timeSeparator" onchange="updateDateFormat()">
                         <option value=":">:</option>
                         <option value=".">.</option>
@@ -172,7 +172,7 @@
                       </select>
                     </div>
                     <div class="format-row">
-                      <label>Date-Time Separator</label>
+                      <label for="dateTimeSeparator">Date-Time Separator</label>
                       <select id="dateTimeSeparator" onchange="updateDateFormat()">
                         <option value=" ">Space</option>
                         <option value=" @ ">@</option>
@@ -196,27 +196,13 @@
               <div class="settings-field">
                 <label for="colorscheme">Color Scheme</label>
                 <select id="colorscheme" onchange="colorBackground()">
-                  <option value="gb" selected>Gray on black</option>
-                  <option value="wb">White on black</option>
-                  <option value="bw">Black on white</option>
-                  <option value="dk">Dark room</option>
-                  <option value="bg">Blue on green</option>
-                  <option value="py">Purple on yellow</option>
-                  <option value="sr">Random by minute</option>
+                  <option value="dark" selected>Dark Mode</option>
+                  <option value="light">Light Mode</option>
+                  <option value="dk">Dark Room</option>
+                  <option value="bg">Blue on Green</option>
+                  <option value="py">Purple on Yellow</option>
+                  <option value="sr">Random by Minute</option>
                 </select>
-              </div>
-              <div class="settings-field">
-                <label for="displayupdatefrequency">Display Update Frequency</label>
-                <select name="updateTime" id="displayupdatefrequency">
-                  <option value="2000">2000ms (Slow)</option>
-                  <option value="1000">1000ms (Normal)</option>
-                  <option value="250">250ms (Fast)</option>
-                  <option value="200">200ms (Faster)</option>
-                  <option value="100" selected>100ms (Very Fast)</option>
-                  <option value="50">50ms (Extreme)</option>
-                  <option value="16">16ms (Real Time)</option>
-                </select>
-                <p id="settingFooter"> Higher values align the display to your system clock better, but can stress low-end CPUs!! </p>
               </div>
             </div>
           </div>
@@ -224,27 +210,17 @@
             <div class="settings-section">
               <div class="settings-field">
                 <h3>Updates</h3>
-                <label>Auto Check For Updates</label>
-                <input type="checkbox" id="autoUpdateToggle" checked>
-                <label for="updateCheckFrequencies">Check for Update Frequency</label>
-                <select name="" id="updateCheckFrequencies">
-                  <option value="86400">Every Day</option>
-                  <option value="43200">Every 12 Hours</option>
-                  <option value="14400">Every 4 Hours</option>
-                  <option value="7200" selected>Every 2 Hours</option>
-                  <option value="3600">Every Hour</option>
-                </select>
-                <button class="button action-button" onclick="UpdateChecker.checkForUpdate(true)">Check for Updates</button>
-                <p id="settingFooter" class="last-check">Last checked: N/A</p>
+                <button class="button action-button" onclick="UpdateChecker.requestManualCheck()">Check for Updates</button>
+                <p id="lastCheckedFooter" class="last-check">Last checked: N/A</p>
               </div>
             </div>
             <div class="settings-section">
               <h3>Troubleshooting</h3>
               <div class="settings-field">
-                <label>Having issues after an update?</label>
+                <span class="settings-label-text">Having issues after an update?</span>
                 <button class="button action-button" onclick="forceHardRefresh()">Force Hard Refresh</button>
                 <button class="button action-button" onclick="showCacheTroubleshooting()">Cache Help</button>
-                <p id="settingFooter">
+                <p class="setting-footer">
                   Use if the app seems outdated or features aren't working properly
                 </p>
               </div>
@@ -253,7 +229,7 @@
             <div class="settings-section">
               <h3>Data Management</h3>
               <div class="settings-field">
-                <label>Storage Usage</label>
+                <span class="settings-label-text">Storage Usage</span>
                 <div class="storage-usage-container">
                   <div class="storage-usage-bar-container">
                     <div id="storageUsageBar" class="storage-usage-bar"></div>
@@ -265,7 +241,7 @@
                 <button class="button action-button danger-button" onclick="resetToDefaults()">Reset All Schedules</button>
                 <button class="button action-button danger-button" onclick="clearAllCalendarData()">Clear Calendar</button>
                 <button class="button action-button" onclick="clearAllLocalStorage()" style="color: #ff2e2e !important; font-weight: bold;"> Clear All Data </button>
-                <p id="settingFooter"> Permanently delete all stored data including schedules and settings </p>
+                <p class="setting-footer"> Permanently delete all stored data including schedules and settings </p>
               </div>
             </div>
           </div>
@@ -286,7 +262,7 @@
       <div id="scheduleManagerModal" class="hidden">
         <div id="scheduleManagerContent">
           <div id="scheduleManagerHeader">
-            <h2>Schedule Configuration <span id="liveIndicator" style="font-size: 0.6em; color: #666; margin-left: 10px;">(Changes apply immediately)</span>
+            <h2>Schedule Configuration <span id="scheduleManagerLiveIndicator" style="font-size: 0.6em; color: #666; margin-left: 10px;">(Changes apply immediately)</span>
             </h2>
             <button class="button" onclick="ScheduleManagerUI.close()">×</button>
           </div>
@@ -381,7 +357,7 @@
       <div id="calendarModal" class="hidden">
         <div id="calendarContent">
           <div id="calendarHeader">
-            <h2>Calendar Configuration <span id="liveIndicator" style="font-size: 0.6em; color: #666; margin-left: 10px;">(Changes apply immediately)</span>
+            <h2>Calendar Configuration <span id="calendarLiveIndicator" style="font-size: 0.6em; color: #666; margin-left: 10px;">(Changes apply immediately)</span>
             </h2>
             <button class="button" onclick="CalendarUI.close()">×</button>
           </div>
@@ -475,7 +451,7 @@
       </div>
     </div>
     <div id="toastContainer"></div>
-    <script src="script.js?v=254"></script>
+    <script src="script.js?v=260" defer></script>
     </div>
   </body>
 </html>

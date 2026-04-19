@@ -1068,15 +1068,15 @@
       "isEven": true
     },
     "2026-04-21": {
-      "schedule": "normal",
+      "schedule": "testing",
       "isEven": false
     },
     "2026-04-22": {
-      "schedule": "normal",
+      "schedule": "testing",
       "isEven": true
     },
     "2026-04-23": {
-      "schedule": "normal",
+      "schedule": "testing",
       "isEven": false
     },
     "2026-04-24": {
@@ -1564,6 +1564,10 @@
       "isEven": null
     },
     "2026-08-30": {
+      "schedule": "noSchool",
+      "isEven": null
+    },
+    "2026-05-25": {
       "schedule": "noSchool",
       "isEven": null
     }

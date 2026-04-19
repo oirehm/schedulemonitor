@@ -11,7 +11,6 @@ let adjustseconds = 0;
 let currentScheduleId = 'normal';
 let currentScheduleData = null;
 let sharedAudioContext = null;
-let displayUpdateFrequency = 100;
 let lastDisplayState = {
   displayedDate: '',
   currentPeriodSubtitle: '',
@@ -126,40 +125,29 @@ const scheduleTemplates = {
   }
 };
 const predefinedColorSchemes = {
-  gb: {
-    text: "grey",
-    background: "black",
+  dark: {
+    themeClass: null,
     optionText: "black",
     optionBackground: "white"
   },
-  wb: {
-    text: "white",
-    background: "black",
-    optionText: "black",
-    optionBackground: "white"
-  },
-  bw: {
-    text: "black",
-    background: "white",
-    optionText: "black",
-    optionBackground: "white"
+  light: {
+    themeClass: 'theme-light',
+    optionText: "#333",
+    optionBackground: "#f0f0f0"
   },
   dk: {
-    text: "crimson",
-    background: "black",
+    themeClass: 'theme-darkroom',
     optionText: "crimson",
     optionBackground: "black"
   },
   bg: {
-    text: "#5077BE",
-    background: "#D9FFB2",
-    optionText: "#5077BE",
+    themeClass: 'theme-blueongreen',
+    optionText: "#2a4a80",
     optionBackground: "#D9FFB2"
   },
   py: {
-    text: "#B44DE0",
-    background: "#FFFF99",
-    optionText: "#B44DE0",
+    themeClass: 'theme-purpleonyellow',
+    optionText: "#7722aa",
     optionBackground: "#FFFF99"
   },
   sr: "random"
@@ -300,8 +288,7 @@ const StorageManager = {
       preferences: {
         defaultSchedule: 'auto',
         timeAdjustment: 0,
-        colorScheme: 'gb',
-        updateFrequency: '100'
+        colorScheme: 'dark'
       },
       scheduleOverrides: {},
       lastUpdated: new Date().toISOString()
@@ -1331,8 +1318,11 @@ const YearOverviewUI = {
 function loadPreferences() {
   loadSettingsPanelPosition();
   usePaddedTimerZeros = StorageManager.getPreference('usePaddedTimerZeros') ?? true;
-  const colorScheme = StorageManager.getPreference('colorScheme');
+  const schemeKeyMap = { 'gb': 'dark', 'wb': 'dark', 'bw': 'light' };
+  const rawColorScheme = StorageManager.getPreference('colorScheme');
+  const colorScheme = schemeKeyMap[rawColorScheme] ?? rawColorScheme;
   if (colorScheme) {
+    if (schemeKeyMap[rawColorScheme]) StorageManager.savePreference('colorScheme', colorScheme);
     document.getElementById('colorscheme').value = colorScheme;
     colorBackground();
   }
@@ -1344,28 +1334,6 @@ function loadPreferences() {
     evaluateMath();
     adjustTimeAdjustmentWidth();
   }
-
-  const updateFrequencyPref = StorageManager.getPreference('updateFrequency');
-  if (updateFrequencyPref) {
-    document.getElementById('displayupdatefrequency').value = updateFrequencyPref;
-    displayUpdateFrequency = Math.max(16, parseInt(updateFrequencyPref));
-  }
-
-  const savedUpdateInterval = StorageManager.getPreference('autoUpdateInterval');
-  if (savedUpdateInterval) {
-    const updateFrequencies = document.getElementById('updateCheckFrequencies');
-    if (updateFrequencies) {
-      updateFrequencies.value = savedUpdateInterval;
-    }
-  }
-
-  let autoUpdate = StorageManager.getPreference('autoUpdateEnabled');
-  if (autoUpdate === null || autoUpdate === undefined) {
-    autoUpdate = '1';
-    StorageManager.savePreference('autoUpdateEnabled', autoUpdate);
-  }
-  const autoToggle = document.getElementById('autoUpdateToggle');
-  autoToggle.checked = autoUpdate === '1';
 }
 
 const ScheduleManagerUI = {
@@ -2333,6 +2301,7 @@ function loadSchedule(scheduleId, forceOddEven = null) {
     lastDisplayState.scheduleHTML = "No school today!";
 
     updateButtonStates(scheduleId);
+    fullUpdate();
     return;
   }
 
@@ -2359,7 +2328,7 @@ function loadSchedule(scheduleId, forceOddEven = null) {
   subtitleEl.textContent = template.subtitle || '';
 
   updateButtonStates(scheduleId);
-  updateMainDisplay();
+  fullUpdate();
   StorageManager.savePreference('lastUsedSchedule', scheduleId);
 }
 
@@ -2400,24 +2369,112 @@ infoElements.forEach(function(infoElement) {
 });
 
 let animationId;
-let lastUpdateTime = 0;
+let lastTickSecond = -1;
+let cachedCurrentPeriod = -1;
+let cachedNextBoundary = -1;
 
-function updateAndCallAgain(timestamp) {
-  if (timestamp - lastUpdateTime >= displayUpdateFrequency) {
-    updateMainDisplay();
-    lastUpdateTime = timestamp;
+function updateAndCallAgain() {
+  const second = (Date.now() / 1000) | 0;
+  if (second !== lastTickSecond) {
+    lastTickSecond = second;
+    tickDisplay();
   }
   animationId = requestAnimationFrame(updateAndCallAgain);
+}
+
+function tickDisplay() {
+  const now = Date.now() + ((adjustseconds || 0) * 1000);
+  reusableDate.setTime(now);
+  updateDisplayedDate(reusableDate);
+
+  if (starts.length === 0) return;
+
+  const currentSeconds = getCurrentSecondsFromDate(reusableDate);
+
+  const p = cachedCurrentPeriod;
+  const periodIndex = starts.length - 1;
+
+  if (p === -1) {
+    updateText(Els["currentduration"], formatDisplayTimer(starts[0] - currentSeconds), "currentDuration");
+  } else if (p >= 0 && p < periodIndex) {
+    const elapsed = currentSeconds - starts[p];
+    let elapsedStr = formatDisplayTimer(elapsed);
+    if (elapsed < 60) elapsedStr += " seconds";
+    updateText(Els["currentperiodsubtitle"], `We are now ${elapsedStr} into:`, "currentPeriodSubtitle");
+    updateText(Els["nextduration"], formatDisplayTimer(starts[p + 1] - currentSeconds), "nextDuration");
+  } else {
+    updateText(Els["currentduration"], formatDisplayTimer(currentSeconds - starts[periodIndex]), "currentDuration");
+  }
+}
+
+let periodBoundaryTimeoutId = null;
+function schedulePeriodBoundary() {
+  if (periodBoundaryTimeoutId !== null) {
+    clearTimeout(periodBoundaryTimeoutId);
+    periodBoundaryTimeoutId = null;
+  }
+
+  if (starts.length === 0) return;
+
+  const now = Date.now() + ((adjustseconds || 0) * 1000);
+  reusableDate.setTime(now);
+  const currentSeconds = getCurrentSecondsFromDate(reusableDate);
+  const periodIndex = starts.length - 1;
+
+  let secondsUntilBoundary;
+  if (currentSeconds < starts[0]) {
+    secondsUntilBoundary = starts[0] - currentSeconds;
+  } else if (currentSeconds >= starts[periodIndex]) {
+    const secondsUntilMidnight = 86400 - currentSeconds;
+    secondsUntilBoundary = secondsUntilMidnight;
+  } else {
+    let nextBoundary = starts[periodIndex];
+    for (let i = 0; i < periodIndex; i++) {
+      if (starts[i] > currentSeconds) {
+        nextBoundary = starts[i];
+        break;
+      }
+    }
+    secondsUntilBoundary = nextBoundary - currentSeconds;
+  }
+
+  const msUntilBoundary = secondsUntilBoundary * 1000 - (Date.now() + ((adjustseconds || 0) * 1000)) % 1000;
+  periodBoundaryTimeoutId = setTimeout(() => {
+    periodBoundaryTimeoutId = null;
+    fullUpdate();
+  }, Math.max(0, msUntilBoundary));
+}
+
+let syncTimeoutId = null;
+function startSyncedLoop() {
+  if (syncTimeoutId !== null) {
+    clearTimeout(syncTimeoutId);
+    syncTimeoutId = null;
+  }
+  const msUntilNextSecond = 1000 - (Date.now() % 1000);
+  syncTimeoutId = setTimeout(() => {
+    syncTimeoutId = null;
+    lastTickSecond = -1;
+    animationId = requestAnimationFrame(updateAndCallAgain);
+  }, msUntilNextSecond);
 }
 
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
     cancelAnimationFrame(animationId);
     animationId = null;
+    if (syncTimeoutId !== null) {
+      clearTimeout(syncTimeoutId);
+      syncTimeoutId = null;
+    }
+    if (periodBoundaryTimeoutId !== null) {
+      clearTimeout(periodBoundaryTimeoutId);
+      periodBoundaryTimeoutId = null;
+    }
   } else {
     if (!animationId) {
-      lastUpdateTime = 0;
-      animationId = requestAnimationFrame(updateAndCallAgain);
+      fullUpdate();
+      startSyncedLoop();
     }
   }
 });
@@ -2445,12 +2502,6 @@ function getSchoolScheduleLink() {
     fallback: fallbackLink
   };
 }
-
-document.getElementById("displayupdatefrequency").addEventListener("change", function() {
-  updateMainDisplay();
-  displayUpdateFrequency = Math.max(16, parseInt(this.value));
-  StorageManager.savePreference('updateFrequency', this.value);
-});
 
 const timeAdjInput = document.querySelector("#timeadj");
 let timeAdjValue = parseFloat(timeAdjInput.value) || 0;
@@ -2517,7 +2568,7 @@ function timeadj() {
   }
 
   evaluateMath();
-  updateMainDisplay();
+  fullUpdate();
 
   const currentTime = Date.now();
   const newDate = new Date(currentTime + adjustseconds * 1000);
@@ -2533,7 +2584,7 @@ function inputTimeAdj(input) {
   adjustseconds = valid ? next : (!isNaN(old) ? old : 0);
   (valid ? ValidTimeAdj : ErrorTimeAdj)();
   evaluateMath();
-  updateMainDisplay();
+  fullUpdate();
 }
 const timeAdjustmentInput = document.getElementById("timeadj");
 
@@ -2692,24 +2743,83 @@ function getRandomColor() {
 }
 
 function colorizeRandom() {
-  document.body.style.color = getRandomColor();
-  document.body.style.backgroundColor = getRandomColor();
+  const hue = Math.floor(Math.random() * 360);
+  const bgL = 12 + Math.floor(Math.random() * 10);
+  const textL = 55 + Math.floor(Math.random() * 25);
+  const panelL = bgL + 6;
+  const borderL = bgL + 15;
+  const mutedL = textL - 20;
+
+  const bg   = `hsl(${hue}, 60%, ${bgL}%)`;
+  const text = `hsl(${hue}, 80%, ${textL}%)`;
+  const panel = `hsl(${hue}, 50%, ${panelL}%)`;
+  const border = `hsl(${hue}, 40%, ${borderL}%)`;
+  const muted = `hsl(${hue}, 60%, ${mutedL}%)`;
+  const hover = `hsl(${hue}, 50%, ${bgL + 4}%)`;
+  const dark1 = `hsl(${hue}, 60%, ${bgL - 4}%)`;
+  const accent = `hsl(${(hue + 30) % 360}, 90%, 65%)`;
+
+  const root = document.documentElement;
+  root.style.setProperty('--page-bg', bg);
+  root.style.setProperty('--panel-bg', panel);
+  root.style.setProperty('--panel-border', border);
+  root.style.setProperty('--panel-border-2', panel);
+  root.style.setProperty('--text', text);
+  root.style.setProperty('--text-light', text);
+  root.style.setProperty('--text-dimmer', muted);
+  root.style.setProperty('--muted', muted);
+  root.style.setProperty('--muted-2', muted);
+  root.style.setProperty('--muted-3', muted);
+  root.style.setProperty('--muted-4', muted);
+  root.style.setProperty('--accent', accent);
+  root.style.setProperty('--accent-border', accent);
+  root.style.setProperty('--dark-1', dark1);
+  root.style.setProperty('--dark-2', dark1);
+  root.style.setProperty('--border-dark', border);
+  root.style.setProperty('--hover-bg', hover);
+  root.style.setProperty('--dark-surface', hover);
+  root.style.setProperty('--toast-bg', panel);
+}
+
+function clearRandomColors() {
+  const props = [
+    '--page-bg', '--panel-bg', '--panel-border', '--panel-border-2',
+    '--text', '--text-light', '--text-dimmer', '--muted', '--muted-2',
+    '--muted-3', '--muted-4', '--accent', '--accent-border',
+    '--dark-1', '--dark-2', '--border-dark', '--hover-bg',
+    '--dark-surface', '--toast-bg'
+  ];
+  props.forEach(p => document.documentElement.style.removeProperty(p));
 }
 
 function colorBackground() {
   const optionElement = document.getElementById("colorscheme");
   const selected = optionElement.value;
 
+  clearRandomColors();
+
   if (selected === "sr") {
     random = true;
+    document.body.className = document.body.className
+      .split(' ').filter(c => !c.startsWith('theme-')).join(' ');
+    document.body.style.color = '';
+    document.body.style.backgroundColor = '';
     colorizeRandom();
   } else {
     random = false;
     const scheme = predefinedColorSchemes[selected];
+
+    document.body.className = document.body.className
+      .split(' ').filter(c => !c.startsWith('theme-')).join(' ');
+    if (scheme.themeClass) {
+      document.body.classList.add(scheme.themeClass);
+    }
+
+    document.body.style.color = '';
+    document.body.style.backgroundColor = '';
+
     optionElement.style.color = scheme.optionText;
     optionElement.style.backgroundColor = scheme.optionBackground;
-    document.body.style.color = scheme.text;
-    document.body.style.backgroundColor = scheme.background;
   }
 
   StorageManager.savePreference("colorScheme", selected);
@@ -2743,6 +2853,7 @@ function getCurrentSecondsFromDate(date) {
 }
 
 const MERIDIEM_ARRAY = ["AM", "PM"];
+const nopadFn = (n) => n.toString();
 
 function formatScheduleTime(timeStr) {
   const hour24 = (timeStr.charCodeAt(0) - 48) * 10 + (timeStr.charCodeAt(1) - 48);
@@ -2831,7 +2942,14 @@ let cachedTimeComponents = {
   minute: 0,
   second: 0,
   currentSeconds: 0,
-  timestamp: 0
+  timestamp: 0,
+  dayOfWeek: 0,
+  monthIndex: 0,
+  year: 0,
+  hh12: 0,
+  meridiem: 'AM',
+  mmStr: '00',
+  ssStr: '00'
 };
 
 function getTimeComponents(adjustedDate) {
@@ -2839,12 +2957,22 @@ function getTimeComponents(adjustedDate) {
   const secondTimestamp = Math.floor(timestamp / 1000) * 1000;
 
   if (secondTimestamp !== lastCalculatedTimestamp) {
+    const h = adjustedDate.getHours();
+    const m = adjustedDate.getMinutes();
+    const s = adjustedDate.getSeconds();
     cachedTimeComponents.dayOfMonth = adjustedDate.getDate();
-    cachedTimeComponents.hour = adjustedDate.getHours();
-    cachedTimeComponents.minute = adjustedDate.getMinutes();
-    cachedTimeComponents.second = adjustedDate.getSeconds();
-    cachedTimeComponents.currentSeconds = getCurrentSecondsFromDate(adjustedDate);
+    cachedTimeComponents.hour = h;
+    cachedTimeComponents.minute = m;
+    cachedTimeComponents.second = s;
+    cachedTimeComponents.currentSeconds = h * 3600 + m * 60 + s;
     cachedTimeComponents.timestamp = timestamp;
+    cachedTimeComponents.dayOfWeek = adjustedDate.getDay();
+    cachedTimeComponents.monthIndex = adjustedDate.getMonth();
+    cachedTimeComponents.year = adjustedDate.getFullYear();
+    cachedTimeComponents.hh12 = h % 12 || 12;
+    cachedTimeComponents.meridiem = h >= 12 ? 'PM' : 'AM';
+    cachedTimeComponents.mmStr = m < 10 ? '0' + m : '' + m;
+    cachedTimeComponents.ssStr = s < 10 ? '0' + s : '' + s;
     lastCalculatedTimestamp = secondTimestamp;
   }
   return cachedTimeComponents;
@@ -2864,7 +2992,7 @@ function updateDisplayedDate(adjustedDate) {
     second !== lastSecond ||
     dateFormatUpdated) {
 
-    const displayedDate = DateFormatter.formatDate(adjustedDate);
+    const displayedDate = DateFormatter.formatFromComponents(timeComponents);
     const currentDateEl = Els["currentdate"];
     if (currentDateEl) updateText(currentDateEl, displayedDate, "displayedDate");
 
@@ -2879,9 +3007,9 @@ function updateDisplayedDate(adjustedDate) {
 }
 
 const reusableDate = new Date();
-function updateMainDisplay() {
+function fullUpdate() {
   const now = Date.now() + ((adjustseconds || 0) * 1000);
-  reusableDate.setTime(now)
+  reusableDate.setTime(now);
   const timeComponents = getTimeComponents(reusableDate);
   const dayChanged = lastDisplayState.lastDayOfMonth !== timeComponents.dayOfMonth;
 
@@ -2921,6 +3049,7 @@ function updateMainDisplay() {
     updateText(Els["nextschedule"], "", "nextSchedule");
     updateText(Els["currentlengthofperiod"], "", "currentLength");
     updateText(Els["currentperiodsubtitle"], "", "currentPeriodSubtitle");
+    cachedCurrentPeriod = -1;
     return;
   }
 
@@ -2935,7 +3064,7 @@ function updateMainDisplay() {
     let left = 0,
       right = periodIndex;
     while (left <= right) {
-      const mid = Math.floor((left + right) / 2);
+      const mid = (left + right) >> 1;
       if (starts[mid] <= currentSeconds && currentSeconds < starts[mid + 1]) {
         currentPeriod = mid;
         break;
@@ -2947,19 +3076,18 @@ function updateMainDisplay() {
     }
   }
 
+  cachedCurrentPeriod = currentPeriod;
+
   if (currentPeriod === -1) {
     updateText(Els["currentduration"], formatDisplayTimer(starts[0] - currentSeconds), "currentDuration");
   } else if (currentPeriod >= 0 && currentPeriod < periodIndex) {
-    updateText(Els["nextduration"], formatDisplayTimer(starts[currentPeriod + 1] - currentSeconds), "nextDuration");
-  } else {
-    updateText(Els["currentduration"], formatDisplayTimer(currentSeconds - starts[periodIndex]), "currentDuration");
-  }
-
-  if (currentPeriod >= 0 && currentPeriod < periodIndex) {
     const elapsed = currentSeconds - starts[currentPeriod];
     let elapsedStr = formatDisplayTimer(elapsed);
     if (elapsed < 60) elapsedStr += " seconds";
     updateText(Els["currentperiodsubtitle"], `We are now ${elapsedStr} into:`, "currentPeriodSubtitle");
+    updateText(Els["nextduration"], formatDisplayTimer(starts[currentPeriod + 1] - currentSeconds), "nextDuration");
+  } else {
+    updateText(Els["currentduration"], formatDisplayTimer(currentSeconds - starts[periodIndex]), "currentDuration");
   }
 
   const lastPeriod = lastDisplayState.currentPeriod;
@@ -2981,7 +3109,6 @@ function updateMainDisplay() {
       updateText(Els["currentlengthofperiod"], "", "currentLength");
       updateText(Els["nextschedule"], "", "nextSchedule");
       updateText(Els["nextduration"], "", "nextDuration");
-
     } else {
       updateText(Els["currentschedule"], names[currentPeriod], "currentSchedule");
       updateText(Els["endofschedulesubtitle"], "", "endOfScheduleSubtitle");
@@ -3023,6 +3150,8 @@ function updateMainDisplay() {
       }
     }
   }
+
+  schedulePeriodBoundary();
 }
 
 function formatDisplayTimer(totalSeconds) {
@@ -3031,7 +3160,7 @@ function formatDisplayTimer(totalSeconds) {
   totalSeconds %= 3600;
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
-  const padFn = usePaddedTimerZeros ? padZero : (n) => n.toString();
+  const padFn = usePaddedTimerZeros ? padZero : nopadFn;
   if (hours > 0) return `${padFn(hours)}:${padZero(minutes)}:${padZero(seconds)}`;
   if (minutes > 0) return `${padFn(minutes)}:${padZero(seconds)}`;
   return padFn(seconds);
@@ -3158,8 +3287,6 @@ window.onload = async function() {
     nextschedule: document.getElementById('nextschedule'),
     nextduration: document.getElementById('nextduration'),
     scheduledisplay: document.getElementById('scheduledisplay'),
-    autoUpdateToggle: document.getElementById('autoUpdateToggle'),
-    updateFrequencies: document.getElementById('updateCheckFrequencies'),
   };
 
   Object.entries(Els).forEach(([key, element]) => {
@@ -3229,7 +3356,7 @@ window.onload = async function() {
     loadSchedule('normal');
   }
 
-  updateAndCallAgain();
+  startSyncedLoop();
   if (!lastUsedSchedule || lastUsedSchedule === 'auto') AutoSchedule();
   const link = document.getElementById("schoolSchedule");
   const urls = getSchoolScheduleLink();
@@ -3238,8 +3365,7 @@ window.onload = async function() {
   adjustMainDisplayPosition();
 
   setTimeout(() => {
-    UpdateChecker.checkForUpdate(false, true);
-    UpdateChecker.startAutoCheck();
+    UpdateChecker.init();
   }, 100);
 };
 
@@ -3518,6 +3644,7 @@ const NotificationManager = {
       '2.2.1': this.makeCalendarUpdateConfig('2.2.1', 'Load Default Calendar', 'Default Bellflower calendar loaded!', true),
       '2.5.3': this.makeCalendarUpdateConfig('2.5.3'),
       '2.5.4': this.makeCalendarUpdateConfig('2.5.4'),
+      '2.5.5': this.makeCalendarUpdateConfig('2.5.5'),
     };
 
     return tertiaryConfigs[version] || null;
@@ -4003,6 +4130,92 @@ const DateFormatter = {
     });
   },
 
+  formatFromComponents(tc) {
+    if (this.preset === 'default') return this.formatOriginalFromComponents(tc);
+
+    const components = this._reusableComponents;
+    const settings = this.settings;
+
+    if (settings.weekdayStyle !== 'none') {
+      components.weekday = DAY_NAMES[settings.weekdayStyle][tc.dayOfWeek];
+    } else {
+      components.weekday = '';
+    }
+
+    const monthStyle = settings.monthStyle;
+    if (monthStyle === 'long') {
+      components.month = MONTH_NAMES.long[tc.monthIndex];
+    } else if (monthStyle === 'short') {
+      components.month = MONTH_NAMES.short[tc.monthIndex];
+    } else if (monthStyle === 'numeric') {
+      components.month = tc.monthIndex + 1;
+    } else {
+      components.month = padZero(tc.monthIndex + 1);
+    }
+
+    const dayStyle = settings.dayStyle;
+    if (dayStyle === 'numeric') {
+      components.day = tc.dayOfMonth;
+    } else if (dayStyle === 'padded') {
+      components.day = padZero(tc.dayOfMonth);
+    } else {
+      components.day = tc.dayOfMonth + this.getOrdinalSuffix(tc.dayOfMonth);
+    }
+
+    components.year = settings.yearStyle === 'full' ? tc.year : String(tc.year).slice(-2);
+
+    if (settings.hourFormat === '24') {
+      components.hour = padZero(tc.hour);
+    } else {
+      components.hour = tc.hh12;
+    }
+
+    components.minute = tc.mmStr;
+    components.second = tc.ssStr;
+
+    if (settings.hourFormat === '12') {
+      const base = tc.meridiem;
+      const ampmStyle = settings.ampmStyle;
+      if (ampmStyle === 'upper') {
+        components.ampm = base;
+      } else if (ampmStyle === 'lower') {
+        components.ampm = base.toLowerCase();
+      } else {
+        components.ampm = base.split('').join('.') + '.';
+      }
+    } else {
+      components.ampm = '';
+    }
+
+    if (!this._cachedOrder || this._lastDateOrder !== settings.dateOrder) {
+      this._cachedOrder = settings.dateOrder.split('');
+      this._lastDateOrder = settings.dateOrder;
+    }
+
+    let result = '';
+    if (settings.weekdayStyle !== 'none') result = components.weekday + ' ';
+
+    const order = this._cachedOrder;
+    for (let i = 0; i < order.length; i++) {
+      switch (order[i]) {
+        case 'm': result += components.month; break;
+        case 'd': result += components.day; break;
+        case 'y': result += components.year; break;
+      }
+      if (i < order.length - 1) result += settings.dateSeparator;
+    }
+
+    result += settings.dateTimeSeparator + components.hour + settings.timeSeparator + components.minute;
+    if (settings.showSeconds) result += settings.timeSeparator + components.second;
+    if (settings.hourFormat === '12') result += ' ' + components.ampm;
+
+    return result;
+  },
+
+  formatOriginalFromComponents(tc) {
+    return `${DAY_NAMES.short[tc.dayOfWeek]} ${MONTH_NAMES.short[tc.monthIndex]} ${padZero(tc.dayOfMonth)} ${tc.year} ${tc.hh12}:${tc.mmStr}:${tc.ssStr} ${tc.meridiem}`;
+  },
+
   formatDate(date) {
     if (this.preset === 'default') return this.formatOriginal(date);
 
@@ -4220,18 +4433,7 @@ function formatDisplayedDate(date) {
 }
 
 const UpdateChecker = {
-  VERSION_URL: 'https://oirehm.github.io/schedulemonitor/version.txt',
-  REPO_VERSION_URL: 'https://raw.githubusercontent.com/oirehm/schedulemonitor/main/version.txt',
-  CHECK_INTERVAL: 1000 * 60 * 60 * 2,
-  STORAGE_KEY: 'lastUpdateCheck',
-  intervalId: null,
   pendingBadgeVersion: null,
-
-  getCurrentInterval() {
-    const savedInterval = StorageManager.getPreference('autoUpdateInterval');
-    const interval = savedInterval ? parseInt(savedInterval) * 1000 : this.CHECK_INTERVAL;
-    return interval;
-  },
 
   isAfterHours() {
     const now = new Date(Date.now() + adjustseconds * 1000);
@@ -4241,45 +4443,19 @@ const UpdateChecker = {
     return totalMinutes < 7 * 60 + 30 || totalMinutes >= 15 * 60 + 45;
   },
 
-  async checkForUpdate(isManual = false, isStartup = false) {
-    const autoEnabled = StorageManager.getPreference('autoUpdateEnabled') === '1';
-    const lastCheck = localStorage.getItem(this.STORAGE_KEY);
-    const now = Date.now();
-    const interval = this.getCurrentInterval();
-
-    if (!(isManual || isStartup) && (!autoEnabled || (lastCheck && (now - parseInt(lastCheck)) < interval))) {
+  requestManualCheck() {
+    if (!('serviceWorker' in navigator)) {
+      NotificationManager.showAlert('', 'Service workers are not supported in this browser.', 'error');
       return;
     }
-
-    try {
-      const repoResponse = await fetch(this.REPO_VERSION_URL + '?t=' + Date.now());
-      if (!repoResponse.ok) return;
-
-      const repoVersion = (await repoResponse.text()).trim();
-      const currentVersion = version;
-
-      if (compareVersions(currentVersion, repoVersion) < 0) {
-        const deployedResponse = await fetch(this.VERSION_URL + '?t=' + Date.now());
-        if (!deployedResponse.ok) return;
-
-        const deployedVersion = (await deployedResponse.text()).trim();
-
-        if (compareVersions(currentVersion, deployedVersion) < 0) {
-          this.showUpdateAvailable(deployedVersion, isManual);
-        }
-      } else if (compareVersions(currentVersion, repoVersion) === 0 && isManual) {
-        NotificationManager.showAlert('', 'Schedule Monitor is up to date', 'success');
+    navigator.serviceWorker.ready.then(registration => {
+      if (!registration.active) {
+        NotificationManager.showAlert('', 'Service worker not active yet. Try reloading.', 'error');
+        return;
       }
-
-      localStorage.setItem(this.STORAGE_KEY, now.toString());
-
-      const lastCheckEl = document.querySelector('.last-check');
-      if (lastCheckEl && now) {
-        lastCheckEl.textContent = `Last checked: ${new Date(parseInt(now)).toLocaleString()}`;
-      }
-    } catch (error) {
-      console.log('Update check failed:', error);
-    }
+      registration.active.postMessage({ type: 'CHECK_UPDATE', isManual: true });
+    }).catch(err => {
+    });
   },
 
   showUpdateAvailable(availableVersion, isManual = false) {
@@ -4293,6 +4469,7 @@ const UpdateChecker = {
         'Refresh to update',
         'Dismiss',
         function() {
+          sessionStorage.setItem('swAcceptedUpdate', availableVersion);
           window.location.reload();
         }
       );
@@ -4304,12 +4481,18 @@ const UpdateChecker = {
     if (!versionSpan) return;
     versionSpan.classList.add('update-available');
     versionSpan.title = `v${availableVersion} available — click to refresh`;
-    const originalClick = versionSpan.getAttribute('onclick');
     versionSpan.onclick = function(e) {
       e.preventDefault();
-      if (confirm(`Version ${availableVersion} is available. Refresh to update?`)) {
-        window.location.reload();
-      }
+      NotificationManager.showConfirm(
+        'Update Available!',
+        `Version ${availableVersion} is available. Refresh to update?`,
+        'Refresh',
+        'Dismiss',
+        function() {
+          sessionStorage.setItem('swAcceptedUpdate', availableVersion);
+          window.location.reload();
+        }
+      );
     };
   },
 
@@ -4322,27 +4505,45 @@ const UpdateChecker = {
     this.pendingBadgeVersion = null;
   },
 
-  startAutoCheck() {
-    const autoEnabled = StorageManager.getPreference('autoUpdateEnabled') === '1';
-    if (!autoEnabled) {
-      return;
-    }
+  init() {
+    if (!('serviceWorker' in navigator)) return;
 
-    if (this.intervalId) {
-      clearInterval(this.intervalId);
-    }
+    navigator.serviceWorker.register('/sw.js').catch(err => {
+      console.log('[UpdateChecker] SW registration failed:', err);
+    });
 
-    const interval = this.getCurrentInterval();
-    this.intervalId = setInterval(() => {
-      this.checkForUpdate(false, false);
-    }, interval);
-  },
+    navigator.serviceWorker.addEventListener('message', event => {
+      const { type, version: availableVersion, isManual } = event.data || {};
 
-  stopAutoCheck() {
-    if (this.intervalId) {
-      clearInterval(this.intervalId);
-      this.intervalId = null;
-    }
+      if (type === 'UPDATE_AVAILABLE') {
+        const accepted = sessionStorage.getItem('swAcceptedUpdate');
+        if (accepted && accepted === availableVersion) {
+          sessionStorage.removeItem('swAcceptedUpdate');
+          UpdateChecker.clearUpdateBadge();
+          NotificationManager.showAlert('', `Updated to v${availableVersion}!`, 'success');
+          return;
+        }
+        UpdateChecker.showUpdateAvailable(availableVersion, isManual === true);
+      }
+
+      if (type === 'UP_TO_DATE') {
+        if (isManual) {
+          NotificationManager.showAlert('', 'Schedule Monitor is up to date', 'success');
+        }
+        const lastCheckEl = document.querySelector('.last-check');
+        if (lastCheckEl) {
+          lastCheckEl.textContent = `Last checked: ${new Date().toLocaleString()}`;
+        }
+      }
+    });
+
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        navigator.serviceWorker.ready.then(registration => {
+          registration.active.postMessage({ type: 'CHECK_UPDATE' });
+        });
+      }
+    });
   }
 };
 
@@ -4368,35 +4569,7 @@ function cleanupSettingsEventListeners() {
 }
 
 function initializeSettingsHandlers() {
-  const autoToggle = document.getElementById('autoUpdateToggle');
-  const updateFrequencies = document.getElementById('updateCheckFrequencies');
-
-  if (autoToggle) {
-    addSettingsEventListener(autoToggle, 'change', () => {
-      StorageManager.savePreference(
-        'autoUpdateEnabled',
-        autoToggle.checked ? '1' : '0'
-      );
-      refreshAutoCheck();
-    });
-  }
-
-  if (updateFrequencies) {
-    addSettingsEventListener(updateFrequencies, 'change', () => {
-      StorageManager.savePreference(
-        'autoUpdateInterval',
-        updateFrequencies.value
-      );
-      refreshAutoCheck();
-    });
-  }
-}
-
-function refreshAutoCheck() {
-  UpdateChecker.stopAutoCheck();
-  if (StorageManager.getPreference('autoUpdateEnabled') === '1') {
-    UpdateChecker.startAutoCheck();
-  }
+  // Deprecated
 }
 
 function evaluateMathExpression(expression) {

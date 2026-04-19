@@ -23,6 +23,175 @@
   --invalid-bg: #2a1111;
   --focus-border: #666;
   --border-dark: #222;
+  --day-odd-bg: #4d2a2a;
+  --day-even-bg: #4d4d2a;
+  --day-special-bg: #4d4d4d;
+  --text-light: #ccc;
+  --text-dimmer: #999;
+  --hover-bg: #111;
+  --dark-surface: #2a2a2a;
+  --error-text: #ff6666;
+  --error-border: #661111;
+  --storage-bar-color: #44aa44;
+  --toast-bg: #2a1700;
+  --odd-hover-bg: #2b1313;
+  --odd-hover-text: #643131;
+  --even-hover-bg: #3a361d;
+  --even-hover-text: #a39a45;
+  --odd-tag-text: #cc8888;
+  --even-tag-text: #cccc88;
+  --special-tag-bg: #2a2a4d;
+  --special-tag-text: #8888cc;
+}
+
+body.theme-light {
+  --page-bg: white;
+  --panel-bg: #f0f0f0;
+  --panel-border: #cccccc;
+  --panel-border-2: #e0e0e0;
+  --muted: #777777;
+  --muted-2: #888888;
+  --muted-3: #999999;
+  --muted-4: #555555;
+  --muted-5: #777777;
+  --text: #333333;
+  --accent-dark-bg: #fff3e0;
+  --dark-1: #e8e8e8;
+  --dark-2: #f5f5f5;
+  --timer-finish-body: #fce8e8;
+  --invalid-border: #cc3333;
+  --invalid-bg: #fce8e8;
+  --focus-border: #999999;
+  --border-dark: #dddddd;
+  --day-odd-bg: #d4b0b0;
+  --day-even-bg: #d4d4b0;
+  --day-special-bg: #d0d0d0;
+  --text-light: #222222;
+  --text-dimmer: #666666;
+  --hover-bg: #e0e0e0;
+  --dark-surface: #e8e8e8;
+  --error-text: #cc2222;
+  --error-border: #cc3333;
+  --toast-bg: #fff3e0;
+  --odd-hover-bg: #e8d0d0;
+  --odd-hover-text: #7a2020;
+  --even-hover-bg: #e8e8d0;
+  --even-hover-text: #6b6420;
+  --odd-tag-text: #7a2020;
+  --even-tag-text: #6b6420;
+  --special-tag-bg: #d0d0e8;
+  --special-tag-text: #3333aa;
+}
+
+body.theme-darkroom {
+  --page-bg: #000000;
+  --panel-bg: #0a0000;
+  --panel-border: #2a0000;
+  --panel-border-2: #0a0000;
+  --muted: #6b2020;
+  --muted-2: #5a1818;
+  --muted-3: #3d1010;
+  --muted-4: #8b3030;
+  --muted-5: #6b2020;
+  --text: crimson;
+  --accent: #ff4444;
+  --accent-dark-bg: #1a0000;
+  --accent-border: #ff4444;
+  --dark-1: #050000;
+  --dark-2: #020000;
+  --highlight: #cc2222;
+  --focus-border: #6b2020;
+  --border-dark: #1a0000;
+  --text-light: #cc3333;
+  --text-dimmer: #8b2020;
+  --hover-bg: #0f0000;
+  --dark-surface: #150000;
+  --toast-bg: #150000;
+  --day-odd-bg: #3d1010;
+  --day-even-bg: #2a1a00;
+  --day-special-bg: #1a1a1a;
+  --odd-hover-bg: #200808;
+  --odd-hover-text: #cc3333;
+  --even-hover-bg: #1a1000;
+  --even-hover-text: #886622;
+  --odd-tag-text: #cc4444;
+  --even-tag-text: #886622;
+  --special-tag-bg: #1a001a;
+  --special-tag-text: #882288;
+}
+
+body.theme-blueongreen {
+  --page-bg: #D9FFB2;
+  --panel-bg: #c8f0a0;
+  --panel-border: #a0cc78;
+  --panel-border-2: #b8e090;
+  --muted: #4a6a30;
+  --muted-2: #557838;
+  --muted-3: #668840;
+  --muted-4: #3a5828;
+  --muted-5: #4a6a30;
+  --text: #2a4a80;
+  --accent: #2255bb;
+  --accent-dark-bg: #d0f0a0;
+  --accent-border: #2255bb;
+  --dark-1: #c0e890;
+  --dark-2: #d0f0a0;
+  --highlight: #336699;
+  --focus-border: #5077BE;
+  --border-dark: #90c060;
+  --text-light: #1a3a70;
+  --text-dimmer: #4a6a30;
+  --hover-bg: #b8e080;
+  --dark-surface: #c8f090;
+  --toast-bg: #c8f0a0;
+  --day-odd-bg: #a0b890;
+  --day-even-bg: #b0b870;
+  --day-special-bg: #90a890;
+  --odd-hover-bg: #c0d8b0;
+  --odd-hover-text: #3a5828;
+  --even-hover-bg: #c8d8a0;
+  --even-hover-text: #555828;
+  --odd-tag-text: #2a4a80;
+  --even-tag-text: #4a5020;
+  --special-tag-bg: #b0c0d8;
+  --special-tag-text: #1a3070;
+}
+
+body.theme-purpleonyellow {
+  --page-bg: #FFFF99;
+  --panel-bg: #f0f080;
+  --panel-border: #cccc50;
+  --panel-border-2: #e8e870;
+  --muted: #886688;
+  --muted-2: #997799;
+  --muted-3: #aa88aa;
+  --muted-4: #664466;
+  --muted-5: #886688;
+  --text: #7722aa;
+  --accent: #9933cc;
+  --accent-dark-bg: #f8f8c0;
+  --accent-border: #9933cc;
+  --dark-1: #e8e870;
+  --dark-2: #f0f088;
+  --highlight: #8800cc;
+  --focus-border: #886688;
+  --border-dark: #d8d840;
+  --text-light: #5511aa;
+  --text-dimmer: #886688;
+  --hover-bg: #e8e860;
+  --dark-surface: #eaea70;
+  --toast-bg: #f0f080;
+  --day-odd-bg: #d8b8d8;
+  --day-even-bg: #d8d890;
+  --day-special-bg: #c8c8c8;
+  --odd-hover-bg: #eeccee;
+  --odd-hover-text: #660088;
+  --even-hover-bg: #eeeea0;
+  --even-hover-text: #666600;
+  --odd-tag-text: #660088;
+  --even-tag-text: #666600;
+  --special-tag-bg: #c8b8e0;
+  --special-tag-text: #440088;
 }
 
 * {
@@ -99,7 +268,7 @@ body::-webkit-scrollbar-thumb:hover {
   left: 0;
   right: 0;
   z-index: 999;
-  border-bottom: 1px solid #333;
+  border-bottom: 1px solid var(--panel-border);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -125,7 +294,7 @@ body::-webkit-scrollbar-thumb:hover {
 
 #timer_type {
   font-size: 4em;
-  color: #ccc;
+  color: var(--text-light);
   margin-bottom: 5px;
   font-weight: normal;
 }
@@ -187,7 +356,7 @@ body::-webkit-scrollbar-thumb:hover {
 
 #nextperiodsubtitle {
   font-size: 0.85em;
-  color: #555;
+  color: var(--muted-2);
   margin-bottom: 8px;
   text-transform: uppercase;
   letter-spacing: 1px;
@@ -195,7 +364,7 @@ body::-webkit-scrollbar-thumb:hover {
 
 #nextschedule {
   font-size: 1.4em;
-  color: #888;
+  color: var(--muted-4);
   margin: 10px 0;
 }
 
@@ -219,11 +388,11 @@ body::-webkit-scrollbar-thumb:hover {
 }
 
 #scheduledisplay > div > div > div {
-  color: #888;
+  color: var(--muted-4);
   font-size: 0.9em;
   margin-bottom: 10px;
   padding-bottom: 10px;
-  border-bottom: 1px solid #1a1a1a;
+  border-bottom: 1px solid var(--panel-border-2);
 }
 
 #scheduledisplay strong {
@@ -245,7 +414,7 @@ body::-webkit-scrollbar-thumb:hover {
 
 #tomorrowScheduleDisplay {
   font-size: 1.1em;
-  color: #888;
+  color: var(--muted-4);
   margin: 10px 0 30px;
 }
 
@@ -257,16 +426,15 @@ body::-webkit-scrollbar-thumb:hover {
 .schedule-item button,
 #scheduleManagerFooter button,
 #scheduleEditorFooter button,
-.tab-button,
-.action-button {
+.tab-button {
   background-color: var(--panel-bg);
-  color: #ccc;
+  color: var(--text-light);
   border: 1px solid var(--panel-border);
   padding: 6px 12px;
   border-radius: 3px;
   font-size: 0.9em;
   cursor: pointer;
-  transition: all 150ms;
+  transition: background-color 150ms, border-color 150ms, color 150ms;
   font-family: inherit;
 }
 
@@ -328,24 +496,24 @@ body::-webkit-scrollbar-thumb:hover {
 
 .selected-state,
 .selected-bottom {
-  background-color: #333 !important;
-  color: white !important;
-  border-color: #555 !important;
+  background-color: var(--panel-border);
+  color: white;
+  border-color: var(--muted-2);
 }
 
 .special-schedule-select {
-  background-color: #333 !important;
-  border-color: #555 !important;
+  background-color: var(--panel-border);
+  border-color: var(--muted-2);
 }
 
 #odd-even-toggle.normal-state {
-  background-color: #2b1313;
-  color: #643131;
+  background-color: var(--odd-hover-bg);
+  color: var(--odd-hover-text);
 }
 
 #odd-even-toggle.toggled-state {
-  background-color: #3a361d;
-  color: #a39a45;
+  background-color: var(--even-hover-bg);
+  color: var(--even-hover-text);
 }
 
 #odd-even-toggle:disabled {
@@ -355,7 +523,7 @@ body::-webkit-scrollbar-thumb:hover {
 }
 
 .bottom {
-  color: #888;
+  color: var(--muted-4);
   padding: 5px 10px;
   border-radius: 3px;
   font-size: 0.85em;
@@ -380,7 +548,7 @@ body::-webkit-scrollbar-thumb:hover {
   z-index: 1500;
   display: flex;
   flex-direction: column;
-  color: #ccc;
+  color: var(--text-light);
   box-shadow: -2px -2px 10px rgba(0, 0, 0, 0.3);
   border-radius: 8px 0 0 0;
 }
@@ -488,7 +656,7 @@ body.settings-panel-open #container {
   align-items: center;
   justify-content: center;
   border-radius: 3px;
-  transition: all 150ms;
+  transition: background-color 150ms, border-color 150ms, color 150ms;
 }
 
 .panel-control-btn:hover {
@@ -520,7 +688,7 @@ body.settings-panel-open #container {
   padding: 8px 16px;
   border-radius: 3px 3px 0 0;
   cursor: pointer;
-  transition: all 150ms;
+  transition: background-color 150ms, border-color 150ms, color 150ms;
   font-family: inherit;
   font-size: 0.9em;
   flex: 1;
@@ -529,7 +697,7 @@ body.settings-panel-open #container {
 
 #settingsTabs .tab-button:hover {
   background-color: var(--border-dark);
-  color: #888;
+  color: var(--muted-4);
 }
 
 #settingsTabs .tab-button.active {
@@ -538,7 +706,7 @@ body.settings-panel-open #container {
   border-bottom-color: var(--border-dark);
 }
 
-#settingFooter {
+.setting-footer, #lastCheckedFooter {
   color: var(--muted);
   font-size: 0.75em;
   margin-top: 5px;
@@ -565,7 +733,7 @@ body.settings-panel-open #container {
 
 .settings-section h3 {
   margin: 0 0 15px 0;
-  color: #888;
+  color: var(--muted-4);
   font-size: 0.9em;
   font-weight: normal;
   text-transform: uppercase;
@@ -584,16 +752,17 @@ body.settings-panel-open #container {
 }
 
 .danger-button {
-  color: #ff6666 !important;
+  color: var(--error-text) !important;
 }
 
 .advanced-field button {
   display: block !important;
 }
 
-.settings-field label {
+.settings-field label,
+.settings-field .settings-label-text {
   display: block;
-  color: #888;
+  color: var(--muted-4);
   font-size: 0.85em;
   margin-bottom: 5px;
 }
@@ -603,7 +772,7 @@ body.settings-panel-open #container {
   width: 100%;
   background-color: var(--panel-bg);
   border: 1px solid var(--panel-border);
-  color: #ccc;
+  color: var(--text-light);
   padding: 6px 8px;
   border-radius: 3px;
   font-family: inherit;
@@ -918,13 +1087,13 @@ body.settings-panel-open.settings-panel-minimized #container {
 }
 
 .timerFinishedColor {
-  color: red !important;
+  color: var(--error-text) !important;
 }
 
 footer {
   margin-top: 80px;
   padding-top: 20px;
-  border-top: 1px solid #1a1a1a;
+  border-top: 1px solid var(--panel-border-2);
   text-align: center;
 }
 
@@ -935,14 +1104,14 @@ footer {
 }
 
 .info * {
-  color: #444;
+  color: var(--muted-3);
   text-decoration: none;
   margin: 0 10px;
   font-size: 0.85em;
 }
 
 .info a:hover {
-  color: #666;
+  color: var(--muted);
   text-decoration: underline;
 }
 
@@ -973,7 +1142,7 @@ footer {
   max-height: 80vh;
   display: flex;
   flex-direction: column;
-  color: #ccc;
+  color: var(--text-light);
 }
 
 #scheduleManagerHeader {
@@ -1025,7 +1194,7 @@ footer {
 
 .schedule-section h3 {
   margin: 0 0 15px 0;
-  color: #888;
+  color: var(--muted-4);
   font-size: 1.1em;
   font-weight: normal;
   text-transform: uppercase;
@@ -1047,12 +1216,12 @@ footer {
   background-color: var(--dark-1);
   border: 1px solid var(--border-dark);
   border-radius: 4px;
-  transition: all 150ms;
+  transition: background-color 150ms, border-color 150ms, color 150ms;
 }
 
 .schedule-item:hover {
-  background-color: #111;
-  border-color: #333;
+  background-color: var(--hover-bg);
+  border-color: var(--panel-border);
 }
 
 .schedule-item.hidden-schedule {
@@ -1071,7 +1240,7 @@ footer {
 }
 
 .schedule-name {
-  color: #ccc;
+  color: var(--text-light);
   font-size: 1em;
 }
 
@@ -1097,27 +1266,27 @@ footer {
   border-radius: 3px;
   font-size: 0.85em;
   cursor: pointer;
-  transition: all 150ms;
+  transition: background-color 150ms, border-color 150ms, color 150ms;
   font-family: inherit;
 }
 
 .schedule-item button:hover {
   background-color: var(--border-dark);
-  color: #ccc;
-  border-color: #444;
+  color: var(--text-light);
+  border-color: var(--muted-3);
 }
 
 .schedule-item button.delete-button:hover {
-  background-color: #2a1111;
-  color: #ff6666;
-  border-color: #661111;
+  background-color: var(--invalid-bg);
+  color: var(--error-text);
+  border-color: var(--error-border);
 }
 
 .visibility-toggle {
-  background: transparent !important;
-  border: none !important;
-  font-size: 1.2em !important;
-  padding: 0 !important;
+  background: transparent;
+  border: none;
+  font-size: 1.2em;
+  padding: 0;
   width: 24px;
   height: 24px;
   display: flex;
@@ -1126,7 +1295,7 @@ footer {
 }
 
 .visibility-toggle:hover {
-  color: var(--accent) !important;
+  color: var(--accent);
 }
 
 .move-buttons {
@@ -1136,21 +1305,21 @@ footer {
 }
 
 .move-button {
-  padding: 2px 6px !important;
-  font-size: 0.7em !important;
+  padding: 2px 6px;
+  font-size: 0.7em;
   min-width: 20px;
 }
 
 .action-button {
   margin-top: 10px;
-  background-color: var(--panel-bg) !important;
-  color: var(--accent) !important;
-  border-color: var(--panel-border) !important;
+  background-color: var(--panel-bg);
+  color: var(--accent);
+  border-color: var(--panel-border);
 }
 
 .action-button:hover {
-  background-color: var(--border-dark) !important;
-  border-color: var(--accent) !important;
+  background-color: var(--border-dark);
+  border-color: var(--accent);
 }
 
 #scheduleManagerFooter {
@@ -1168,13 +1337,13 @@ footer {
   padding: 8px 16px;
   border-radius: 3px;
   cursor: pointer;
-  transition: all 150ms;
+  transition: background-color 150ms, border-color 150ms, color 150ms;
 }
 
 #scheduleManagerFooter button:hover {
   background-color: var(--border-dark);
-  color: #ccc;
-  border-color: #444;
+  color: var(--text-light);
+  border-color: var(--muted-3);
 }
 
 #scheduleEditorModal {
@@ -1200,7 +1369,7 @@ footer {
   max-height: 85vh;
   display: flex;
   flex-direction: column;
-  color: #ccc;
+  color: var(--text-light);
 }
 
 #scheduleEditorHeader {
@@ -1234,7 +1403,7 @@ footer {
 
 .editor-section h3 {
   margin: 0 0 15px 0;
-  color: #888;
+  color: var(--muted-4);
   font-size: 1em;
   font-weight: normal;
   text-transform: uppercase;
@@ -1247,7 +1416,7 @@ footer {
 
 .editor-field label {
   display: block;
-  color: #888;
+  color: var(--muted-4);
   font-size: 0.9em;
   margin-bottom: 5px;
 }
@@ -1257,7 +1426,7 @@ footer {
   width: 100%;
   background-color: var(--panel-bg);
   border: 1px solid var(--panel-border);
-  color: #ccc;
+  color: var(--text-light);
   padding: 8px;
   border-radius: 3px;
   font-family: inherit;
@@ -1286,13 +1455,13 @@ footer {
   padding: 8px 16px;
   border-radius: 3px 3px 0 0;
   cursor: pointer;
-  transition: all 150ms;
+  transition: background-color 150ms, border-color 150ms, color 150ms;
   font-family: inherit;
 }
 
 .tab-button:hover {
   background-color: var(--border-dark);
-  color: #888;
+  color: var(--muted-4);
 }
 
 .tab-button.active {
@@ -1317,8 +1486,8 @@ footer {
 }
 
 .period-item:hover {
-  background-color: #111;
-  border-color: #333;
+  background-color: var(--hover-bg);
+  border-color: var(--panel-border);
 }
 
 .period-item.dragging {
@@ -1331,7 +1500,7 @@ footer {
 
 .period-handle {
   cursor: grab;
-  color: #666;
+  color: var(--muted);
   font-size: 1.2em;
   padding: 0 5px;
 }
@@ -1344,7 +1513,7 @@ footer {
   width: 80px;
   background-color: var(--panel-bg);
   border: 1px solid var(--panel-border);
-  color: #ccc;
+  color: var(--text-light);
   padding: 5px;
   border-radius: 3px;
   font-family: monospace;
@@ -1355,7 +1524,7 @@ footer {
   flex: 1;
   background-color: var(--panel-bg);
   border: 1px solid var(--panel-border);
-  color: #ccc;
+  color: var(--text-light);
   padding: 5px 8px;
   border-radius: 3px;
   font-family: inherit;
@@ -1378,7 +1547,7 @@ footer {
 }
 
 .period-delete:hover {
-  color: #ff6666;
+  color: var(--error-text);
 }
 
 .invalid {
@@ -1401,13 +1570,13 @@ footer {
   padding: 8px 16px;
   border-radius: 3px;
   cursor: pointer;
-  transition: all 150ms;
+  transition: background-color 150ms, border-color 150ms, color 150ms;
 }
 
 #scheduleEditorFooter button:hover {
   background-color: var(--border-dark);
-  color: #ccc;
-  border-color: #444;
+  color: var(--text-light);
+  border-color: var(--muted-3);
 }
 
 #calendarModal {
@@ -1433,7 +1602,7 @@ footer {
   max-height: 85vh;
   display: flex;
   flex-direction: column;
-  color: #ccc;
+  color: var(--text-light);
 }
 
 #calendarHeader {
@@ -1490,7 +1659,7 @@ footer {
   position: relative;
   display: flex;
   flex-direction: column;
-  transition: all 150ms;
+  transition: background-color 150ms, border-color 150ms, color 150ms;
 }
 
 .calendar-day:hover {
@@ -1503,7 +1672,7 @@ footer {
 
 .day-number {
   font-size: 0.9em;
-  color: #888;
+  color: var(--muted-4);
 }
 
 .day-schedule {
@@ -1520,11 +1689,11 @@ footer {
 }
 
 .day-odd {
-  background-color: #4d2a2a !important;
+  background-color: var(--day-odd-bg) !important;
 }
 
 .day-even {
-  background-color: #4d4d2a !important;
+  background-color: var(--day-even-bg) !important;
 }
 
 .day-noSchool {
@@ -1532,7 +1701,7 @@ footer {
 }
 
 .day-special {
-  background-color: #4d4d4d !important;
+  background-color: var(--day-special-bg) !important;
 }
 
 .day-special::after {
@@ -1588,7 +1757,7 @@ footer {
 .context-menu-item {
   padding: 8px 20px;
   cursor: pointer;
-  color: #ccc;
+  color: var(--text-light);
   font-size: 0.9em;
 }
 
@@ -1733,7 +1902,7 @@ footer {
   max-height: 90vh;
   display: flex;
   flex-direction: column;
-  color: #ccc;
+  color: var(--text-light);
 }
 
 #yearOverviewHeader {
@@ -1782,7 +1951,7 @@ footer {
   border-radius: 4px;
   padding: 10px;
   cursor: pointer;
-  transition: all 150ms;
+  transition: background-color 150ms, border-color 150ms, color 150ms;
 }
 
 .year-month-container:hover {
@@ -1830,7 +1999,7 @@ footer {
   background-color: var(--dark-1);
   border: 1px solid transparent;
   font-size: 0.85em;
-  color: #888;
+  color: var(--muted-4);
 }
 
 .mini-day-empty {
@@ -1838,18 +2007,18 @@ footer {
 }
 
 .mini-day-odd {
-  background-color: #4d2a2a !important;
-  color: #ccc;
+  background-color: var(--day-odd-bg) !important;
+  color: var(--text-light);
 }
 
 .mini-day-even {
-  background-color: #4d4d2a !important;
-  color: #ccc;
+  background-color: var(--day-even-bg) !important;
+  color: var(--text-light);
 }
 
 .mini-day-scheduled {
-  background-color: #2a2a2a !important;
-  color: #999;
+  background-color: var(--dark-surface) !important;
+  color: var(--text-dimmer);
 }
 
 .mini-day-today {
@@ -1867,7 +2036,7 @@ footer {
 }
 
 .day-scheduled {
-  background-color: #2a2a2a;
+  background-color: var(--dark-surface);
 }
 
 .calendar-day {
@@ -1908,7 +2077,7 @@ footer {
   max-height: 80vh;
   display: flex;
   flex-direction: column;
-  color: #ccc;
+  color: var(--text-light);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
 }
 
@@ -1934,7 +2103,7 @@ footer {
 #notificationMessage {
   margin: 0;
   line-height: 1.4;
-  color: #ccc;
+  color: var(--text-light);
   font-size: 0.9em;
   white-space: pre-line;
   max-width: 500px;
@@ -1961,7 +2130,7 @@ footer {
 }
 
 #notificationPrimaryButton:hover {
-  background-color: #2a1700;
+  background-color: var(--toast-bg);
   border-color: var(--highlight);
 }
 
@@ -1981,14 +2150,14 @@ footer {
   border: 1px solid var(--panel-border);
   border-radius: 8px;
   padding: 15px 20px;
-  color: #ccc;
+  color: var(--text-light);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
   max-width: 350px;
   min-width: 250px;
   pointer-events: auto;
   transform: translateX(100%);
   opacity: 0;
-  transition: all 0.3s ease-in-out;
+  transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
   position: relative;
 }
 
@@ -2028,7 +2197,7 @@ footer {
 .toast-message-only {
   font-size: 0.95em;
   line-height: 1.4;
-  color: #ccc;
+  color: var(--text-light);
   font-family: inherit;
   margin: 0;
   padding-right: 20px;
@@ -2037,7 +2206,7 @@ footer {
 .toast-message {
   font-size: 0.95em;
   line-height: 1.4;
-  color: #ccc;
+  color: var(--text-light);
   font-family: inherit;
   padding-right: 20px;
 }
@@ -2058,7 +2227,7 @@ footer {
   align-items: center;
   justify-content: center;
   border-radius: 3px;
-  transition: all 150ms;
+  transition: background-color 150ms, border-color 150ms, color 150ms;
 }
 
 .toast-close:hover {
@@ -2071,7 +2240,7 @@ footer {
 }
 
 .toast.error .toast-title {
-  color: #ff6666;
+  color: var(--error-text);
 }
 
 .toast.warning .toast-title {
@@ -2079,7 +2248,7 @@ footer {
 }
 
 .toast.info .toast-title {
-  color: #888;
+  color: var(--muted-4);
 }
 
 .schedule-tags {
@@ -2098,13 +2267,13 @@ footer {
 }
 
 .odd-even-tag {
-  background-color: #4d2a2a;
-  color: #cc8888;
+  background-color: var(--day-odd-bg);
+  color: var(--odd-tag-text);
 }
 
 .single-tag {
-  background-color: #4d4d2a;
-  color: #cccc88;
+  background-color: var(--day-even-bg);
+  color: var(--even-tag-text);
 }
 
 .custom-tag {
@@ -2113,8 +2282,8 @@ footer {
 }
 
 .special-tag {
-  background-color: #2a2a4d;
-  color: #8888cc;
+  background-color: var(--special-tag-bg);
+  color: var(--special-tag-text);
 }
 
 .storage-usage-container {
@@ -2133,7 +2302,7 @@ footer {
 
 .storage-usage-bar {
   height: 100%;
-  background-color: #44aa44;
+  background-color: var(--storage-bar-color);
   transition: width 300ms ease, background-color 300ms ease;
 }
 
