@@ -7,6 +7,9 @@ Changelog Header Order:
 5. Technical Changes
 6. Deprecations
 -->
+## Version 2.6.1
+- Fixed updating default calendar not properly working
+
 ## Version 2.6.0
 
 ### New Features

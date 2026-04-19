@@ -1566,13 +1566,9 @@
     "2026-08-30": {
       "schedule": "noSchool",
       "isEven": null
-    },
-    "2026-05-25": {
-      "schedule": "noSchool",
-      "isEven": null
     }
   },
   "isDefaultCalendar": true,
-  "defaultCalendarVersion": "2025-2026",
+  "defaultCalendarVersion": "2025-2026-v1",
   "hasUserModifications": false
 }

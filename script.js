@@ -463,7 +463,7 @@ const CalendarManager = {
       if (response.ok) {
         const defaultData = await response.json();
         defaultData.isDefaultCalendar = true;
-        defaultData.defaultCalendarVersion = "2025-2026";
+        if (!defaultData.defaultCalendarVersion) defaultData.defaultCalendarVersion = "2025-2026";
         return defaultData;
       }
     } catch (error) {
@@ -566,22 +566,17 @@ const CalendarManager = {
   },
 
   async handleVersionUpdate(version) {
-    if (version === '2.2.1') {
-      const currentConfig = this.getConfig();
-      if (currentConfig && currentConfig.isDefaultCalendar && !currentConfig.hasUserModifications) {
-        try {
-          const defaultCalendar = await this.loadDefaultCalendar();
-          if (defaultCalendar) {
-            this.saveConfig(defaultCalendar);
-            localStorage.setItem('autoUpdateAttempted_2.2.1', 'true');
-            NotificationManager.showAlert('', 'Default Bellflower calendar automatically updated for v2.2.1!', 'success');
-          } else {
-            NotificationManager.showAlert('', 'Could not update default calendar. Please check your internet connection.', 'error');
-          }
-        } catch (error) {
-          console.warn('Auto-load default calendar failed:', error);
-          NotificationManager.showAlert('', 'Could not auto-load default calendar. ' + error, 'error');
+    const currentConfig = this.getConfig();
+    if (currentConfig && currentConfig.isDefaultCalendar && !currentConfig.hasUserModifications) {
+      try {
+        const defaultCalendar = await this.loadDefaultCalendar();
+        if (defaultCalendar && defaultCalendar.defaultCalendarVersion !== currentConfig.defaultCalendarVersion) {
+          defaultCalendar.hasUserModifications = false;
+          this.saveConfig(defaultCalendar);
+          NotificationManager.showAlert('', 'Bellflower calendar automatically updated!', 'success');
         }
+      } catch (error) {
+        console.warn('Auto-update calendar failed:', error);
       }
     }
   }
@@ -3645,6 +3640,7 @@ const NotificationManager = {
       '2.5.3': this.makeCalendarUpdateConfig('2.5.3'),
       '2.5.4': this.makeCalendarUpdateConfig('2.5.4'),
       '2.5.5': this.makeCalendarUpdateConfig('2.5.5'),
+      '2.6.1': this.makeCalendarUpdateConfig('2.6.1'),
     };
 
     return tertiaryConfigs[version] || null;
