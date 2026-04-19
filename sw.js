@@ -39,7 +39,7 @@ self.addEventListener('activate', event => {
 
 async function checkForUpdate(isManual = false) {
   try {
-    const res = await fetch('/version.json?t=' + Date.now(), { cache: 'no-store' });
+    const res = await fetch('./version.json?t=' + Date.now(), { cache: 'no-store' });
     if (!res.ok) return;
     const data = await res.json();
     const { cacheName, version } = data;
@@ -97,7 +97,7 @@ self.addEventListener('fetch', event => {
         return response;
       });
     }).catch(() => {
-      if (event.request.mode === 'navigate') return caches.match('/index.html');
+      if (event.request.mode === 'navigate') return caches.match('./index.html');
       return new Response('Offline', { status: 503 });
     })
   );
