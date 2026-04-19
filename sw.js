@@ -37,9 +37,18 @@ self.addEventListener('activate', event => {
   })());
 });
 
+function getVersionUrl() {
+  const host = self.location.hostname;
+  if (host.endsWith('github.io')) {
+    const repoPath = self.location.pathname.split('/')[1];
+    return `https://raw.githubusercontent.com/oirehm/${repoPath}/main/version.json?t=` + Date.now();
+  }
+  return './version.json?t=' + Date.now();
+}
+
 async function checkForUpdate(isManual = false) {
   try {
-    const res = await fetch('./version.json?t=' + Date.now(), { cache: 'no-store' });
+    const res = await fetch(getVersionUrl(), { cache: 'no-store' });
     if (!res.ok) return;
     const data = await res.json();
     const { cacheName, version } = data;
