@@ -1,19 +1,27 @@
 const CACHE_NAME = 'schedulemonitor-2.6.3'; 
 
 const STATIC_ASSETS = [
-  '/',
-  '/index.html',
-  '/script.js',
-  '/css/styles.css',
-  '/default-calendar.json',
-  '/Changelog.md',
-  '/version.txt',
-  '/version.json',
+  './',
+  './index.html',
+  './script.js',
+  './css/styles.css',
+  './default-calendar.json',
+  './Changelog.md',
+  './version.txt',
+  './version.json',
 ];
 
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(STATIC_ASSETS))
+    caches.open(CACHE_NAME).then(cache => {
+      return Promise.all(
+        STATIC_ASSETS.map(url => {
+          return cache.add(url).catch(err => {
+            console.warn(`Failed to cache: ${url}`, err);
+          });
+        })
+      );
+    })
   );
   self.skipWaiting();
 });
