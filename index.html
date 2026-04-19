@@ -1,1587 +1,457 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Modified Rewordify.com School Clock shows you what period you're in, every second of the day." />
     <meta http-equiv="cache-control" content="no-cache" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="-1" />
-    <style type="text/css"></style>
-
-    <!--Added mobile optimization-->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/9.4.4/math.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML"></script>
-    <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
-    <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!--Added buttons to switch between Schedules-->
-  </head>
-  <body>
-    <div class="button-panel">
-      <button
-        id="odd-even-toggle"
-        onclick="ToggleScheduleOddEven()"
-        class="normal-state schedule-button"
-        style="display: inline">
-        Odd/Even Toggle
-      </button>
-      <button
-        id="normal-schedule"
-        onclick="NormalSchedule()"
-        class="schedule-button selected-state">
-        Normal Schedule
-      </button>
-      <button
-        id="late-schedule"
-        onclick="LateSchedule()"
-        class="schedule-button">
-        Late Start Schedule
-      </button>
-      <button
-        id="minimum-schedule"
-        onclick="MinimumSchedule()"
-        class="schedule-button">
-        Minimum Day Schedule
-      </button>
-      <button
-        id="auto-schedule"
-        onclick="AutoSchedule()"
-        class="schedule-button">
-        Auto
-      </button>
-      <select id="special-schedule" onchange="HandleSpecialScheduleChange()">
-        <option value="Nothing">Special Schedules</option>
-        <option value="anchorSchedule">Anchor Day</option>
-        <option value="rallySchedule">Rally Day</option>
-        <option value="ExtendedSnackSchedule">Min Extended Snack</option>
-      </select>
-    </div>
-
-    <link
-      rel="icon"
-      type="image/gif"
-      href="//d1gqnmj8k8rdwp.cloudfront.net/rewordifyicon.gif" />
     <title>Schedule Monitor</title>
-    <meta charset="utf-8" />
-    <meta
-      name="description"
-      content="Rewordify.com School Clock shows you what period you're in, every second of the day." />
-
-    <style>
-      body {
-        text-align: center;
-        font-family: "Lucida Console", Monaco, monospace;
-      }
-      @media (max-width: 600px) {
-        .button-panel {
-          flex-direction: column;
-        }
-
-        .schedule-button {
-          margin-right: 0;
-          margin-bottom: 10px;
-        }
-
-        #special-schedule {
-          margin-right: 0;
-          margin-bottom: 10px;
-        }
-
-        .centered-dropdown {
-          text-align: center;
-        }
-
-        .special-schedule-select {
-          border: 3px solid grey;
-        }
-      }
-
-      #changelogPanel {
-        position: fixed;
-        top: 0;
-        left: -500px;
-        width: 400px;
-        height: 100%;
-        background-color: grey;
-        color: #fff;
-        text-align: left;
-        padding: 5px;
-        border-right: 1px solid #000;
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
-        transition: transform 0.3s ease-in-out;
-        overflow-y: auto;
-        z-index: 9999;
-      }
-
-      #changelogPanel.show {
-        transform: translateX(500px);
-      }
-
-      #changelogButton {
-        font-size: 12px;
-        padding: 5px 10px;
-        border-radius: 5px;
-        background-color: #fff;
-        color: #000;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
-
-        /* Positioning */
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-      }
-
-      #changelogClose {
-        font-size: 12px;
-        background-color: #fff;
-        color: #000;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
-
-        /* Positioning */
-        position: absolute;
-        top: 6px;
-        right: 2px;
-        padding: 2px 4px;
-        border-radius: 5px;
-        background-color: #fff;
-        color: #000;
-        margin-right: 10px;
-      }
-
-      .button-panel {
-        background-color: #333;
-        padding: 10px;
-        top: 0;
-        left: 0;
-        right: 0;
-        order: -1;
-        z-index: 1000;
-      }
-
-      .schedule-button {
-        font-size: 15px;
-        padding: 5px 10px;
-        border-radius: 5px;
-        background-color: #fff;
-        color: #000;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
-        margin-right: 10px;
-      }
-
-      .button-panel button:last-child {
-        margin-right: 0;
-      }
-
-      #special-schedule {
-        font-size: 15px;
-        padding: 5px 10px;
-        border-radius: 5px;
-        background-color: #fff;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
-        margin-right: 10px;
-      }
-
-      .centered-dropdown {
-        text-align: center;
-      }
-
-      .special-schedule-select {
-        border: 2px solid black;
-        color: #fff;
-      }
-
-      /*  Color toggle for odd/even button for visual information */
-      #odd-even-toggle.toggled-state {
-        background-color: gold;
-        color: #000;
-      }
-
-      #odd-even-toggle.normal-state {
-        background-color: maroon;
-        color: #fff;
-      }
-
-      /* Handles greying out buttons if selected */
-      .selected-state {
-        background-color: #808080;
-        color: #fff;
-        border: 2px solid rgb(0, 0, 0);
-      }
-
-      body {
-        background-color: black;
-        color: gray;
-      }
-
-      #container {
-        text-align: center;
-        margin-top: 5px;
-        font-family: "Lucida Console", Monaco, monospace;
-      }
-
-      #currentdt {
-        font-size: 2.5em;
-        margin-top: 16px;
-      }
-
-      #nextperiodsubtitle {
-        margin-top: 24px;
-      }
-
-      #nextduration {
-        font-size: 2.2em;
-        margin-top: 6px;
-      }
-
-      #nextschedule {
-        font-size: 2em;
-        margin-top: 10px;
-      }
-
-      #currentperiodsubtitle {
-        margin-top: 24px;
-        font-size: 1.5em;
-      }
-
-      #endofschedulesubtitle {
-        margin-top: 5px;
-        font-size: 1em;
-      }
-
-      #currentduration {
-        font-size: 5em;
-        margin-top: 8px;
-        color: orange;
-      }
-
-      #currentlengthofperiod {
-        font-size: 1.8em;
-        margin-top: 8px;
-      }
-
-      #currentschedue {
-        font-size: 3.5em;
-        margin-top: 10px;
-      }
-
-      #schedule {
-        margin-bottom: 10px;
-      }
-
-      #ad {
-        margin-top: 28px;
-        font-size: 0.8em;
-      }
-
-      .howtouse {
-        width: 75%;
-        max-width: 800px;
-        margin-left: auto;
-        margin-right: auto;
-        display: block;
-      }
-
-      .tinput {
-        width: 70px;
-        background-color: lemonchiffon;
-        margin-top: 4px;
-      }
-
-      .dinput {
-        width: 120px;
-        background-color: lemonchiffon;
-        margin-top: 4px;
-      }
-
-      #sform {
-        border: 1px solid gray;
-        padding: 8px;
-        background-color: #efefef;
-      }
-
-      #result {
-        border: 1px solid gray;
-        padding: 8px;
-        background-color: #efefef;
-        display: none;
-      }
-
-      #urltext {
-        padding: 4px;
-      }
-
-      @media only screen and (max-width: 540px) {
-        .howtouse {
-          width: 95%;
-        }
-      }
-    </style>
-
+    <link rel="icon" href="icon/monitor.png" />
+    <link rel="apple-touch-icon" href="icon/monitor.png" />
+    <link rel="stylesheet" type="text/css" href="css/styles.css?v=260" />
+  </head>
+  <body id="body">
+    <div class="button-panel">
+      <button id="odd-even-toggle" onclick="ToggleScheduleOddEven()" class="normal-state schedule-button button">Odd/Even Toggle</button>
+      <div id="mainScheduleButtons"></div>
+      <select id="special-schedule" class="schedule-button" onchange="HandleSpecialScheduleChange()">
+        <option value="Nothing">Special Schedules</option>
+      </select>
+      <button id="auto-schedule" onclick="AutoSchedule()" class="schedule-button button">Auto</button>
+    </div>
     <div id="container">
-      <div id="timer_type" style="font-size: 4em">Loading...</div>
+      <div id="timer_type">Loading...</div>
       <div id="subtitle">Please wait</div>
-      <div id="currentdt"></div>
+      <div id="currentdate"></div>
       <div id="currentperiodsubtitle"></div>
-      <div id="currentschedue"></div>
+      <div id="currentschedule"></div>
       <div id="currentlengthofperiod"></div>
       <div id="endofschedulesubtitle"></div>
       <div id="currentduration"></div>
       <div id="nextperiodsubtitle"></div>
       <div id="nextschedule"></div>
-      <div
-        id="nextduration"
-        style="font-size: 5em; margin-top: 8px; color: orange"></div>
-      <div id="schedule">
-        <div
-          style="
-            margin-top: 30px;
-            display: block;
-            width: 100%;
-            text-align: center;
-          ">
-          <div
-            style="
-              display: inline-block;
-              margin-left: auto;
-              margin-right: auto;
-              text-align: left;
-              width: auto;
-            "></div>
+      <div id="nextduration"></div>
+      <div id="scheduledisplay"></div>
+      <div id="tomorrowScheduleTitle" class="hidden">Tomorrow's Schedule:</div>
+      <div id="tomorrowScheduleDisplay" class="hidden">Unknown</div>
+      <div id="settingsPanel" class="settings-panel position-right">
+        <div class="settings-panel-header">
+          <h2>Settings</h2>
+          <div class="settings-panel-controls">
+            <button class="panel-control-btn" onclick="minimizeSettings()" title="Minimize">━</button>
+            <button class="panel-control-btn" onclick="closeSettings()" title="Close">×</button>
+          </div>
+        </div>
+        <div class="settings-panel-body">
+          <div id="settingsTabs">
+            <button class="tab-button active" onclick="switchSettingsTab('general', event)">General</button>
+            <button class="tab-button" onclick="switchSettingsTab('display', event)">Display</button>
+            <button class="tab-button" onclick="switchSettingsTab('advanced', event)">Advanced</button>
+          </div>
+          <div id="generalTab" class="settings-tab-content active">
+            <div class="settings-section">
+              <h3>Time Control</h3>
+              <div class="settings-field">
+                <label for="timeadj">Time Adjustment (seconds)</label>
+                <input type="text" id="timeadj" value="0" onfocus="if(this.value=='0'){this.value='';}" oninput="if(this.value==''){inputTimeAdj('');} else { timeadj(); adjustTimeAdjustmentWidth(this.value); }" onblur="if(this.value==''){this.value='0'; timeadj();}">
+                <div id="resultDisplay"></div>
+                <div id="secondsDisplay"></div>
+              </div>
+              <div class="settings-field">
+                <span class="settings-label-text">Quick Offset</span>
+                <div id="fastForwardDay">
+                  <button onclick="quickAdjust('day', false)" id="previousDay" class="button">◀</button>
+                  <span>Day</span>
+                  <button onclick="quickAdjust('day', true)" id="nextDay" class="button">▶</button>
+                </div>
+                <div id="fastForwardHour">
+                  <button onclick="quickAdjust('hour', false)" id="previousHour" class="button">◀</button>
+                  <span>Hour</span>
+                  <button onclick="quickAdjust('hour', true)" id="nextHour" class="button">▶</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div id="displayTab" class="settings-tab-content">
+            <div class="settings-section">
+              <div class="settings-field">
+                <label for="datePreset">Date & Time Format</label>
+                <select id="datePreset" onchange="applyDatePreset()">
+                  <option value="default">Default</option>
+                  <option value="custom">Custom</option>
+                  <option value="us-standard">US Standard (8/20/2025 5:56:01 PM)</option>
+                  <option value="international">International (20/08/2025 17:56:01)</option>
+                  <option value="iso">ISO 8601 (2025-08-20T17:56:01)</option>
+                </select>
+                <div id="dateFormatOptions" class="date-format-options">
+                  <div class="format-group">
+                    <h4>Component Style</h4>
+                    <div class="format-row">
+                      <label for="weekdayStyle">Weekday</label>
+                      <select id="weekdayStyle" onchange="updateDateFormat()">
+                        <option value="long">Full Name (Wednesday)</option>
+                        <option value="short">Short Name (Wed)</option>
+                        <option value="none">Don't Show</option>
+                      </select>
+                    </div>
+                    <div class="format-row">
+                      <label for="dayStyle">Day</label>
+                      <select id="dayStyle" onchange="updateDateFormat()">
+                        <option value="numeric">Numeric (2)</option>
+                        <option value="padded">Padded (02)</option>
+                        <option value="ordinal">Ordinal (2nd)</option>
+                      </select>
+                    </div>
+                    <div class="format-row">
+                      <label for="monthStyle">Month</label>
+                      <select id="monthStyle" onchange="updateDateFormat()">
+                        <option value="long">Full Name (January)</option>
+                        <option value="short">Short Name (Jan)</option>
+                        <option value="numeric">Numeric (1)</option>
+                        <option value="padded">Padded (01)</option>
+                      </select>
+                    </div>
+                    <div class="format-row">
+                      <label for="yearStyle">Year</label>
+                      <select id="yearStyle" onchange="updateDateFormat()">
+                        <option value="full">Full (2025)</option>
+                        <option value="short">Short (25)</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="format-group">
+                    <h4>Time Style</h4>
+                    <div class="format-row">
+                      <label for="hourFormat">Hour Format</label>
+                      <select id="hourFormat" onchange="updateDateFormat()">
+                        <option value="12">12-hour (5:56)</option>
+                        <option value="24">24-hour (17:56)</option>
+                      </select>
+                    </div>
+                    <div class="format-row">
+                      <label for="showSeconds">Show Seconds</label>
+                      <input type="checkbox" id="showSeconds" checked onchange="updateDateFormat()">
+                    </div>
+                    <div class="format-row">
+                      <label for="ampmStyle">AM/PM Style</label>
+                      <select id="ampmStyle" onchange="updateDateFormat()">
+                        <option value="upper">Uppercase (PM)</option>
+                        <option value="lower">Lowercase (pm)</option>
+                        <!-- <option value="periods">Periods (P.M.)</option> -->
+                      </select>
+                    </div>
+                  </div>
+                  <div class="format-group">
+                    <h4>Order & Separators</h4>
+                    <div class="format-row">
+                      <label for="dateOrder">Date Order</label>
+                      <select id="dateOrder" onchange="updateDateFormat()">
+                        <option value="mdy">Month Day Year</option>
+                        <option value="dmy">Day Month Year</option>
+                        <option value="ymd">Year Month Day</option>
+                        <option value="ydm">Year Day Month</option>
+                      </select>
+                    </div>
+                    <div class="format-row">
+                      <label for="dateSeparator">Date Separator</label>
+                      <select id="dateSeparator" onchange="updateDateFormat()">
+                        <option value=" ">Space</option>
+                        <option value="-">-</option>
+                        <option value="/">/</option>
+                        <option value=".">.</option>
+                      </select>
+                    </div>
+                    <div class="format-row">
+                      <label for="timeSeparator">Time Separator</label>
+                      <select id="timeSeparator" onchange="updateDateFormat()">
+                        <option value=":">:</option>
+                        <option value=".">.</option>
+                        <option value="h">h/m/s</option>
+                      </select>
+                    </div>
+                    <div class="format-row">
+                      <label for="dateTimeSeparator">Date-Time Separator</label>
+                      <select id="dateTimeSeparator" onchange="updateDateFormat()">
+                        <option value=" ">Space</option>
+                        <option value=" @ ">@</option>
+                        <option value="T">T (ISO)</option>
+                        <option value=", ">, (comma)</option>
+                        <option value=" - ">- (dash)</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <!-- HOLD OFF
+              <h3>Timer Display</h3>
+              <div class="settings-field">
+                <label>
+                  <input type="checkbox" id="paddedTimerZeros" onchange="togglePaddedTimerZeros()" checked>
+                  Use padded zeros in timers (05:30 vs 5:30)
+                </label>
+              </div>-->
+              <h3>Appearance</h3>
+              <div class="settings-field">
+                <label for="colorscheme">Color Scheme</label>
+                <select id="colorscheme" onchange="colorBackground()">
+                  <option value="dark" selected>Dark Mode</option>
+                  <option value="light">Light Mode</option>
+                  <option value="dk">Dark Room</option>
+                  <option value="bg">Blue on Green</option>
+                  <option value="py">Purple on Yellow</option>
+                  <option value="sr">Random by Minute</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div id="advancedTab" class="settings-tab-content">
+            <div class="settings-section">
+              <div class="settings-field">
+                <h3>Updates</h3>
+                <button class="button action-button" onclick="UpdateChecker.requestManualCheck()">Check for Updates</button>
+                <p id="lastCheckedFooter" class="last-check">Last checked: N/A</p>
+              </div>
+            </div>
+            <div class="settings-section">
+              <h3>Troubleshooting</h3>
+              <div class="settings-field">
+                <span class="settings-label-text">Having issues after an update?</span>
+                <button class="button action-button" onclick="forceHardRefresh()">Force Hard Refresh</button>
+                <button class="button action-button" onclick="showCacheTroubleshooting()">Cache Help</button>
+                <p class="setting-footer">
+                  Use if the app seems outdated or features aren't working properly
+                </p>
+              </div>
+            </div>
+
+            <div class="settings-section">
+              <h3>Data Management</h3>
+              <div class="settings-field">
+                <span class="settings-label-text">Storage Usage</span>
+                <div class="storage-usage-container">
+                  <div class="storage-usage-bar-container">
+                    <div id="storageUsageBar" class="storage-usage-bar"></div>
+                  </div>
+                  <div id="storageUsageDisplay" class="storage-usage-text">Calculating...</div>
+                </div>
+              </div>
+              <div class="advanced-field">
+                <button class="button action-button danger-button" onclick="resetToDefaults()">Reset All Schedules</button>
+                <button class="button action-button danger-button" onclick="clearAllCalendarData()">Clear Calendar</button>
+                <button class="button action-button" onclick="clearAllLocalStorage()" style="color: #ff2e2e !important; font-weight: bold;"> Clear All Data </button>
+                <p class="setting-footer"> Permanently delete all stored data including schedules and settings </p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-
-      <script>
-        // Schedule is shown on screen
-        var starts = [];
-        var names = [];
-        var times = [];
-      </script>
-      <select style="margin-top: 12px" id="colorscheme" onchange="ck()">
-        <option value="gb" selected="">Gray on black</option>
-        <option value="wb">White on black</option>
-        <option value="bw">Black on white</option>
-        <option value="dk">Dark room</option>
-        <option value="bg">Blue on green</option>
-        <option value="py">Purple on yellow</option>
-        <option value="sr">Random by minute</option></select
-      ><br />
-      <!--
-        Added QOL to change time adjustment upon new input using oninput and scroll wheel
-        -->
-      Time adjustment in seconds:
-      <input
-        type="text"
-        style="margin-top: 12px; width: 30px"
-        id="timeadj"
-        value="0"
-        onfocus="if(this.value=='0'){this.value='';}"
-        oninput="if(this.value==''){inputTimeAdj('');} else { timeadj(); };adjustInputWidth(this.value);"
-        onblur="if(this.value==''){this.value='0'; timeadj();}" />
-      <div id="resultDisplay"></div>
-      <div id="secondsDisplay"></div>
-
-      <br /><br />
-      Updates per ms:
-      <select name="updateTime" id="numbers" class="centered-dropdown">
-        <option value="2000">2000</option>
-        <option value="1000" selected="">1000</option>
-        <option value="250">250</option>
-        <option value="200">200</option>
-        <option value="100" selected="">100</option>
-        <option value="50">50</option>
-        <option value="0">Real Time</option>
-      </select>
-      <button id="changelogButton">Changelog</button>
-
-      <div id="changelogPanel">
-        <!-- 
-            &nbsp;&nbsp; - <br>
-            -->
-        <br />
-        Version 1.4.26: <br />
-        &nbsp;&nbsp; -Buttons look better now <br />
-        &nbsp;&nbsp; -Moved changelog to a panel <br />
-        &nbsp;&nbsp; -Trello board has been created
-        https://trello.com/b/b8STAMDw/clock <br />
-        &nbsp;&nbsp; -Optimized code (again) <br />
-        &nbsp;&nbsp; -I guess the adjustment field is now a calculator... I
-        wonder what log(2phi)*2(10/3)+cos(0)/sec(pi/2) is...<br />
-        <br />
-        Version 1.3.21: <br />
-        &nbsp;&nbsp; -Fixed a bug where adjusting the time with the scroll wheel
-        will cause a desync due to not updating timeAdj properly <br />
-        &nbsp;&nbsp; -Fixed a bug that that caused the screen to flash at the
-        rate of updates per ms when color scheme was set to random by minute<br />
-        &nbsp;&nbsp; -(Forgot to mention in 1.2) The ability to now use decimals
-        to adjust time more precisely<br />
-        &nbsp;&nbsp; -Now using an experimental internal database structure to
-        automatically set the correct schedule according to the day (Only in
-        2024)<br />
-        &nbsp;&nbsp; -Changed color scheme dropdown menu'displaySeconds colors
-        when switching to be more consistent<br />
-        &nbsp;&nbsp; -Added missing "Gray on black" color scheme option to color
-        scheme dropdown menu<br />
-        <br />
-        Version 1.2.13: <br />
-        <br />
-        Navigation: <br />
-        &nbsp;&nbsp; -Added buttons to navigate across different schedules
-        <br />
-        &nbsp;&nbsp; -Added button toggle between odd and even days <br />
-        &nbsp;&nbsp; -Added Normal, Late Start, and Minimum/Finals Schedules
-        <br />
-        &nbsp;&nbsp; -Dropdown menu shows Anchor, Rally, and Extended Lunch
-        Schedules <br />
-        <br />
-        Clock/Time: <br />
-        &nbsp;&nbsp; -Time adjustment input now turns reddish to indicate
-        invalid number <br />
-        &nbsp;&nbsp; -Added the ability to change Time adjustment by scrolling
-        on hover <br />
-        &nbsp;&nbsp; -Fixed Time incorrectly displaying if the time adjustment
-        input is not a valid number <br />
-        &nbsp;&nbsp; -Added ability to change update time per millisecond for
-        accuracy (Default: 100) <br />
-        &nbsp;&nbsp; -Swapped Current date/time text to subtitles when selecting
-        Min Extended Snack <br />
-        <br />
-        Optimization/Fixes: <br />
-        &nbsp;&nbsp; -Clock now changes immediately upon entering new time
-        adjustment value <br />
-        &nbsp;&nbsp; -Schedule now loads instantly instead of after one second
-        <br />
-        &nbsp;&nbsp; -Removed functions that were never called in the first
-        place <br />
-        <br />
-        Other: <br />
-        &nbsp;&nbsp; -Added Changelog <br />
-        <button id="changelogClose">Close</button>
+      <button id="manageSchedulesButton" class="bottom" onclick="ScheduleManagerUI.open()">Schedules</button>
+      <button id="calendarButton" class="bottom" onclick="openCalendar()">Calendar</button>
+      <button id="toggleButton" class="bottom">Settings</button>
+      <footer>
+        <div class="info">
+          <a href="https://github.com/oirehm/schedulemonitor/blob/main/Changelog.md" target="_blank">Changelog</a>
+          <a href="https://github.com/oirehm/schedulemonitor" target="_blank">GitHub</a>
+          <a id="schoolSchedule" href="#" target="_blank">Bellflower Calendar</a>
+          <a href="https://github.com/oirehm/schedulemonitor/issues/new?labels=feedback&title=[Feedback]%20&body=What%20type%20of%20feedback%20is%20this?**%0A-%20%5B%20%5D%20Bug%20report%20(something%20isn%27t%20working)%0A-%20%5B%20%5D%20Feature%20request%20(I%20wish%20it%20could...)%0A-%20%5B%20%5D%20General%20feedback%0A%0A**Tell%20us%20what%27s%20on%20your%20mind:**%0A(Just%20type%20here%20-%20no%20special%20formatting%20needed!)%0A%0A%0A**If%20reporting%20a%20bug,%20what%20were%20you%20trying%20to%20do?**%0A(You%20can%20skip%20this%20if%20not%20a%20bug)%0A%0A%0A**Any%20other%20details:**%0A(Optional%20-%20browser,%20device,%20etc.)%0A" target="_blank">Feedback</a>
+          <a href="#" onclick="showRecentChanges(event)" id="versionSpan"></a>
+        </div>
+      </footer>
+      <div id="scheduleManagerModal" class="hidden">
+        <div id="scheduleManagerContent">
+          <div id="scheduleManagerHeader">
+            <h2>Schedule Configuration <span id="scheduleManagerLiveIndicator" style="font-size: 0.6em; color: #666; margin-left: 10px;">(Changes apply immediately)</span>
+            </h2>
+            <button class="button" onclick="ScheduleManagerUI.close()">×</button>
+          </div>
+          <div id="scheduleManagerBody">
+            <div class="schedule-section">
+              <h3>Main Schedules</h3>
+              <div id="mainSchedulesList" class="schedule-list"></div>
+            </div>
+            <div class="schedule-section">
+              <h3>Special Schedules</h3>
+              <div id="specialSchedulesList" class="schedule-list"></div>
+            </div>
+            <div class="schedule-section">
+              <h3>Custom Schedules</h3>
+              <div id="customSchedulesList" class="schedule-list"></div>
+              <button class="button action-button" onclick="ScheduleEditor.open()">+ Add Custom Schedule</button>
+            </div>
+          </div>
+          <div id="scheduleManagerFooter">
+            <button class="button danger-button" onclick="resetToDefaults()">Reset All Schedules</button>
+            <button class="button" onclick="exportSchedules()">Export</button>
+            <button class="button" onclick="importSchedules()">Import</button>
+          </div>
+          <input type="file" id="importFileInput" accept=".json" style="display: none;" onchange="handleImportFile(event)">
+        </div>
       </div>
-      <br /><br />
-      <a href="href/schedules.html">View Saved Schedules</a>
-      <script>
-        // DO NOT DELETE
-        function Grab(getElementById) {
-          return document.getElementById(getElementById);
-        }
-
-        Grab("changelogButton").addEventListener("click", function () {
-          Grab("changelogButton").classList.toggle("selected-state");
-          Grab("changelogPanel").classList.toggle("show");
-        });
-
-        Grab("changelogClose").addEventListener("click", function () {
-          Grab("changelogButton").classList.remove("selected-state");
-          Grab("changelogPanel").classList.remove("show");
-        });
-
-        function updateAndCallAgain() {
-          var selectedValue = Grab("numbers").value;
-          showclock();
-          setTimeout(updateAndCallAgain, selectedValue);
-          checkTimerType();
-          checkDayChange();
-        }
-
-        let today = new Date().getDate();
-        function checkDayChange() {
-          var og = new Date();
-          var currentDay = new Date(og.getTime() + adjustseconds * 1000);
-          if (currentDay.getDate() !== today) {
-            today = currentDay.getDate();
-            AutoSchedule();
-          }
-        }
-
-        window.onload = function () {
-          NormalSchedule();
-          updateAndCallAgain();
-          AutoSchedule();
-        };
-
-        Grab("numbers").addEventListener("change", function () {
-          var selectedValue = this.value;
-          updateAndCallAgain();
-        });
-        function checkTimerType() {
-          var timerType = Grab("timer_type").textContent;
-
-          // Check if the content of the div is "Loading..."
-          if (timerType === "Loading...") {
-            // If it is, call NormalSchedule after 20ms
-            NormalSchedule();
-          }
-        }
-
-        let inputField = document.querySelector("#timeadj");
-
-        inputField.addEventListener("wheel", function (event) {
-          event.preventDefault(); // prevent default behavior
-          let currentVal = parseFloat(this.value);
-          if (isNaN(currentVal)) {
-            currentVal = 0;
-          }
-          let newVal;
-          if (event.deltaY > 0) {
-            newVal = currentVal - 1; // scroll up, decrease value
-          } else {
-            newVal = currentVal + 1; // scroll down, increase value
-          }
-          this.value = newVal;
-          timeadj();
-        });
-
-        // date and time variables
-        var days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-        var months = [
-          "Jan",
-          "Feb",
-          "Mar",
-          "Apr",
-          "May",
-          "Jun",
-          "Jul",
-          "Aug",
-          "Sep",
-          "Oct",
-          "Nov",
-          "Dec",
-        ];
-        var randm = false;
-        var adjustseconds = 0;
-
-        function ErrorTimeAdj() {
-          Grab("timeadj").style.backgroundColor = "SandyBrown";
-          adjustseconds = 0;
-          secondsDisplay.textContent = "";
-          resultDisplay.textContent = "";
-        }
-
-        function ValidTimeAdj() {
-          Grab("timeadj").style.backgroundColor = "White";
-        }
-
-        function timeadj() {
-          let oldAdjustSeconds = adjustseconds;
-          adjustseconds = Grab("timeadj").value;
-
-          // Check if the new value is a real number
-          if (isNaN(adjustseconds)) {
-            // If it'displaySeconds not a real number, revert to the old value
-            adjustseconds = oldAdjustSeconds;
-            ErrorTimeAdj();
-          } else {
-            ValidTimeAdj();
-          }
-
-          evaluateMath();
-          showclock();
-        }
-
-        function inputTimeAdj(input) {
-          let oldAdjustSeconds = adjustseconds;
-          adjustseconds = parseFloat(input);
-
-          if (isNaN(adjustseconds)) {
-            if (!isNaN(oldAdjustSeconds)) {
-              adjustseconds = oldAdjustSeconds;
-            } else {
-              adjustseconds = 0;
-            }
-            ErrorTimeAdj();
-          } else {
-            ValidTimeAdj();
-          }
-
-          evaluateMath();
-          showclock();
-        }
-
-        //  Special math?????????????????????????????????????????????????????????
-        function evaluateMath() {
-          let input = Grab("timeadj").value;
-          var oldAdjustSeconds = adjustseconds;
-          let result = math.evaluate(input);
-
-          if (!isNaN(math.evaluate(input))) {
-            try {
-              if (!isNaN(result) && !/^[0-9]+$/.test(input)) {
-                formatMath(true, result);
-              } else if (/^[0-9]+$/.test(input)) {
-                adjustseconds = input;
-                if (Math.abs(input) > 60) {
-                  formatMath(true, input);
-                  secondsDisplay.textContent = "";
-                }
-                if (Math.abs(input) < 60) {
-                  secondsDisplay.textContent = "";
-                  resultDisplay.textContent = "";
-                }
-              }
-              adjustseconds = result;
-              ValidTimeAdj();
-            } catch (error) {
-              adjustseconds = oldAdjustSeconds;
-              ErrorTimeAdj();
-              formatMath(false);
-            }
-          } else {
-            formatMath(false);
-          }
-          if (!isFinite(result)) {
-            adjustseconds = 0;
-            secondsDisplay.textContent =
-              "and the universe is now dead because of you";
-            resultDisplay.textContent = "Infinity";
-          }
-        }
-
-        function formatMath(isMathExpression, result) {
-          var resultDisplay = Grab("resultDisplay");
-          var secondsDisplay = Grab("secondsDisplay");
-
-          if (isMathExpression) {
-            var formattedResult = formatTime(result);
-            if (formattedResult == 0) {
-              resultDisplay.textContent = "= 0s";
-            } else {
-              resultDisplay.textContent = "= " + formattedResult;
-            }
-            secondsDisplay.textContent = "= " + result + " seconds";
-          } else {
-            resultDisplay.textContent = "";
-            secondsDisplay.textContent = "";
-          }
-        }
-
-        function adjustInputWidth(value) {
-          var inputElement = Grab("timeadj");
-          var inputWidth = getTextWidth(value);
-          inputElement.style.width = inputWidth + "px";
-        }
-
-        // Helper function to calculate the width of the text
-        function getTextWidth(text) {
-          var canvas = document.createElement("canvas");
-          var context = canvas.getContext("2d");
-          context.font = getComputedStyle(document.body).fontSize + " Arial"; // Set font and size
-          var width = context.measureText(text).width;
-          if (width < 30) {
-            width = 30;
-          }
-          return width;
-        }
-
-        function formatTime(seconds) {
-          var isNegative = seconds < 0;
-
-          seconds = Math.abs(seconds);
-          var centuries = Math.floor(seconds / (3600 * 24 * 365 * 100));
-          var years = Math.floor(
-            (seconds % (3600 * 24 * 365 * 100)) / (3600 * 24 * 365)
-          );
-          var days = Math.floor((seconds % (3600 * 24 * 365)) / (3600 * 24));
-          var hours = Math.floor((seconds % (3600 * 24)) / 3600);
-          var minutes = Math.floor((seconds % 3600) / 60);
-          var remainingSeconds = Math.floor(seconds % 60);
-
-          var formattedTime = "";
-          if (isNegative) {
-            formattedTime += "-";
-          }
-
-          if (centuries != 0) {
-            formattedTime += centuries + "c ";
-          }
-
-          if (years != 0) {
-            formattedTime += years + "y ";
-          }
-
-          if (days != 0) {
-            formattedTime += days + "d ";
-          }
-
-          if (hours != 0) {
-            formattedTime += hours + "h ";
-          }
-
-          if (minutes != 0) {
-            formattedTime += minutes + "m ";
-          }
-
-          if (remainingSeconds != 0 || formattedTime === "-") {
-            formattedTime += remainingSeconds + "s ";
-          }
-
-          return formattedTime.trim();
-        }
-
-        function colorizerandom() {
-          var r1 = Math.floor(Math.random() * 254 + 1);
-          var g1 = Math.floor(Math.random() * 254 + 1);
-          var b1 = Math.floor(Math.random() * 254 + 1);
-          var r2 = Math.floor(Math.random() * 254 + 1);
-          var g2 = Math.floor(Math.random() * 254 + 1);
-          var b2 = Math.floor(Math.random() * 254 + 1);
-          document.body.style.color = "rgb(" + r1 + "," + g1 + "," + b1 + ")";
-          document.body.style.backgroundColor =
-            "rgb(" + r2 + "," + g2 + "," + b2 + ")";
-        }
-
-        // Handles switching background and text color based on dropdown menu input
-        function ck() {
-          opt = Grab("colorscheme");
-          if (opt.value == "gb") {
-            randm = false;
-            opt.style.color = "black";
-            opt.style.backgroundColor = "white";
-            document.body.style.color = "grey";
-            document.body.style.backgroundColor = "black";
-          }
-          if (opt.value == "wb") {
-            randm = false;
-            opt.style.color = "black";
-            opt.style.backgroundColor = "white";
-            document.body.style.color = "white";
-            document.body.style.backgroundColor = "black";
-          }
-          if (opt.value == "bw") {
-            randm = false;
-            opt.style.color = "black";
-            opt.style.backgroundColor = "white";
-            document.body.style.color = "black";
-            document.body.style.backgroundColor = "white";
-          }
-          if (opt.value == "dk") {
-            randm = false;
-            opt.style.color = "crimson";
-            opt.style.backgroundColor = "black";
-            document.body.style.color = "crimson";
-            document.body.style.backgroundColor = "black";
-          }
-          if (opt.value == "bg") {
-            randm = false;
-            opt.style.color = "#5077BE";
-            opt.style.backgroundColor = "#D9FFB2";
-            document.body.style.color = "#5077BE";
-            document.body.style.backgroundColor = "#D9FFB2";
-          }
-          if (opt.value == "py") {
-            randm = false;
-            opt.style.color = "#B44DE0";
-            opt.style.backgroundColor = "#FFFF99";
-            document.body.style.color = "#B44DE0";
-            document.body.style.backgroundColor = "#FFFF99";
-          }
-          if (opt.value == "sr") {
-            randm = true;
-            colorizerandom();
-          }
-        }
-
-        // setTimeout(showclock, 1000);
-        let randomChange = false;
-        // Handles code for the actual clock functionality
-        function showclock() {
-          var currentPeriod = -1;
-          var originalDate = new Date();
-          var adjustedDate = new Date(
-            originalDate.getTime() + adjustseconds * 1000
-          );
-
-          var formattedDate = adjustedDate.getDate();
-          if (formattedDate < 10) {
-            formattedDate = "0" + formattedDate;
-          }
-          var formattedHours = adjustedDate.getHours();
-          var meridiem = formattedHours >= 12 ? "PM" : "AM";
-          formattedHours = formattedHours % 12;
-          if (formattedHours == 0) {
-            formattedHours = 12;
-          }
-          if (formattedHours < 10) {
-            formattedHours = "0" + formattedHours;
-          }
-          var fomattedMinutes = adjustedDate.getMinutes();
-          if (fomattedMinutes < 10) {
-            fomattedMinutes = "0" + fomattedMinutes;
-          }
-          var formattedSeconds = adjustedDate.getSeconds();
-          if (randm && formattedSeconds == 0 && !randomChange) {
-            colorizerandom();
-            randomChange = true;
-          } else if (!(formattedSeconds == 0)) {
-            randomChange = false;
-          }
-          if (formattedSeconds < 10) {
-            formattedSeconds = "0" + formattedSeconds;
-          }
-          var displayedDate =
-            days[adjustedDate.getDay()] +
-            " " +
-            months[adjustedDate.getMonth()] +
-            " " +
-            formattedDate +
-            " " +
-            adjustedDate.getFullYear() +
-            " " +
-            formattedHours +
-            ":" +
-            fomattedMinutes +
-            ":" +
-            formattedSeconds +
-            " " +
-            meridiem;
-          Grab("currentdt").innerHTML = displayedDate;
-          currentSeconds =
-            adjustedDate.getHours() * 3600 +
-            adjustedDate.getMinutes() * 60 +
-            adjustedDate.getSeconds();
-          if (typeof starts !== "undefined") {
-            periodIndex = starts.length - 1;
-            if (currentSeconds < starts[0]) {
-              // Before the Schedule
-              Grab("currentperiodsubtitle").innerHTML = "Countdown to";
-              Grab("currentschedue").innerHTML = names[0];
-              Grab("endofschedulesubtitle").innerHTML = "";
-              Grab("currentduration").innerHTML = secondstohhmmss(
-                Math.abs(currentSeconds - starts[0])
-              );
-              Grab("nextperiodsubtitle").innerHTML = "";
-              Grab("nextschedule").innerHTML = "";
-              Grab("nextduration").innerHTML = "";
-            } else if (currentSeconds > starts[periodIndex]) {
-              // End of Schedule
-              Grab("currentperiodsubtitle").innerHTML = "";
-              Grab("currentschedue").innerHTML = names[periodIndex];
-              Grab("currentlengthofperiod").innerHTML = "";
-              Grab("endofschedulesubtitle").innerHTML =
-                "Time elapsed since end of schedule";
-              Grab("currentduration").innerHTML = secondstohhmmss(
-                currentSeconds - starts[periodIndex]
-              );
-              Grab("nextperiodsubtitle").innerHTML = "";
-              Grab("nextschedule").innerHTML = "";
-              Grab("nextduration").innerHTML = "";
-            } else {
-              for (x = 0; x < periodIndex; x++) {
-                if (
-                  starts[x] < currentSeconds &&
-                  starts[x + 1] > currentSeconds
-                ) {
-                  // In session
-                  currentPeriod = x;
-                  Grab("currentperiodsubtitle").innerHTML =
-                    "We are now " +
-                    secondstohhmmss(currentSeconds - starts[x]) +
-                    " into:";
-                  Grab("currentschedue").innerHTML = names[x];
-                  Grab("endofschedulesubtitle").innerHTML = "";
-                  Grab("currentduration").innerHTML = "";
-                  //Grab("currentduration").innerHTML=(secondstohhmmss(currentSeconds-starts[x]));
-                  // Grab("nextperiodsubtitle").innerHTML="nextduration to:";
-                  Grab("nextschedule").innerHTML =
-                    "(" + names[x + 1] + ") starts in:";
-                  Grab("nextduration").innerHTML = secondstohhmmss(
-                    Math.abs(currentSeconds - starts[x + 1])
-                  );
-                }
-              }
-            }
-
-            var ts =
-              "<div style='margin-top:30px;display:block;width:100%;text-align:center'><div style='display:inline-block;margin-left:auto;margin-right:auto;text-align:left;width:auto'>Today's Schedule:<br />";
-            //ts=ts+times[0]+'&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'+names[0]+'<br />';
-            for (x = 0; x < periodIndex; x++) {
-              if (x == currentPeriod) {
-                ts = ts + "<strong>";
-              }
-              disptime = times[x];
-              disptimex = times[x + 1];
-              disptimez = times[periodIndex];
-              //alert(disptime.substring(0,2));
-              // hc=disptime.substring(0,2);
-              // alert(hc*2);
-              //return;
-              if (disptime.substring(0, 2) < 12) {
-                disptime = disptime + " AM";
-              } else {
-                hc = disptime.substring(0, 2);
-                if (hc > 12) {
-                  hc = hc - 12;
-                }
-                if (hc < 10) {
-                  hc = "0" + hc;
-                }
-                disptime = hc + disptime.substring(2, 5) + " PM";
-              }
-              if (disptimex.substring(0, 2) < 12) {
-                disptimex = disptimex + " AM";
-              } else {
-                hc = disptimex.substring(0, 2);
-                if (hc > 12) {
-                  hc = hc - 12;
-                }
-                if (hc < 10) {
-                  hc = "0" + hc;
-                }
-                disptimex = hc + disptimex.substring(2, 5) + " PM";
-              }
-              if (disptimez.substring(0, 2) < 12) {
-                disptimez = disptimex + " AM";
-              } else {
-                hc = disptimez.substring(0, 2);
-                if (hc > 12) {
-                  hc = hc - 12;
-                }
-                if (hc < 10) {
-                  hc = "0" + hc;
-                }
-                disptimez = hc + disptimez.substring(2, 5) + " PM";
-              }
-              ts = ts + disptime + "-" + disptimex + " " + names[x] + "<br >";
-              if (x == currentPeriod) {
-                ts = ts + "</strong>";
-                Grab("currentlengthofperiod").innerHTML =
-                  disptime + "-" + disptimex;
-              }
-            }
-
-            ts =
-              ts +
-              disptimez +
-              "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;" +
-              names[periodIndex] +
-              "</div></div>";
-            Grab("schedule").innerHTML = ts;
-          }
-          delete window.d;
-        }
-
-        function secondstohhmmss(secs) {
-          var hour = parseInt(secs / 3600);
-          if (hour < 10) {
-            hour = "0" + hour;
-          }
-          if (hour == 0) {
-            hour = "00";
-          }
-
-          var secs = secs - hour * 3600;
-          var minute = parseInt(secs / 60);
-          if (minute < 10) {
-            minute = "0" + minute;
-          }
-          if (minute == 0) {
-            minute = "00";
-          }
-          var secs = parseInt(secs - minute * 60);
-
-          var displaySeconds = secs;
-          if (displaySeconds < 10) {
-            displaySeconds = "0" + displaySeconds;
-          }
-          if (hour != "00") {
-            return hour + ":" + minute + ":" + displaySeconds;
-          } else if (minute != "00") {
-            return minute + ":" + displaySeconds;
-          } else {
-            return displaySeconds;
-          }
-        }
-
-        // Most modifications
-        let isEven = false;
-        var schedule = -1; // used to store values for even/odd function
-        /*
-            0 = normal
-            1 = late
-            2 = minimum / finals
-            3 = rally day
-            4 = anchor day
-            5 = extended snack schedule
-            */
-
-        // Experimental test
-        function AutoSchedule() {
-          const currentDate = getAdjustedDate();
-          const currentDay = currentDate.getDate();
-          const currentMonth = currentDate.getMonth() + 1;
-          const currentYear = currentDate.getFullYear();
-
-          if (currentYear === 2024) {
-            const scheduleType = getScheduleType(currentMonth, currentDay);
-            handleScheduleType(scheduleType);
-
-            const isEvenSchedule = isEvenScheduleDay(currentMonth, currentDay);
-            if (isEvenSchedule !== isEven) {
-              ToggleScheduleOddEven();
-            }
-          }
-        }
-
-        function getAdjustedDate() {
-          const og = new Date();
-          return new Date(og.getTime() + adjustseconds * 1000);
-        }
-
-        function getScheduleType(currentMonth, currentDay) {
-          const schedule = {
-            1: { late: [22, 29], navnight: [23] },
-            2: { late: [5, 12, 26] },
-            3: { late: [4, 11, 18, 25] },
-            4: { late: [8, 15, 22, 29] },
-            5: { late: [6, 13, 20] },
-            6: { final: [3, 4], extended: [5] },
-          };
-
-          if (schedule[currentMonth]?.late?.includes(currentDay)) {
-            return "late";
-          }
-          if (schedule[currentMonth]?.final?.includes(currentDay)) {
-            return "final";
-          }
-          if (schedule[currentMonth]?.extended?.includes(currentDay)) {
-            return "extended";
-          }
-          if (schedule[currentMonth]?.navnight?.includes(currentDay)) {
-            return "navnight";
-          }
-          return "normal";
-        }
-
-        function handleScheduleType(scheduleType) {
-          switch (scheduleType) {
-            case "late":
-              LateSchedule();
-              break;
-            case "final":
-              MinimumSchedule();
-              break;
-            case "extended":
-              ExtendedSnackSchedule();
-              UpdateSpecialDropDown();
-              break;
-            case "navnight":
-              NavigationNight();
-              break;
-            default:
-              NormalSchedule();
-          }
-        }
-
-        function isEvenScheduleDay(currentMonth, currentDay) {
-          const evenScheduleDates = {
-            1: [22, 24, 26, 30],
-            2: [1, 5, 7, 9, 13, 15, 21, 23, 27, 29],
-            3: [4, 6, 11, 13, 18, 20, 22, 26, 28],
-            4: [9, 11, 15, 17, 19, 23, 25, 29],
-            5: [1, 6, 8, 10, 14, 16, 20, 22, 28, 30],
-            6: [4],
-          };
-
-          return evenScheduleDates[currentMonth]?.includes(currentDay);
-        }
-
-        function UpdateSpecialDropDown() {
-          // Get the dropdown menu
-          var dropdownMenu = Grab("special-schedule");
-          let internal = schedule;
-          switch (internal) {
-            case 3:
-              dropdownMenu.selectedIndex = 2;
-              break;
-            case 4:
-              dropdownMenu.selectedIndex = 1;
-              break;
-            case 5:
-              dropdownMenu.selectedIndex = 3;
-              break;
-            default:
-              dropdownMenu.selectedIndex = 0;
-          }
-          HandleSpecialScheduleChange();
-        }
-
-        function handleButtonClick() {
-          var dropdownMenu = Grab("special-schedule");
-          var oddEvenButton = Grab("odd-even-toggle");
-          var dropdown = Grab("special-schedule");
-
-          dropdownMenu.style.backgroundColor = ""; // Reset to default color
-          dropdownMenu.selectedIndex = 0;
-          oddEvenButton.style.display = "inline";
-          dropdown.classList.remove("special-schedule-select");
-
-          ClearSubtitle();
-          updateClock();
-        }
-
-        function updateClock() {
-          setTimeout(showclock, 20);
-        }
-        function NavigationNight() {
-          MinimumSchedule();
-          times.push("18:00", "20:00");
-          starts.push(64800, 72000);
-          names.push("Navigation Night", "End of Day");
-        }
-
-        function NoSchool() {
-          times.length = 0;
-          starts.length = 0;
-          names.length = 0;
-        }
-
-        function NormalSchedule() {
-          schedule = 0;
-          handleButtonClick();
-
-          // Clear the existing arrays
-          times.length = 0;
-          starts.length = 0;
-          names.length = 0;
-
-          if (isEven) {
-            Grab("timer_type").innerHTML = "EVEN NORMAL BLOCK";
-            times.push(
-              "08:30",
-              "10:02",
-              "10:11",
-              "10:17",
-              "11:49",
-              "11:55",
-              "13:27",
-              "13:58",
-              "14:04",
-              "15:36"
-            );
-            updateStarts();
-            names.push(
-              "Period 2",
-              "Snack",
-              "Passing Period",
-              "Period 4",
-              "Passing Period",
-              "Period 6",
-              "Lunch",
-              "Passing Period",
-              "Period 8",
-              "End of School"
-            );
-          } else {
-            Grab("timer_type").innerHTML = "ODD NORMAL BLOCK";
-            times.push(
-              "08:30",
-              "10:02",
-              "10:11",
-              "10:17",
-              "11:49",
-              "11:55",
-              "13:27",
-              "13:58",
-              "14:04",
-              "15:36"
-            );
-            updateStarts();
-            names.push(
-              "Period 1",
-              "Snack",
-              "Passing Period",
-              "Period 3",
-              "Passing Period",
-              "Period 5",
-              "Lunch",
-              "Passing Period",
-              "Period 7",
-              "End of School"
-            );
-          }
-
-          var buttons = document.querySelectorAll(".schedule-button");
-          buttons.forEach(function (button) {
-            button.classList.remove("selected-state");
-          });
-
-          var button = document.querySelector("#normal-schedule");
-          button.classList.add("selected-state");
-        }
-
-        function LateSchedule() {
-          schedule = 1;
-          handleButtonClick();
-
-          times.length = 0;
-          starts.length = 0;
-          names.length = 0;
-          times.push(
-            "10:00",
-            "11:09",
-            "11:18",
-            "11:24",
-            "12:35",
-            "12:41",
-            "13:50",
-            "14:21",
-            "14:27",
-            "15:36"
-          );
-          updateStarts();
-          if (isEven) {
-            Grab("timer_type").innerHTML = "EVEN LATE BLOCK";
-            names.push(
-              "Period 2",
-              "Snack",
-              "Passing Period",
-              "Period 4",
-              "Passing Period",
-              "Period 6",
-              "Lunch",
-              "Passing Period",
-              "Period 8",
-              "End of School"
-            );
-          } else {
-            Grab("timer_type").innerHTML = "ODD LATE BLOCK";
-            names.push(
-              "Period 1",
-              "Snack",
-              "Passing Period",
-              "Period 3",
-              "Passing Period",
-              "Period 5",
-              "Lunch",
-              "Passing Period",
-              "Period 7",
-              "End of School"
-            );
-          }
-
-          var buttons = document.querySelectorAll(".schedule-button");
-          buttons.forEach(function (button) {
-            button.classList.remove("selected-state");
-          });
-
-          var button = document.querySelector("#late-schedule");
-          button.classList.add("selected-state");
-        }
-
-        function MinimumSchedule() {
-          schedule = 2;
-          handleButtonClick();
-
-          times.length = 0;
-          starts.length = 0;
-          names.length = 0;
-          times.push(
-            "08:30",
-            "09:34",
-            "09:43",
-            "09:49",
-            "10:56",
-            "11:02",
-            "12:06",
-            "12:12",
-            "13:16"
-          );
-          updateStarts();
-          if (isEven) {
-            Grab("timer_type").innerHTML = "EVEN MINIMUM BLOCK";
-            names.push(
-              "Period 2",
-              "Snack",
-              "Passing Period",
-              "Period 4",
-              "Passing Period",
-              "Period 6",
-              "Passing Period",
-              "Period 8",
-              "End of School"
-            );
-          } else {
-            Grab("timer_type").innerHTML = "ODD MINIMUM BLOCK";
-            names.push(
-              "Period 1",
-              "Snack",
-              "Passing Period",
-              "Period 3",
-              "Passing Period",
-              "Period 5",
-              "Passing Period",
-              "Period 7",
-              "End of School"
-            );
-          }
-
-          var buttons = document.querySelectorAll(".schedule-button");
-          buttons.forEach(function (button) {
-            button.classList.remove("selected-state");
-          });
-
-          var button = document.querySelector("#minimum-schedule");
-          button.classList.add("selected-state");
-        }
-
-        function AnchorSchedule() {
-          schedule = 4;
-          Grab("timer_type").innerHTML = "ANCHOR DAY";
-
-          // Clear the arrays
-          times.length = 0;
-          starts.length = 0;
-          names.length = 0;
-
-          // Push the values into the arrays
-          times.push(
-            "10:00",
-            "10:31",
-            "10:37",
-            "11:14",
-            "11:23",
-            "11:29",
-            "12:00",
-            "12:06",
-            "12:37",
-            "13:08",
-            "13:14",
-            "13:45",
-            "13:51",
-            "14:22",
-            "14:28",
-            "14:59",
-            "15:05",
-            "15:36"
-          );
-          updateStarts();
-          names.push(
-            "Period 1",
-            "Snack",
-            "Period 2",
-            "Snack",
-            "Passing Period",
-            "Period 3",
-            "Passing Period",
-            "Period 4",
-            "Lunch",
-            "Passing Period",
-            "Period 5",
-            "Passing Period",
-            "Period 6",
-            "Passing Period",
-            "Period 7",
-            "Passing Period",
-            "Period 8",
-            "End of School"
-          );
-        }
-
-        function updateStarts() {
-          starts = times.map((time) => {
-            let [hours, minutes] = time.split(":").map(Number);
-            return hours * 3600 + minutes * 60;
-          });
-        }
-
-        function RallySchedule() {
-          schedule = 3;
-          times.length = 0;
-          starts.length = 0;
-          names.length = 0;
-          times.push(
-            "08:30",
-            "09:50",
-            "10:00",
-            "10:06",
-            "11:04",
-            "12:13",
-            "12:19",
-            "13:39",
-            "14:10",
-            "14:16",
-            "15:36"
-          );
-          updateStarts();
-          if (isEven) {
-            Grab("timer_type").innerHTML = "EVEN RALLY DAY";
-            names.push(
-              "Period 2",
-              "Snack",
-              "Period 4",
-              "Rally A (P4)",
-              "Rally B (P4)",
-              "Passing Period",
-              "Period 6",
-              "Lunch",
-              "Passing Period",
-              "Period 8",
-              "End of School"
-            );
-          } else {
-            Grab("timer_type").innerHTML = "ODD RALLY DAY";
-            names.push(
-              "Period 1",
-              "Snack",
-              "Period 3",
-              "Rally A (P3)",
-              "Rally B (P3)",
-              "Passing Period",
-              "Period 5",
-              "Lunch",
-              "Passing Period",
-              "Period 7",
-              "End of School"
-            );
-          }
-        }
-
-        function ExtendedSnackSchedule() {
-          schedule = 5;
-          Grab("timer_type").innerHTML = "MINIMUM DAY";
-          Grab("subtitle").innerHTML = "(Extended Snack)";
-
-          // Clear the arrays
-          times.length = 0;
-          starts.length = 0;
-          names.length = 0;
-
-          // Push the values into the arrays
-          times.push(
-            "08:30",
-            "08:58",
-            "09:04",
-            "09:32",
-            "09:38",
-            "10:06",
-            "10:12",
-            "10:40",
-            "11:00",
-            "11:06",
-            "11:34",
-            "11:40",
-            "12:08",
-            "12:14",
-            "12:42",
-            "12:48",
-            "13:16"
-          );
-          updateStarts();
-          names.push(
-            "Period 1",
-            "Passing Period",
-            "Period 2",
-            "Passing Period",
-            "Period 3",
-            "Passing Period",
-            "Period 4",
-            "Extended Snack",
-            "Passing Period",
-            "Period 5",
-            "Passing Period",
-            "Period 6",
-            "Passing Period",
-            "Period 7",
-            "Passing Period",
-            "Period 8",
-            "End of School"
-          );
-        }
-
-        // handles switching between even and odd
-        function ToggleScheduleOddEven() {
-          isEven = !isEven;
-          switch (schedule) {
-            case 0:
-              NormalSchedule();
-              break;
-            case 1:
-              LateSchedule();
-              break;
-            case 2:
-              MinimumSchedule();
-              break;
-            case 3:
-              RallySchedule();
-              break;
-            default:
-              NormalSchedule();
-          }
-          var button = document.querySelector("#odd-even-toggle");
-          if (isEven) {
-            button.classList.remove("normal-state");
-            button.classList.add("toggled-state");
-          } else {
-            button.classList.remove("toggled-state");
-            button.classList.add("normal-state");
-          }
-        }
-
-        function HandleSpecialScheduleChange() {
-          updateSpecialScheduleDropdown();
-          updateOddEvenToggleButton();
-          clearSelectedStateButtons();
-          handleSpecialScheduleSelection();
-          updateClock();
-        }
-
-        function updateSpecialScheduleDropdown() {
-          var dropdown = Grab("special-schedule");
-          var selectedIndex = dropdown.selectedIndex;
-
-          if (selectedIndex !== 0) {
-            dropdown.classList.add("special-schedule-select");
-            dropdown.style.backgroundColor = "grey";
-          } else {
-            dropdown.classList.remove("special-schedule-select");
-            dropdown.style.backgroundColor = ""; // Reset to default color
-          }
-        }
-
-        function updateOddEvenToggleButton() {
-          var dropdown = Grab("special-schedule");
-          var selectedIndex = dropdown.selectedIndex;
-          var oddEvenButton = Grab("odd-even-toggle");
-
-          if (selectedIndex === 0 || selectedIndex === 2) {
-            oddEvenButton.style.display = "inline";
-          } else {
-            oddEvenButton.style.display = "none";
-          }
-        }
-
-        function clearSelectedStateButtons() {
-          var buttons = document.querySelectorAll(".selected-state");
-          buttons.forEach(function (button) {
-            button.classList.remove("selected-state");
-          });
-        }
-
-        function handleSpecialScheduleSelection() {
-          var selectedOption = Grab("special-schedule").value;
-          switch (selectedOption) {
-            case "Nothing":
-              NormalSchedule();
-              ClearSubtitle();
-              break;
-            case "anchorSchedule":
-              AnchorSchedule();
-              ClearSubtitle();
-              break;
-            case "rallySchedule":
-              RallySchedule();
-              ClearSubtitle();
-              break;
-            case "ExtendedSnackSchedule":
-              ExtendedSnackSchedule();
-              break;
-            default:
-              break;
-          }
-        }
-
-        function ClearSubtitle() {
-          Grab("subtitle").innerHTML = "";
-        }
-      </script>
+      <div id="scheduleEditorModal" class="hidden">
+        <div id="scheduleEditorContent">
+          <div id="scheduleEditorHeader">
+            <h2 id="editorTitle">Create New Schedule</h2>
+            <button class="button" onclick="ScheduleEditor.close()">×</button>
+          </div>
+          <div id="scheduleEditorBody">
+            <div class="editor-section">
+              <h3>Basic Information</h3>
+              <div class="editor-field">
+                <label for="scheduleName">Schedule Name</label>
+                <input type="text" id="scheduleName" onblur="validateScheduleName(this)" placeholder="e.g., Modified Block" maxlength="30">
+              </div>
+              <div class="editor-field">
+                <label for="scheduleType">Schedule Type</label>
+                <select id="scheduleType" onchange="ScheduleEditor.handleTypeChange()">
+                  <option value="single">Single Schedule</option>
+                  <option value="oddeven">Odd/Even Schedule</option>
+                </select>
+              </div>
+              <div class="editor-field">
+                <label for="buttonLocation">Button Location</label>
+                <select id="buttonLocation">
+                  <option value="main">Main Buttons</option>
+                  <option value="special">Special Schedules Dropdown</option>
+                </select>
+              </div>
+            </div>
+            <div class="editor-section">
+              <h3>Start From Template (Optional)</h3>
+              <div class="editor-field">
+                <select id="cloneFrom" onchange="handleCloneSelection()">
+                  <option value="">Start from scratch</option>
+                  <option value="normal">Clone from Normal Schedule</option>
+                  <option value="late">Clone from Late Start</option>
+                  <option value="minimum">Clone from Minimum Day</option>
+                  <option value="anchor">Clone from Anchor Day</option>
+                  <option value="rally">Clone from Rally Day</option>
+                  <option value="testing">Clone from Testing Schedule</option>
+                </select>
+              </div>
+            </div>
+            <div id="scheduleTabs" class="hidden">
+              <button class="tab-button active" onclick="ScheduleEditor.switchTab('odd', event)">Odd Days</button>
+              <button class="tab-button" onclick="ScheduleEditor.switchTab('even', event)">Even Days</button>
+            </div>
+            <div class="editor-section">
+              <h3>Periods <span id="currentTabLabel"></span>
+              </h3>
+              <div class="editor-field">
+                <div style="color: #888; font-size: 0.85em; margin-bottom: 10px; padding: 8px; background-color: var(--dark-2); border-radius: 3px;">
+                  <strong>Note:</strong> The last period represents the end time and won't appear in the main schedule display until after all other periods have elapsed.
+                </div>
+              </div>
+              <div id="periodsContainer"></div>
+              <button class="button action-button" onclick="ScheduleEditor.addPeriod()">+ Add Period</button>
+            </div>
+          </div>
+          <div id="scheduleEditorFooter">
+            <button class="button" onclick="testSchedule()">Preview</button>
+            <button class="button" onclick="ScheduleEditor.save()">Save Schedule</button>
+            <button class="button" onclick="ScheduleEditor.close()">Cancel</button>
+          </div>
+        </div>
+      </div>
+      <div id="calendarModal" class="hidden">
+        <div id="calendarContent">
+          <div id="calendarHeader">
+            <h2>Calendar Configuration <span id="calendarLiveIndicator" style="font-size: 0.6em; color: #666; margin-left: 10px;">(Changes apply immediately)</span>
+            </h2>
+            <button class="button" onclick="CalendarUI.close()">×</button>
+          </div>
+          <div id="calendarBody">
+            <div id="calendarControls">
+              <button class="button" onclick="YearOverviewUI.open()">Year Overview</button>
+              <button class="button" onclick="CalendarUI.previousMonth()">◀</button>
+              <span id="currentMonthYear"></span>
+              <button class="button" onclick="CalendarUI.nextMonth()">▶</button>
+              <button class="button" onclick="CalendarUI.goToToday()" style="margin-left: 20px;">Today</button>
+            </div>
+            <div id="calendarGrid">
+              <div class="calendar-weekdays"></div>
+              <div class="calendar-days"></div>
+            </div>
+            <div id="calendarLegend">
+              <span class="legend-item">
+                <span class="legend-color day-odd"></span> Odd </span>
+              <span class="legend-item">
+                <span class="legend-color day-even"></span> Even </span>
+              <span class="legend-item">
+                <span class="legend-color day-noSchool"></span> No School </span>
+              <span class="legend-item">◆ Special Schedule</span>
+            </div>
+          </div>
+          <div id="calendarFooter">
+            <button class="button danger-button" onclick="clearAllCalendarData()">Clear Calendar</button>
+            <button class="button danger-button" onclick="resetToDefaultCalendar()">Load Bellflower</button>
+            <button class="button" onclick="exportCalendar()">Export Calendar</button>
+            <button class="button" onclick="importCalendar()">Import Calendar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="calendarContextMenu" class="hidden">
+      <div class="context-menu-header">Regular Schedules</div>
+      <div class="context-menu-item" onclick="setSelectedSchedule('normal')">Normal</div>
+      <div class="context-menu-item" onclick="setSelectedSchedule('late')">Late Start</div>
+      <div class="context-menu-item" onclick="setSelectedSchedule('minimum')">Minimum</div>
+      <div class="context-menu-separator"></div>
+      <div class="context-menu-header">Special Schedules</div>
+      <div id="specialSchedulesMenu"></div>
+      <div class="context-menu-separator"></div>
+      <div class="context-menu-header">Custom Schedules</div>
+      <div id="customSchedulesMenu"></div>
+      <div class="context-menu-separator"></div>
+      <div class="context-menu-item" onclick="setSelectedSchedule('noSchool')">No School</div>
+      <div class="context-menu-separator"></div>
+      <div class="context-menu-item" onclick="CalendarUI.clearSelectedDates()">Clear</div>
+    </div>
+    <div id="yearOverviewModal" class="hidden">
+      <div id="yearOverviewContent">
+        <div id="yearOverviewHeader">
+          <h2>Year Overview - <span id="yearOverviewTitle"></span>
+          </h2>
+          <button class="button" onclick="YearOverviewUI.close()">×</button>
+        </div>
+        <div id="yearOverviewBody">
+          <div id="yearOverviewControls">
+            <button class="button" onclick="YearOverviewUI.previousYear()">◀</button>
+            <span id="overviewYearDisplay"></span>
+            <button class="button" onclick="YearOverviewUI.nextYear()">▶</button>
+          </div>
+          <div id="yearOverviewGrid"></div>
+          <div id="yearOverviewLegend">
+            <span class="legend-item">
+              <span class="legend-color day-odd"></span> Odd Day </span>
+            <span class="legend-item">
+              <span class="legend-color day-even"></span> Even Day </span>
+            <span class="legend-item">
+              <span class="legend-color day-scheduled"></span> Scheduled (No Odd/Even) </span>
+            <span class="legend-item">
+              <span class="legend-color day-noSchool"></span> No School </span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="notificationModal" class="hidden">
+      <div id="notificationContent">
+        <div id="notificationHeader">
+          <h2 id="notificationTitle"></h2>
+        </div>
+        <div id="notificationBody">
+          <p id="notificationMessage"></p>
+        </div>
+        <div id="notificationFooter">
+          <button class="button" id="notificationPrimaryButton" onclick="handleNotificationPrimary()">Load Bellflower Calendar</button>
+          <button class="button" id="notificationTertiaryButton" onclick="handleNotificationTertiary()" style="display: none;">View Changelog</button>
+          <button class="button" id="notificationSecondaryButton" onclick="handleNotificationSecondary()">Start with Empty Calendar</button>
+        </div>
+      </div>
+    </div>
+    <div id="toastContainer"></div>
+    <script src="script.js?v=260" defer></script>
     </div>
   </body>
 </html>
