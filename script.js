@@ -4504,7 +4504,7 @@ const UpdateChecker = {
   init() {
     if (!('serviceWorker' in navigator)) return;
 
-    navigator.serviceWorker.register('/sw.js').catch(err => {
+    navigator.serviceWorker.register('./sw.js').catch(err => {
       console.log('[UpdateChecker] SW registration failed:', err);
     });
 

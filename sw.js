@@ -1,4 +1,4 @@
-const CACHE_NAME = 'schedulemonitor-2.6.2'; 
+const CACHE_NAME = 'schedulemonitor-2.6.3'; 
 
 const STATIC_ASSETS = [
   '/',

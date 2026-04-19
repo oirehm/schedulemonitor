@@ -7,6 +7,9 @@ Changelog Header Order:
 5. Technical Changes
 6. Deprecations
 -->
+## Version 2.6.3
+- Actually fixed service worker updates not properly working
+
 ## Version 2.6.2
 - Fixed service worker updates not properly working
 
