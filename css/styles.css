@@ -1090,6 +1090,13 @@ body.settings-panel-open.settings-panel-minimized #container {
   color: var(--error-text) !important;
 }
 
+#bottomButtons {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin: 20px 0;
+}
+
 footer {
   margin-top: 80px;
   padding-top: 20px;
@@ -1599,7 +1606,7 @@ footer {
   border-radius: 8px;
   width: 100%;
   max-width: 900px;
-  max-height: 85vh;
+  max-height: 90vh;
   display: flex;
   flex-direction: column;
   color: var(--text-light);
@@ -1651,6 +1658,7 @@ footer {
 
 .calendar-day {
   aspect-ratio: 1;
+  min-width: 0;
   border: 1px solid var(--panel-border);
   border-radius: 3px;
   padding: 5px;
@@ -1686,6 +1694,21 @@ footer {
   white-space: normal;
   max-height: 2.4em;
   text-overflow: ellipsis;
+}
+
+.day-label {
+  font-size: 0.65rem;
+  color: var(--accent);
+  text-align: center;
+  overflow: hidden;
+  word-wrap: break-word;
+  white-space: normal;
+  max-height: 2.2em;
+  text-overflow: ellipsis;
+  min-width: 0;
+  margin-top: 2px;
+  line-height: 1.1;
+  font-style: italic;
 }
 
 .day-odd {
@@ -1752,6 +1775,29 @@ footer {
   padding: 5px 0;
   z-index: 3000;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+
+.context-menu-close {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 14px;
+  cursor: pointer;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  z-index: 1;
+}
+
+.context-menu-close:hover {
+  color: var(--accent);
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 .context-menu-item {

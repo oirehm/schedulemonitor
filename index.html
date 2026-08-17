@@ -247,9 +247,11 @@
           </div>
         </div>
       </div>
-      <button id="manageSchedulesButton" class="bottom" onclick="ScheduleManagerUI.open()">Schedules</button>
-      <button id="calendarButton" class="bottom" onclick="openCalendar()">Calendar</button>
-      <button id="toggleButton" class="bottom">Settings</button>
+      <div id="bottomButtons">
+        <button id="manageSchedulesButton" class="bottom" onclick="ScheduleManagerUI.open()">Schedules</button>
+        <button id="calendarButton" class="bottom" onclick="openCalendar()">Calendar</button>
+        <button id="toggleButton" class="bottom">Settings</button>
+      </div>
       <footer>
         <div class="info">
           <a href="https://github.com/oirehm/schedulemonitor/blob/main/Changelog.md" target="_blank">Changelog</a>
@@ -393,6 +395,7 @@
       </div>
     </div>
     <div id="calendarContextMenu" class="hidden">
+      <button class="context-menu-close" onclick="CalendarUI.hideContextMenu()" title="Close">×</button>
       <div class="context-menu-header">Regular Schedules</div>
       <div class="context-menu-item" onclick="setSelectedSchedule('normal')">Normal</div>
       <div class="context-menu-item" onclick="setSelectedSchedule('late')">Late Start</div>
@@ -405,6 +408,9 @@
       <div id="customSchedulesMenu"></div>
       <div class="context-menu-separator"></div>
       <div class="context-menu-item" onclick="setSelectedSchedule('noSchool')">No School</div>
+      <div class="context-menu-separator"></div>
+      <div class="context-menu-item" onclick="CalendarUI.previewDay(Array.from(CalendarUI.selectedDates)[0])">Preview This Day</div>
+      <div class="context-menu-item" onclick="CalendarUI.editLabelForSelection()">Edit Label...</div>
       <div class="context-menu-separator"></div>
       <div class="context-menu-item" onclick="CalendarUI.clearSelectedDates()">Clear</div>
     </div>

@@ -84,7 +84,7 @@ const scheduleTemplates = {
     displayName: "Anchor Day",
     canToggleOddEven: false,
     times: ["10:00", "10:31", "10:37", "11:14", "11:23", "11:29", "12:00", "12:06", "12:37", "13:08", "13:14", "13:45", "13:51", "14:22", "14:28", "14:59", "15:05", "15:36"],
-    names: ["Period 1", "Snack", "Period 2", "Snack", "Passing Period", "Period 3", "Passing Period", "Period 4", "Lunch", "Passing Period", "Period 5", "Passing Period", "Period 6", "Passing Period", "Period 7", "Passing Period", "Period 8", "End of School"]
+    names: ["Period 1", "Passing Period", "Period 2", "Snack", "Passing Period", "Period 3", "Passing Period", "Period 4", "Lunch", "Passing Period", "Period 5", "Passing Period", "Period 6", "Passing Period", "Period 7", "Passing Period", "Period 8", "End of School"]
   },
   rally: {
     displayName: "Rally Day",
@@ -463,7 +463,7 @@ const CalendarManager = {
       if (response.ok) {
         const defaultData = await response.json();
         defaultData.isDefaultCalendar = true;
-        if (!defaultData.defaultCalendarVersion) defaultData.defaultCalendarVersion = "2025-2026";
+        if (!defaultData.defaultCalendarVersion) defaultData.defaultCalendarVersion = "2026-2027";
         return defaultData;
       }
     } catch (error) {
@@ -539,13 +539,26 @@ const CalendarManager = {
   },
 
   _applyScheduleToConfig(config, dateString, scheduleId, isEven) {
-    config.dates[dateString] = { schedule: scheduleId, isEven: isEven };
+    const existing = config.dates[dateString] || {};
+    config.dates[dateString] = {
+      schedule: scheduleId,
+      isEven: isEven,
+      label: existing.label || null
+    };
     if (config.isDefaultCalendar) config.hasUserModifications = true;
   },
 
   setScheduleForDate(dateString, scheduleId, isEven = null) {
     const config = this.getConfig();
     this._applyScheduleToConfig(config, dateString, scheduleId, isEven);
+    return this.saveConfig(config);
+  },
+
+  setLabelForDate(dateString, label) {
+    const config = this.getConfig();
+    if (!config.dates[dateString]) return false;
+    config.dates[dateString].label = label || null;
+    if (config.isDefaultCalendar) config.hasUserModifications = true;
     return this.saveConfig(config);
   },
 
@@ -676,9 +689,14 @@ const CalendarUI = {
         CalendarUI.clearSelectedDates();
         break;
       case 'o':
+      case 'O':
         if (!hasSelection) return;
         e.preventDefault();
-        CalendarUI.toggleSelectedOddEven(e.shiftKey);
+        if (e.shiftKey) {
+          CalendarUI.toggleSelectedOddEvenAlternating();
+        } else {
+          CalendarUI.toggleSelectedOddEven();
+        }
         break;
       case 'Escape':
         e.preventDefault();
@@ -840,6 +858,14 @@ const CalendarUI = {
             }
           }
         }
+
+        if (dayConfig.label) {
+          const labelEl = document.createElement('div');
+          labelEl.className = 'day-label';
+          labelEl.textContent = dayConfig.label;
+          labelEl.title = dayConfig.label;
+          dayElement.appendChild(labelEl);
+        }
       }
 
       if (currentDate.getDay() === 0 || currentDate.getDay() === 6) {
@@ -873,6 +899,7 @@ const CalendarUI = {
   handleMouseDown(e, dateString) {
     if (e.button === 0) {
       e.preventDefault();
+      this.hideContextMenu();
       if (e.shiftKey && this.lastClickedDate) {
         this.selectRange(this.lastClickedDate, dateString);
       } else if (e.ctrlKey || e.metaKey) {
@@ -918,14 +945,18 @@ const CalendarUI = {
       this.selectedDates.add(dateString);
       this.render();
     }
-    this.showQuickEditMenu(e.pageX, e.pageY);
+    this.showQuickEditMenu(e.clientX, e.clientY);
   },
   activeContextMenuCleanup: null,
-  showQuickEditMenu(mouseX, mouseY) {
+  hideContextMenu() {
     if (this.activeContextMenuCleanup) {
       document.removeEventListener('click', this.activeContextMenuCleanup);
       this.activeContextMenuCleanup = null;
     }
+    document.getElementById('calendarContextMenu').classList.add('hidden');
+  },
+  showQuickEditMenu(mouseX, mouseY) {
+    this.hideContextMenu();
     const menu = document.getElementById('calendarContextMenu');
     menu.classList.remove('hidden');
     const offset = 8;
@@ -939,14 +970,15 @@ const CalendarUI = {
     if (left + menuRect.width > viewportWidth) left = mouseX - menuRect.width - offset;
     if (top + menuRect.height > viewportHeight) top = mouseY - menuRect.height - offset;
 
+    left = Math.max(offset, Math.min(left, viewportWidth - menuRect.width - offset));
+    top = Math.max(offset, Math.min(top, viewportHeight - menuRect.height - offset));
+
     menu.style.left = `${left}px`;
     menu.style.top = `${top}px`;
 
     const handleClickOutside = (e) => {
       if (!menu.contains(e.target)) {
-        menu.classList.add('hidden');
-        document.removeEventListener('click', handleClickOutside);
-        this.activeContextMenuCleanup = null;
+        this.hideContextMenu();
       }
     };
 
@@ -1017,13 +1049,15 @@ const CalendarUI = {
   updateLegend() {
     const legendElement = document.getElementById('calendarLegend');
     legendElement.innerHTML = `
+      <!--
       <span class="legend-item"><span class="legend-color day-odd"></span> Odd</span>
       <span class="legend-item"><span class="legend-color day-even"></span> Even</span>
       <span class="legend-item"><span class="legend-color day-noSchool"></span> No School</span>
       <span class="legend-item">◆ Special/Custom</span>
+      -->
       <span class="legend-shortcuts">
         <strong>Schedule Shortcuts:</strong>
-        (N) Normal, (L) Late, (M) Minimum, (X) No School, (O) Toggle Odd/Even, (DEL) Clear
+        (N) Normal, (L) Late, (M) Minimum, (X) No School, (O) Toggle Odd/Even, (Shift+O) Alternate Odd/Even, (DEL) Clear
       </span>
     `;
   },
@@ -1066,6 +1100,49 @@ const CalendarUI = {
 
     CalendarManager.saveConfig(config);
     this.render();
+  },
+
+  editLabelForSelection() {
+    document.getElementById('calendarContextMenu').classList.add('hidden');
+    if (this.selectedDates.size === 0) return;
+    const firstDate = Array.from(this.selectedDates)[0];
+    const existing = CalendarManager.getScheduleForDate(firstDate);
+    if (!existing) {
+      NotificationManager.showAlert('', 'Assign a schedule to this day before adding a label.', 'warning');
+      return;
+    }
+    const current = existing.label || '';
+    const count = this.selectedDates.size;
+    const title = count > 1 ? `Edit Label (${count} days)` : 'Edit Label';
+    NotificationManager.showPrompt(title, 'Enter a label for the selected day(s):', current, (value) => {
+      this.selectedDates.forEach(dateString => {
+        CalendarManager.setLabelForDate(dateString, value.trim());
+      });
+      this.render();
+    });
+  },
+
+  previewDay(dateString) {
+    document.getElementById('calendarContextMenu').classList.add('hidden');
+    if (!dateString) return;
+
+    const [year, month, day] = dateString.split('-').map(Number);
+    const target = new Date(year, month - 1, day);
+    const now = new Date();
+
+    const targetMidnight = new Date(year, month - 1, day).getTime();
+    const nowMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const dayDiff = Math.round((targetMidnight - nowMidnight) / 86400000);
+    adjustseconds = dayDiff * 86400;
+
+    const inputBox = document.getElementById('timeadj');
+    if (inputBox) inputBox.value = adjustseconds;
+
+    AutoSchedule();
+    timeadj();
+
+    CalendarUI.close();
+    NotificationManager.showAlert('', `Previewing ${target.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}`, 'info', 3000);
   }
 };
 
@@ -2262,6 +2339,14 @@ largeScheduleMap.testing = {
   baseTitle: "TESTING SCHEDULE"
 };
 
+function getTodayLabel() {
+  const now = new Date();
+  const currentDate = new Date(now.getTime() + adjustseconds * 1000);
+  const dateString = formatDateString(currentDate);
+  const config = CalendarManager.getScheduleForDate(dateString);
+  return (config && config.label) ? config.label : null;
+}
+
 function loadSchedule(scheduleId, forceOddEven = null) {
   lastDisplayState.lastScheduleId = null;
   lastDisplayState.currentPeriod = -1;
@@ -2285,6 +2370,7 @@ function loadSchedule(scheduleId, forceOddEven = null) {
   const timerTypeEl = document.getElementById("timer_type");
   const scheduleDisplayEl = document.getElementById("scheduledisplay");
   const subtitleEl = document.getElementById("subtitle");
+  const todayLabel = getTodayLabel();
 
   if (scheduleId === 'noSchool') {
     times.length = 0;
@@ -2294,6 +2380,7 @@ function loadSchedule(scheduleId, forceOddEven = null) {
     timerTypeEl.textContent = "No School";
     scheduleDisplayEl.textContent = "No school today!";
     lastDisplayState.scheduleHTML = "No school today!";
+    subtitleEl.textContent = todayLabel || '';
 
     updateButtonStates(scheduleId);
     fullUpdate();
@@ -2320,7 +2407,10 @@ function loadSchedule(scheduleId, forceOddEven = null) {
   displayTitle = entry ? entry.baseTitle : "UNKNOWN";
 
   timerTypeEl.textContent = displayTitle;
-  subtitleEl.textContent = template.subtitle || '';
+  const scheduleSubtitle = template.subtitle || '';
+  subtitleEl.textContent = scheduleSubtitle && todayLabel
+    ? `${scheduleSubtitle} · ${todayLabel}`
+    : todayLabel || scheduleSubtitle;
 
   updateButtonStates(scheduleId);
   fullUpdate();
@@ -2474,6 +2564,7 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 
+
 function getSchoolScheduleLink() {
   const now = new Date();
   const month = now.getMonth();
@@ -2484,7 +2575,8 @@ function getSchoolScheduleLink() {
   const currentYearStr = year.toString().padStart(2, '0');
 
   const mainSchoolYear = (month > 5 || (month === 5 && day >= 15)) ?
-    `${currentYearStr}-${nextYear}` :
+    //`${currentYearStr}-${nextYear}` :
+    `25-26` : // Intermediary while the main website still uses 25-26 years for the 26-27 school year
     `${prevYear}-${currentYearStr}`;
 
   const mainLink = `https://bellflowerhigh.org/${mainSchoolYear}schedulescalendars`;
@@ -2499,14 +2591,13 @@ function getSchoolScheduleLink() {
 }
 
 const timeAdjInput = document.querySelector("#timeadj");
-let timeAdjValue = parseFloat(timeAdjInput.value) || 0;
 
 let ticking = false;
 function updateTimeAdjDisplay() {
   if (!ticking) {
     ticking = true;
     requestAnimationFrame(() => {
-      timeAdjInput.value = timeAdjValue;
+      timeAdjInput.value = adjustseconds;
       timeadj();
       ticking = false;
     });
@@ -2515,7 +2606,7 @@ function updateTimeAdjDisplay() {
 
 timeAdjInput.addEventListener("wheel", (event) => {
   event.preventDefault();
-  timeAdjValue += event.deltaY < 0 ? 1 : -1;
+  adjustseconds += event.deltaY < 0 ? 1 : -1;
   updateTimeAdjDisplay();
 });
 
@@ -3264,7 +3355,6 @@ window.onload = async function() {
   UserManager.init(version);
   StorageManager.init();
   DateFormatter.init();
-  initializeSettingsHandlers();
   regenerateScheduleButtons();
   loadPreferences();
   detectStorageLimitAsync();
@@ -3409,6 +3499,38 @@ const NotificationManager = {
     } else {
       this.showToast(title, message, type, duration);
     }
+  },
+
+  showPrompt(title, message, currentValue, confirmCallback, cancelCallback = null) {
+    const inputId = 'notificationPromptInput';
+    const inputHTML = `<p style="margin-bottom:10px;">${message}</p><input id="${inputId}" type="text" value="${(currentValue || '').replace(/"/g, '&quot;')}" placeholder="Leave blank to clear label" style="width:100%;padding:6px 8px;background:var(--dark-2);border:1px solid var(--panel-border);color:var(--text-light);border-radius:3px;font-size:0.95em;box-sizing:border-box;">`;
+    this.show(
+      title,
+      inputHTML,
+      'Save',
+      'Cancel',
+      () => {
+        const input = document.getElementById(inputId);
+        const value = input ? input.value : currentValue;
+        if (confirmCallback) confirmCallback(value);
+      },
+      cancelCallback || function() {},
+      true,
+      'left'
+    );
+    setTimeout(() => {
+      const input = document.getElementById(inputId);
+      if (input) {
+        input.focus();
+        input.select();
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            document.getElementById('notificationPrimaryButton').click();
+          }
+        });
+      }
+    }, 50);
   },
 
   showConfirm(title, message, confirmText, cancelText, confirmCallback, cancelCallback = null) {
@@ -3641,6 +3763,7 @@ const NotificationManager = {
       '2.5.4': this.makeCalendarUpdateConfig('2.5.4'),
       '2.5.5': this.makeCalendarUpdateConfig('2.5.5'),
       '2.6.1': this.makeCalendarUpdateConfig('2.6.1'),
+      '2.7.0': this.makeCalendarUpdateConfig('2.7.0'),
     };
 
     return tertiaryConfigs[version] || null;
@@ -4458,7 +4581,20 @@ const UpdateChecker = {
     this.pendingBadgeVersion = availableVersion;
     this.applyUpdateBadge(availableVersion);
 
-    if (isManual || this.isAfterHours()) {
+    const alreadyNotified = this._notifiedVersion === availableVersion;
+    if (!alreadyNotified && (isManual || this.isAfterHours())) {
+      this._notifiedVersion = availableVersion;
+      NotificationManager.showPersist(
+        'Update Available!',
+        `Version ${availableVersion} is available! Would you like to refresh the page?`,
+        'Refresh to update',
+        'Dismiss',
+        function() {
+          sessionStorage.setItem('swAcceptedUpdate', availableVersion);
+          window.location.reload();
+        }
+      );
+    } else if (isManual && alreadyNotified) {
       NotificationManager.showPersist(
         'Update Available!',
         `Version ${availableVersion} is available! Would you like to refresh the page?`,
@@ -4476,7 +4612,7 @@ const UpdateChecker = {
     const versionSpan = document.getElementById('versionSpan');
     if (!versionSpan) return;
     versionSpan.classList.add('update-available');
-    versionSpan.title = `v${availableVersion} available — click to refresh`;
+    versionSpan.title = `v${availableVersion} available, click to refresh`;
     versionSpan.onclick = function(e) {
       e.preventDefault();
       NotificationManager.showConfirm(
@@ -4499,6 +4635,7 @@ const UpdateChecker = {
     versionSpan.title = '';
     versionSpan.onclick = function(e) { showRecentChanges(e); };
     this.pendingBadgeVersion = null;
+    this._notifiedVersion = null;
   },
 
   init() {
@@ -4562,10 +4699,6 @@ function addSettingsEventListener(element, event, handler) {
 function cleanupSettingsEventListeners() {
   settingsController.abort();
   settingsController = new AbortController();
-}
-
-function initializeSettingsHandlers() {
-  // Deprecated
 }
 
 function evaluateMathExpression(expression) {

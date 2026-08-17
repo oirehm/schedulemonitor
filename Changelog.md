@@ -7,6 +7,27 @@ Changelog Header Order:
 5. Technical Changes
 6. Deprecations
 -->
+## Version 2.7.0
+
+### New Features
+- Day labels: right-click a calendar day and choose "Edit Label..." to attach a short note that shows in the main subtitle
+- Updated the default Bellflower calendar to the 2026-2027 school year
+
+### Improvements
+- Added "Preview This Day" to the calendar right-click menu, jumping the live clock to that date
+- Added a close button to the calendar right-click menu
+- Update notifications no longer repeat themselves after being dismissed once for the same version
+- The service worker now checks the network first and only falls back to the cache when offline, instead of always serving from the cache
+- Temporarily hid the calendar legend's color key, keeping only the shortcut key footer
+
+### Bug Fixes
+- Fixed the Bellflower schedule link falling back to a 404 for the 26-27 school year as the website has not updated the link as of 8/16/26
+- Fixed the calendar right-click menu staying open/stale after left-clicking another day instead of closing
+- Fixed the calendar right-click menu being able to render partially off-screen near window edges
+- Fixed Shift+O not alternating odd/even across selected calendar days
+- Fixed the Anchor Day schedule incorrectly having an extra Snack period in between 1st and 2nd periods
+- Fixed a long day label overflowing and inflating the entire calendar grid
+
 ## Version 2.6.3
 - Actually fixed service worker updates not properly working
 

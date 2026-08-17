@@ -1,4 +1,4 @@
-const CACHE_NAME = 'schedulemonitor-2.6.3'; 
+const CACHE_NAME = 'schedulemonitor-2.7.0';
 
 const STATIC_ASSETS = [
   './',
@@ -93,21 +93,21 @@ self.addEventListener('fetch', event => {
   if (event.request.url.includes('version.json')) return;
 
   event.respondWith(
-    caches.match(event.request).then(cached => {
-      if (cached) return cached;
-      return fetch(event.request).then(response => {
-        const ct = response.headers.get('content-type') || '';
-        const url = event.request.url;
-        if (url.endsWith('.js') && ct.includes('text/html')) return response;
-        if (url.endsWith('.css') && ct.includes('text/html')) return response;
+    fetch(event.request, { cache: 'no-store' }).then(response => {
+      const ct = response.headers.get('content-type') || '';
+      const url = event.request.url;
+      if (url.endsWith('.js') && ct.includes('text/html')) return response;
+      if (url.endsWith('.css') && ct.includes('text/html')) return response;
 
-        const clone = response.clone();
-        caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
-        return response;
-      });
+      const clone = response.clone();
+      caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+      return response;
     }).catch(() => {
-      if (event.request.mode === 'navigate') return caches.match('./index.html');
-      return new Response('Offline', { status: 503 });
+      return caches.match(event.request).then(cached => {
+        if (cached) return cached;
+        if (event.request.mode === 'navigate') return caches.match('./index.html');
+        return new Response('Offline', { status: 503 });
+      });
     })
   );
 });
