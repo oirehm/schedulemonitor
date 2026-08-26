@@ -46,4 +46,4 @@ Bug reports and feature requests: [open an issue](https://github.com/oirehm/sche
 
 ## Contact
 
-[jrmmcapagal@gmail.com](mailto:jrmmcapagal@gmail.com)
+[oirehmiockn@gmail.com](mailto:oirehmiockn@gmail.com)
