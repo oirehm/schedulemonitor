@@ -197,7 +197,7 @@ This project is licensed under the [Apache License 2.0](LICENSE) - see the LICEN
 ### Getting Help
 - **📖 Documentation:** Check this README and inline help text
 - **🐛 Bug Reports:** [GitHub Issues](https://github.com/oirehm/schedulemonitor/issues)
-- **📧 Direct Contact:** [jrmmcapagal@gmail.com](mailto:jrmmcapagal@gmail.com)
+- **📧 Direct Contact:** [oirehmiockn@gmail.com](mailto:oirehmiockn@gmail.com)
 
 ### School-Specific Resources
 - **Bellflower High School:** [Website](https://bellflowerhigh.org/)
